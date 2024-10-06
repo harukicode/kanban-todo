@@ -13,8 +13,9 @@ const Column = ({ column, editColumnTitle, deleteColumn, addTask }) => {
 	return (
 		<div className="flex-grow w-72">
 			<Card isBlurred className="border-none max-w-[610px] shadow-md" style={{ backgroundColor: `${column.color}20` }}>
-				<CardHeader className="flex justify-between items-center">
+				<CardHeader className="flex flex-col items-start">
 					<ColumnHeader column={column} editColumnTitle={editColumnTitle} />
+					<div className="w-full h-[2px] mt-2" style={{ backgroundColor: column.color }}></div>
 				</CardHeader>
 				<CardBody className="overflow-y-auto">
 					{column.tasks && column.tasks.map(task => <Task key={task.id} task={task} />)}
