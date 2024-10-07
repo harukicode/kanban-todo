@@ -1,42 +1,47 @@
-import React, { useState } from "react"; // Importing React and the useState hook for state management
-import { CiViewBoard } from "react-icons/ci"; // Importing icons from the react-icons library
+import React, { useState } from "react";
+import { CiViewBoard } from "react-icons/ci";
 import { RxLapTimer } from "react-icons/rx";
 import { SlNote } from "react-icons/sl";
 import { MdOutlineSettingsSuggest } from "react-icons/md";
 import { IoAddOutline } from "react-icons/io5";
-import { MoreVertical } from "lucide-react"; // Importing vertical ellipsis icon from lucide-react for dropdowns
+import { MoreVertical } from "lucide-react";
 import {
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
-} from "@nextui-org/react"; // Importing Dropdown components
-import { Button, Divider, Avatar } from "@nextui-org/react"; // Importing Button, Divider, and Avatar components
+} from "@nextui-org/react";
+import { Button, Divider, Avatar } from "@nextui-org/react";
 
-// Navigation items array containing icon, label, and the component to be rendered when selected
-const navigationItems = [
-  { icon: CiViewBoard, label: "Kanban Board", component: "Kanban" },
-  { icon: RxLapTimer, label: "Timer", component: "Timer" },
-  { icon: SlNote, label: "Notes" },
-];
 
-// Projects array containing project names and their corresponding colors
-const projects = [
-  { name: "Mobile App", color: "#9333ea" },
-  { name: "Website Redesign", color: "#eab308" },
-  { name: "Design System", color: "#3b82f6" },
-  { name: "Wireframes", color: "#6b7280" },
-];
-
-// Sidebar component that accepts a setActiveComponent prop for changing the active view
+/**
+ * Sidebar component provides navigation and project management functionalities.
+ * It allows users to switch between different views and manage projects.
+ */
 const Sidebar = ({ setActiveComponent }) => {
   // State to track the currently active navigation item
   const [activeItem, setActiveItem] = useState("Kanban Board");
+  
   // State to track the currently active project
   const [activeProject, setActiveProject] = useState(null);
-
+  
+  // Navigation items array containing icon, label, and the component to be rendered when selected
+  const navigationItems = [
+    { icon: CiViewBoard, label: "Kanban Board", component: "Kanban" },
+    { icon: RxLapTimer, label: "Timer", component: "Timer" },
+    { icon: SlNote, label: "Notes", component: "Notes" }, // Added component for consistency
+  ];
+  
+  // Projects array containing project names and their corresponding colors
+  const projects = [
+    { name: "Mobile App", color: "#9333ea" },
+    { name: "Website Redesign", color: "#eab308" },
+    { name: "Design System", color: "#3b82f6" },
+    { name: "Wireframes", color: "#6b7280" },
+  ];
+  
   return (
-    // Sidebar container with some styles for width, height, and background transparency
+    // Sidebar container with styles for width, height, and background transparency
     <aside className="w-64 h-screen bg-white/30 backdrop-blur-md rounded-r-3xl flex flex-col overflow-hidden">
       <div className="flex-grow px-4 py-6 overflow-hidden">
         {/* User profile section with an avatar and greeting */}
@@ -50,10 +55,10 @@ const Sidebar = ({ setActiveComponent }) => {
             <p>Illia</p> {/* Hardcoded user name */}
           </div>
         </div>
+        
         {/* Navigation section */}
         <nav>
-          <h3 className="text-lg font-semibold mb-4">Navigation</h3>{" "}
-          {/* Section title */}
+          <h3 className="text-lg font-semibold mb-4">Navigation</h3> {/* Section title */}
           <ul className="space-y-2 mb-6">
             {navigationItems.map((item) => (
               <li key={item.label}>
@@ -73,11 +78,12 @@ const Sidebar = ({ setActiveComponent }) => {
             ))}
           </ul>
         </nav>
+        
         <Divider className="my-4" /> {/* Divider line to separate sections */}
+        
         {/* Projects section */}
         <div className="w-64 p-4 rounded-lg flex-grow overflow-hidden">
-          <h3 className="text-lg font-semibold mb-4">MY PROJECTS</h3>{" "}
-          {/* Section title */}
+          <h3 className="text-lg font-semibold mb-4">MY PROJECTS</h3> {/* Section title */}
           <ul className="space-y-2">
             {projects.map((project, index) => (
               <li key={index}>
@@ -107,8 +113,7 @@ const Sidebar = ({ setActiveComponent }) => {
                   <Dropdown>
                     <DropdownTrigger>
                       <Button isIconOnly size="sm" variant="light">
-                        <MoreVertical size={16} />{" "}
-                        {/* Vertical ellipsis icon */}
+                        <MoreVertical size={16} /> {/* Vertical ellipsis icon */}
                       </Button>
                     </DropdownTrigger>
                     <DropdownMenu>
@@ -122,7 +127,7 @@ const Sidebar = ({ setActiveComponent }) => {
           </ul>
         </div>
       </div>
-
+      
       {/* Footer section with buttons for creating a new project or accessing settings */}
       <div className="p-4 border-t border-gray-200 flex-shrink-0">
         <Button
@@ -143,5 +148,7 @@ const Sidebar = ({ setActiveComponent }) => {
     </aside>
   );
 };
+
+
 
 export default Sidebar;

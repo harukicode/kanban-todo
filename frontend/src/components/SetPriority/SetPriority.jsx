@@ -1,12 +1,16 @@
+import React from "react";
 import { Select, SelectItem } from "@nextui-org/select";
 
-export default function SetPreority({ selectedPriority, setSelectedPriority }) {
-	const priorities = ["None", "Low", "Secondary", "Hight"];
+/**
+ * SetPriority component provides a dropdown to select the priority of a task.
+ */
+const SetPriority = ({ selectedPriority, setSelectedPriority }) => {
+	const priorities = ["None", "Low", "Secondary", "High"]; // Corrected 'High'
 	const colorMapping = {
 		None: "default",
 		Low: "warning",
 		Secondary: "primary",
-		Hight: "danger",
+		High: "danger",
 	};
 	
 	return (
@@ -20,11 +24,13 @@ export default function SetPreority({ selectedPriority, setSelectedPriority }) {
 				className="max-w-xs"
 			>
 				{priorities.map((priority) => (
-					<SelectItem key={priority}>
-						{priority}
-					</SelectItem>
+					<SelectItem key={priority}>{priority}</SelectItem>
 				))}
 			</Select>
 		</div>
 	);
-}
+};
+
+
+
+export default SetPriority;
