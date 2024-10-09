@@ -1,126 +1,98 @@
-import React, { useState } from "react";
-import { CiViewBoard } from "react-icons/ci";
-import { RxLapTimer } from "react-icons/rx";
-import { SlNote } from "react-icons/sl";
-import { MdOutlineSettingsSuggest } from "react-icons/md";
+import React from "react";
+import { Link } from "react-router-dom";
 import { IoAddOutline } from "react-icons/io5";
+import { MdOutlineSettingsSuggest } from "react-icons/md";
 import { MoreVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import {
-  Dropdown,
-  DropdownTrigger,
   DropdownMenu,
-  DropdownItem,
-} from "@nextui-org/react";
-import { Button, Divider, Avatar } from "@nextui-org/react";
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { useNavigationItems } from '@/hooks/useNavigationItems.jsx'
+import { useProjects} from '@/hooks/useProjects.jsx'
 
-
-/**
- * Sidebar component provides navigation and project management functionalities.
- * It allows users to switch between different views and manage projects.
- */
-const Sidebar = ({ setActiveComponent }) => {
-  // State to track the currently active navigation item
-  const [activeItem, setActiveItem] = useState("Kanban Board");
-  
-  // State to track the currently active project
-  const [activeProject, setActiveProject] = useState(null);
-  
-  // Navigation items array containing icon, label, and the component to be rendered when selected
-  const navigationItems = [
-    { icon: CiViewBoard, label: "Kanban Board", component: "Kanban" },
-    { icon: RxLapTimer, label: "Timer", component: "Timer" },
-    { icon: SlNote, label: "Notes", component: "Notes" }, // Added component for consistency
-  ];
-  
-  // Projects array containing project names and their corresponding colors
-  const projects = [
-    { name: "Mobile App", color: "#9333ea" },
-    { name: "Website Redesign", color: "#eab308" },
-    { name: "Design System", color: "#3b82f6" },
-    { name: "Wireframes", color: "#6b7280" },
-  ];
+const Sidebar = () => {
+  const { navigationItems, currentPath } = useNavigationItems();
+  const { projects, activeProject, setActiveProject } = useProjects();
   
   return (
-    // Sidebar container with styles for width, height, and background transparency
-    <aside className="w-64 h-screen bg-white/30 backdrop-blur-md rounded-r-3xl flex flex-col overflow-hidden">
+    <aside className="w-64 h-screen bg-zinc-100 border-spacing-1.5 shadow-xl backdrop-blur-md rounded-r-3xl flex flex-col overflow-hidden">
       <div className="flex-grow px-4 py-6 overflow-hidden">
-        {/* User profile section with an avatar and greeting */}
         <div className="flex items-center mb-6">
-          <Avatar
-            src="https://d11a6trkgmumsb.cloudfront.net/original/3X/d/8/d8b5d0a738295345ebd8934b859fa1fca1c8c6ad.jpeg"
-            className="mr-3"
-          />
+          <Avatar className="mr-3">
+            <AvatarImage src="https://d11a6trkgmumsb.cloudfront.net/original/3X/d/8/d8b5d0a738295345ebd8934b859fa1fca1c8c6ad.jpeg" />
+            <AvatarFallback>IL</AvatarFallback>
+          </Avatar>
           <div>
-            <p className="font-semibold">Good Morning,</p> {/* Greeting text */}
-            <p>Illia</p> {/* Hardcoded user name */}
+            <p className="font-semibold">Good Morning,</p>
+            <p>Illia</p>
           </div>
         </div>
         
-        {/* Navigation section */}
         <nav>
-          <h3 className="text-lg font-semibold mb-4">Navigation</h3> {/* Section title */}
+          <h3 className="text-lg font-semibold mb-4">Navigation</h3>
           <ul className="space-y-2 mb-6">
             {navigationItems.map((item) => (
               <li key={item.label}>
-                <Button
-                  className="w-full justify-start rounded-xl" // Styling for button alignment and rounded corners
-                  color={activeItem === item.label ? "primary" : "default"} // Highlight button if active
-                  variant={activeItem === item.label ? "solid" : "ghost"} // Solid variant if active, otherwise ghost (transparent)
-                  startContent={<item.icon size={22} />} // Icon rendering for each item
-                  onPress={() => {
-                    setActiveItem(item.label); // Set the active navigation item
-                    if (item.component) setActiveComponent(item.component); // Change the active component
-                  }}
+                <Link
+                  to={item.path}
+                  className={`w-full justify-start rounded-xl text-black flex items-center p-2 ${
+                    currentPath === item.path
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-transparent hover:bg-accent hover:text-accent-foreground"
+                  }`}
                 >
-                  {item.label} {/* Label of the navigation item */}
-                </Button>
+                  <item.icon size={22} className="mr-2" />
+                  {item.label}
+                </Link>
               </li>
             ))}
           </ul>
         </nav>
         
-        <Divider className="my-4" /> {/* Divider line to separate sections */}
+        <Separator className="my-4" />
         
-        {/* Projects section */}
         <div className="w-64 p-4 rounded-lg flex-grow overflow-hidden">
-          <h3 className="text-lg font-semibold mb-4">MY PROJECTS</h3> {/* Section title */}
+          <h3 className="text-lg font-semibold mb-4">MY PROJECTS</h3>
           <ul className="space-y-2">
             {projects.map((project, index) => (
               <li key={index}>
                 <div
-                  className="flex items-center justify-between p-2 hover:bg-gray-100 rounded-md cursor-pointer"
-                  onClick={() => setActiveProject(project.name)} // Set active project when clicked
+                  className="flex items-center justify-between p-2 hover:bg-accent hover:text-accent-foreground rounded-md cursor-pointer"
+                  onClick={() => setActiveProject(project.name)}
                 >
                   <div className="flex items-center space-x-3">
                     <div
                       style={{
                         width: "8px",
                         height: "8px",
-                        borderRadius: "50%", // Small circular indicator for project color
+                        borderRadius: "50%",
                         backgroundColor: project.color,
                       }}
                     ></div>
-                    {/* Highlight the project name if it's the active one */}
                     <span
                       className={`${
                         activeProject === project.name ? "font-semibold" : ""
                       }`}
                     >
-                      {project.name} {/* Name of the project */}
+                      {project.name}
                     </span>
                   </div>
-                  {/* Dropdown for project actions like edit or delete */}
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <Button isIconOnly size="sm" variant="light">
-                        <MoreVertical size={16} /> {/* Vertical ellipsis icon */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                        <MoreVertical size={16} />
                       </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu>
-                      <DropdownItem>Edit</DropdownItem> {/* Edit option */}
-                      <DropdownItem>Delete</DropdownItem> {/* Delete option */}
-                    </DropdownMenu>
-                  </Dropdown>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                      <DropdownMenuItem>Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </li>
             ))}
@@ -128,27 +100,24 @@ const Sidebar = ({ setActiveComponent }) => {
         </div>
       </div>
       
-      {/* Footer section with buttons for creating a new project or accessing settings */}
       <div className="p-4 border-t border-gray-200 flex-shrink-0">
         <Button
           className="w-full mb-2 rounded-xl"
-          color="primary"
-          startContent={<IoAddOutline size={22} />} // Icon for adding a new project
+          variant="default"
         >
+          <IoAddOutline size={22} className="mr-2" />
           New Project
         </Button>
         <Button
           className="w-full rounded-xl"
-          variant="ghost"
-          startContent={<MdOutlineSettingsSuggest size={22} />} // Icon for settings
+          variant="outline"
         >
+          <MdOutlineSettingsSuggest size={22} className="mr-2" />
           Settings
         </Button>
       </div>
     </aside>
   );
 };
-
-
 
 export default Sidebar;

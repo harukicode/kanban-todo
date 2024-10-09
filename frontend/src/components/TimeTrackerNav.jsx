@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Card, CardBody, Progress, Input, Popover, PopoverTrigger, PopoverContent, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@nextui-org/react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pause, Play, Calendar, ChevronDown } from 'lucide-react';
 
 const TimeTrackerNav = () => {
@@ -88,34 +93,31 @@ const TimeTrackerNav = () => {
   return (
     <div className="p-4 w-full flex justify-center items-start">
       <Card className="w-full max-w-8xl bg-white/80 backdrop-blur-md shadow-lg rounded-lg">
-        <CardBody className="p-6">
+        <CardContent className="p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-gray-700">My Timer</h2>
             <div className="flex items-center space-x-2">
               <Popover>
-                <PopoverTrigger>
-                  <Button variant="bordered" endContent={<ChevronDown size={16} />}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[280px]">
                     {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
+                    <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent>
-                  <div className="p-4">
-                    <div className="flex justify-between mb-4">
-                      <Input
-                        type="date"
-                        label="Start Date"
-                        value={dateRange.start.toISOString().split('T')[0]}
-                        onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))}
-                      />
-                      <Input
-                        type="date"
-                        label="End Date"
-                        value={dateRange.end.toISOString().split('T')[0]}
-                        onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))}
-                      />
-                    </div>
-                    <Button color="primary" onPress={() => setDateRange({ start: new Date(), end: new Date() })}>
+                <PopoverContent className="w-[280px] p-4">
+                  <div className="flex flex-col space-y-4">
+                    <Input
+                      type="date"
+                      value={dateRange.start.toISOString().split('T')[0]}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))}
+                    />
+                    <Input
+                      type="date"
+                      value={dateRange.end.toISOString().split('T')[0]}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))}
+                    />
+                    <Button onClick={() => setDateRange({ start: new Date(), end: new Date() })}>
                       Reset to Today
                     </Button>
                   </div>
@@ -123,9 +125,9 @@ const TimeTrackerNav = () => {
               </Popover>
               <Button
                 className={`rounded-full px-6 py-2 text-white transition-all duration-300 ${isRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
-                onPress={handleStartStop}
-                startContent={isRunning ? <Pause size={24} /> : <Play size={24} />}
+                onClick={handleStartStop}
               >
+                {isRunning ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
                 {isRunning ? 'Stop' : 'Start'}
               </Button>
             </div>
@@ -141,27 +143,22 @@ const TimeTrackerNav = () => {
             <div className="flex justify-between mb-2">
               {generateTimelineMarkers()}
             </div>
-            <Progress
-              aria-label="Time progress"
-              value={progress}
-              className="h-2 rounded-full"
-              color="success"
-            />
+            <Progress value={progress} className="h-2 rounded-full" />
           </div>
           
           {/* Action Buttons */}
           <div className="flex space-x-4 mb-6">
             <Button
               className="flex-1 bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors duration-300 rounded-full"
-              startContent={<Plus size={18} />}
-              onPress={() => setIsAddTaskModalOpen(true)}
+              onClick={() => setIsAddTaskModalOpen(true)}
             >
+              <Plus className="mr-2 h-4 w-4" />
               Add Task
             </Button>
             <Button
               className="flex-1 bg-purple-100 text-purple-600 hover:bg-purple-200 transition-colors duration-300 rounded-full"
-              startContent={<Calendar size={18} />}
             >
+              <Calendar className="mr-2 h-4 w-4" />
               View Calendar
             </Button>
           </div>
@@ -188,38 +185,39 @@ const TimeTrackerNav = () => {
               <Button
                 key={task.id}
                 className="w-full justify-between bg-gray-50 hover:bg-gray-100 transition-colors duration-300"
-                onPress={() => handleTaskSelect(task)}
+                onClick={() => handleTaskSelect(task)}
               >
                 <span>{task.name}</span>
                 <span>{formatTime(task.timeSpent || 0)}</span>
               </Button>
             ))}
           </div>
-        </CardBody>
+        </CardContent>
       </Card>
       
       {/* Add Task Modal */}
-      <Modal isOpen={isAddTaskModalOpen} onClose={() => setIsAddTaskModalOpen(false)}>
-        <ModalContent>
-          <ModalHeader>Add New Task</ModalHeader>
-          <ModalBody>
+      <Dialog open={isAddTaskModalOpen} onOpenChange={setIsAddTaskModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
             <Input
-              label="Task Name"
               placeholder="Enter task name"
               value={newTaskName}
               onChange={(e) => setNewTaskName(e.target.value)}
             />
-          </ModalBody>
-          <ModalFooter>
-            <Button color="danger" variant="light" onPress={() => setIsAddTaskModalOpen(false)}>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddTaskModalOpen(false)}>
               Cancel
             </Button>
-            <Button color="primary" onPress={handleAddTask}>
+            <Button onClick={handleAddTask}>
               Add Task
             </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

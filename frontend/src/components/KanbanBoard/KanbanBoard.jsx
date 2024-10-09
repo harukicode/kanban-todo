@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import Header from "./Header";
-import ColumnList from "./ColumnList";
-import NewColumnInput from "./NewColumnInput";
-import EditColumnModal from "./EditColumnModal";
-
+import ColumnList from "../Column/ColumnList.jsx";
 /**
  * KanbanBoard component serves as the main container for the Kanban board.
  * It manages the state of columns, edit mode, active project, and handles adding/editing columns.
@@ -16,15 +13,13 @@ const KanbanBoard = () => {
     { id: "3", title: "Done", tasks: [], color: "#3b82f6" },
   ]);
   
-  // State for managing modal visibility and the current column being edited
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentColumn, setCurrentColumn] = useState(null);
+
   
   // State for managing new column input
   const [newColumnTitle, setNewColumnTitle] = useState("");
   
   // State for managing edit mode and active project selection
-  const [editMode, setEditMode] = useState(false);
+  const [addTimer, setAddTimer] = useState(false);
   const [activeProject, setActiveProject] = useState("all");
   
   // List of available projects
@@ -34,26 +29,6 @@ const KanbanBoard = () => {
     { id: "3", name: "Design System" },
   ];
   
-  /**
-   * Opens the edit modal for a specific column.
-   * @param {Object} column - The column to be edited.
-   */
-  const handleEditClick = (column) => {
-    setCurrentColumn(column);
-    setIsModalOpen(true);
-  };
-  
-  /**
-   * Saves the edited column details.
-   * @param {Object} updatedColumn - The column with updated details.
-   */
-  const handleSaveColumn = (updatedColumn) => {
-    setColumns((prevColumns) =>
-      prevColumns.map((col) =>
-        col.id === updatedColumn.id ? updatedColumn : col
-      )
-    );
-  };
   
   /**
    * Adds a new column to the Kanban board.
@@ -75,8 +50,8 @@ const KanbanBoard = () => {
     <div className="kanban-container p-4">
       {/* Header component with edit mode and project selection */}
       <Header
-        editMode={editMode}
-        setEditMode={setEditMode}
+        addTimer={addTimer}
+        setAddTimer={setAddTimer}
         projects={projects}
         activeProject={activeProject}
         setActiveProject={setActiveProject}
@@ -85,27 +60,9 @@ const KanbanBoard = () => {
       {/* List of columns */}
       <ColumnList
         columns={columns}
-        editMode={editMode}
-        handleEditClick={handleEditClick}
         setColumns={setColumns}
       />
       
-      {/* Input for adding a new column, visible only in edit mode */}
-      {editMode && (
-        <NewColumnInput
-          newColumnTitle={newColumnTitle}
-          setNewColumnTitle={setNewColumnTitle}
-          addColumn={addColumn}
-        />
-      )}
-      
-      {/* Modal for editing a column */}
-      <EditColumnModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        column={currentColumn}
-        onSave={handleSaveColumn}
-      />
     </div>
   );
 };

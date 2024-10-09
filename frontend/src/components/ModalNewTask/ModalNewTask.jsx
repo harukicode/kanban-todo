@@ -1,91 +1,76 @@
+import { Label } from '@/components/ui/label.jsx'
 import React, { useState } from "react";
 import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-} from "@nextui-org/react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import InputNewTask from "./InputNewTask";
 import SetPriority from "../SetPriority/SetPriority";
-import { Textarea } from "../ui/textarea"; // Adjust the path based on your structure
 
-
-/**
- * ModalNewTask component manages the creation of a new task.
- * It includes inputs for task title, description, and priority.
- */
 const ModalNewTask = ({ isOpen, onClose, addNewTask }) => {
-  // State for storing task details
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskPriority, setTaskPriority] = useState("None");
   
-  /**
-   * Handles adding a new task by invoking the addTask prop function.
-   */
   const handleAddTask = () => {
     if (taskTitle.trim() === "") {
-      alert("Task title cannot be empty."); // Simple error handling
-      return; // Prevent adding tasks without a title
+      alert("Task title cannot be empty.");
+      return;
     }
-    
     const newTask = {
       id: Date.now().toString(),
       title: taskTitle.trim(),
       description: taskDescription.trim(),
       priority: taskPriority,
     };
-
-
-    addNewTask(newTask); // Invoke the addTask function passed via props
-
-    
-    // Reset form fields
+    addNewTask(newTask);
     setTaskTitle("");
     setTaskDescription("");
     setTaskPriority("None");
+    onClose();
   };
   
   return (
-    <Modal open={isOpen} onClose={onClose} closeButton>
-      <ModalHeader>Create New Task</ModalHeader>
-      <ModalBody>
-        <div className="flex flex-col gap-4">
-          {/* Task Title Input */}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Task</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
           <InputNewTask
             value={taskTitle}
             onChange={(e) => setTaskTitle(e.target.value)}
           />
-          
-          {/* Task Description Textarea */}
+          <Label htmlFor="taskInput" className="text-sm font-medium ">
+            Description name (optional)
+          </Label>
           <Textarea
-            label="Description"
             placeholder="Enter description"
             value={taskDescription}
             onChange={(e) => setTaskDescription(e.target.value)}
-            className="resize-none overflow-hidden min-h-[50px] focus:h-auto"
+            className="resize-none overflow-hidden min-h-[50px] focus:h-auto mt-2 mb-4"
           />
-          
-          {/* Task Priority Selector */}
           <SetPriority
             selectedPriority={taskPriority}
             setSelectedPriority={setTaskPriority}
           />
         </div>
-      </ModalBody>
-      <ModalFooter>
-        <Button color="danger" variant="light" onPress={onClose}>
-          Close
-        </Button>
-        <Button color="primary" onPress={handleAddTask}>
-          Done
-        </Button>
-      </ModalFooter>
-    </Modal>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          <Button onClick={handleAddTask}>
+            Done
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
-
-
 
 export default ModalNewTask;
