@@ -12,8 +12,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { useNavigationItems } from '@/hooks/useNavigationItems.jsx'
-import { useProjects} from '@/hooks/useProjects.jsx'
+import { useNavigationItems } from '@/hooks/navigationMenuHooks/useNavigationItems.jsx'
+import { useProjects} from '@/hooks/navigationMenuHooks/useProjects.jsx'
 
 const Sidebar = () => {
   const { navigationItems, currentPath } = useNavigationItems();

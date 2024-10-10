@@ -1,9 +1,11 @@
+import { useSortable } from '@dnd-kit/sortable'
 import React, { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import Task from '../Task/Task';
 import ModalNewTask from '../ModalNewTask/ModalNewTask';
 import { ColumnPropertiesButton } from './ColumnPropertiesButton';
 import { Button } from "@/components/ui/button"
+import {CSS} from '@dnd-kit/utilities'
 
 const useModal = () => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -25,11 +27,22 @@ export default function Column({ column, addNewTask, updateColumnColor, deleteTa
 		deleteTask(column.id, taskId);
 	}, [column.id, deleteTask]);
 	
+	const { setNodeRef, attributes, listeners, transform, transition } = useSortable({
+		id: column.id,
+		data: { column },
+	});
+	
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+	};
+	
+	
 	return (
 		<div className="flex-grow w-72">
 			<div className="mb-4">
-				<div className="flex items-center justify-between mb-2">
-					<h3
+				<div ref={setNodeRef} style={style} className="flex items-center justify-between mb-2">
+					<h3 {...attributes} {...listeners}
 						className="text-sm font-semibold"
 						style={{ color: column.color || 'inherit' }}
 					>

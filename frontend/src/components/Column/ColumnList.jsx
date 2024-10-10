@@ -1,3 +1,5 @@
+import { DndContext } from '@dnd-kit/core'
+import { SortableContext } from '@dnd-kit/sortable'
 import React, { useCallback } from "react";
 import Column from '@/components/Column/Column.jsx'
 
@@ -33,8 +35,13 @@ const ColumnList = ({ columns, setColumns }) => {
 		return null;
 	}
 	
+	const columnsId = columns.map((column) => column.id);
+	
+	
 	return (
+		<SortableContext items={columnsId}>
 		<div className="flex space-x-4 overflow-x-auto pb-4">
+
 			{columns.map((column) => (
 				<Column
 					key={column.id}
@@ -45,6 +52,7 @@ const ColumnList = ({ columns, setColumns }) => {
 				/>
 			))}
 		</div>
+		</SortableContext>
 	);
 };
 

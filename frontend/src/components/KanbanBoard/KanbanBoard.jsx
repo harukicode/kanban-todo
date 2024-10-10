@@ -1,3 +1,4 @@
+import { DndContext } from '@dnd-kit/core'
 import React, { useState } from "react";
 import Header from "./Header";
 import ColumnList from "../Column/ColumnList.jsx";
@@ -46,6 +47,10 @@ const KanbanBoard = () => {
     setNewColumnTitle("");
   };
   
+  function onDragStart(event: DragStartEvent) {
+    console.log('drag started', event);
+  }
+
   return (
     <div className="kanban-container p-4">
       {/* Header component with edit mode and project selection */}
@@ -58,11 +63,12 @@ const KanbanBoard = () => {
       />
       
       {/* List of columns */}
+      <DndContext onDragStart={onDragStart} >
       <ColumnList
         columns={columns}
         setColumns={setColumns}
       />
-      
+      </DndContext>
     </div>
   );
 };
