@@ -252,7 +252,7 @@ export default function AddTimer() {
 										</div>
 									</div>
 								))}
-							</div>
+					 		</div>
 						</DialogContent>
 					</Dialog>
 					<Button variant="ghost" size="sm">
