@@ -1,63 +1,58 @@
-import React from "react";
+import React, { useState } from "react";
 import { Trash } from "lucide-react"
-
 import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { usePriorityColor } from "@/hooks/usePriorityColor.jsx"; // Custom hook for priority color
+import { usePriorityColor } from "@/hooks/usePriorityColor.jsx";
+import TaskModal from "./TaskModal";
+import AddTimer from '@/components/KanbanBoard/AddTimer/AddTimer.jsx'
 
-/**
- * Task component displays an individual task within a column.
- * It shows the task's priority, title, and description.
- */
-const Task = ({ task, onDelete }) => {
-  // Get the appropriate color class for the task priority
+const Task = ({ task, onDelete, onUpdate }) => {
   const priorityColorClass = usePriorityColor(task.priority);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
+  
+  const handleTaskClick = () => {
+    setIsModalOpen(true);
+  };
+  
+  const handleTimerToggle = (e) => {
+    e.stopPropagation();
+    setShowTimer(!showTimer);
+  };
   
   return (
-    <Card className="mb-4 bg-zinc-100 backdrop-blur-md">
-      <CardHeader>
-        <div className="flex items-center justify-start mb-2">
-          {/* Tooltip displaying the priority label */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={`capitalize text-xs px-1 py-0 min-w-14 h-7 ${priorityColorClass}`}
-                >
-                  {task.priority} {/* Display the task priority inside the button */}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="capitalize">{task.priority}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <Button variant="ghost" className="ml-auto" onClick={() => onDelete(task.id)}>
-            <Trash size={18}/>
-          </Button>
+    <div className="relative">
+      {showTimer && (
+        <div className="absolute right-full mr-4 top-0">
+          <AddTimer />
         </div>
-        
-        {/* Task title */}
-        <CardTitle className="text-lg font-bold">{task.title}</CardTitle>
-        
-        {/* Task description */}
-        <CardDescription className="text-sm">
-          {task.description}
-        </CardDescription>
-      </CardHeader>
-    </Card>
+      )}
+      <Card
+        className={`mb-4 ${priorityColorClass} cursor-pointer`}
+        onClick={handleTaskClick}
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold">{task.title}</CardTitle>
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" onClick={(e) => { e.stopPropagation(); onDelete(task.id); }} className="p-0 h-auto">
+                <Trash size={18}/>
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+      <TaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        task={task}
+        onUpdate={onUpdate}
+      />
+    </div>
   );
 };
 
