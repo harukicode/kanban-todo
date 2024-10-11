@@ -36,6 +36,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
 								Name
 							</Label>
 							<Input
+								autoComplete="off"
 								id="projectName"
 								value={projectName}
 								onChange={(e) => setProjectName(e.target.value)}

@@ -1,10 +1,10 @@
-import { useProjects } from '@/hooks/navigationMenuHooks/useProjects.jsx'
 import { useState } from "react";
 import { DndContext, closestCorners, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { arrayMove} from '@dnd-kit/sortable';
 import Header from "./Header";
 import Column from "../Column/Column.jsx";
 import Task from "../Task/Task.jsx";
+import { useProjects } from '../ProjectContext.jsx'
 
 const KanbanBoard = () => {
   const [columns, setColumns] = useState([
@@ -12,11 +12,9 @@ const KanbanBoard = () => {
     { id: "2", title: "In Progress", tasks: [], color: "#eab308" },
     { id: "3", title: "Done", tasks: [], color: "#3b82f6" },
   ]);
-  
   const [activeTask, setActiveTask] = useState(null);
   const [addTimer, setAddTimer] = useState(false);
-  const { projects, activeProjectId, setActiveProjectId } = useProjects();
-  
+  const { projects, activeProjectId } = useProjects();
 
   
   const sensors = useSensors(
@@ -144,9 +142,6 @@ const KanbanBoard = () => {
       <Header
         addTimer={addTimer}
         setAddTimer={setAddTimer}
-        projects={projects}
-        activeProjectId={activeProjectId}
-        setActiveProjectId={setActiveProjectId}
       />
       
       <DndContext

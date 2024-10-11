@@ -9,14 +9,11 @@ import { IoIosTimer } from "react-icons/io";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import AddTimer from '@/components/KanbanBoard/AddTimer/AddTimer.jsx'
 import { ChevronDown } from "lucide-react";
+import { useProjects } from '../ProjectContext'
 
-const Header = ({
-	                addTimer,
-	                setAddTimer,
-	                projects,
-	                activeProjectId,
-	                setActiveProjectId,
-                }) => {
+
+const Header = ({ addTimer, setAddTimer }) => {
+	const { projects, activeProjectId, setActiveProjectId } = useProjects();
 	const activeProject = projects.find(p => p.id === activeProjectId) || projects[0];
 	
 	return (

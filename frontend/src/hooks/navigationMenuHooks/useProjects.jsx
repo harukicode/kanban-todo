@@ -1,3 +1,4 @@
+// useProjects.jsx
 import { useState } from "react";
 
 export const useProjects = () => {
@@ -11,7 +12,9 @@ export const useProjects = () => {
 	const [activeProjectId, setActiveProjectId] = useState("all");
 	
 	const addProject = (newProject) => {
-		setProjects([...projects, { ...newProject, id: Date.now().toString() }]);
+		const updatedProjects = [...projects, { ...newProject, id: Date.now().toString() }];
+		setProjects(updatedProjects);
+		return updatedProjects;
 	};
 	
 	const getActiveProject = () => projects.find(p => p.id === activeProjectId) || projects[0];

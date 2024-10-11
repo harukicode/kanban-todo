@@ -1,5 +1,5 @@
 import AddProjectModal from '@/components/SideBar/NewProjectModal.jsx'
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link } from "react-router-dom";
 import { IoAddOutline } from "react-icons/io5";
 import { MdOutlineSettingsSuggest } from "react-icons/md";
@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useNavigationItems } from '@/hooks/navigationMenuHooks/useNavigationItems.jsx'
-import { useProjects} from '@/hooks/navigationMenuHooks/useProjects.jsx'
+import { useProjects } from '../ProjectContext.jsx'
 
 const Sidebar = () => {
   const { navigationItems, currentPath } = useNavigationItems();

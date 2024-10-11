@@ -4,10 +4,11 @@ import Sidebar from "../components/SideBar/Sidebar.jsx";
 import KanbanBoard from "../components/KanbanBoard/KanbanBoard.jsx";
 import TimeTrackerNav from '@/components/TimeTrackerNav.jsx'
 import "./App.css";
-
+import { ProjectProvider } from '../components/ProjectContext'
 const App = () => {
   return (
     <Router>
+      <ProjectProvider>
       <div className="flex">
         <Sidebar />
         <main className="flex-grow p-4">
@@ -19,6 +20,7 @@ const App = () => {
           </Routes>
         </main>
       </div>
+      </ProjectProvider>
     </Router>
   );
 };
