@@ -1,6 +1,7 @@
+import { useProjects } from '@/hooks/navigationMenuHooks/useProjects.jsx'
 import { useState } from "react";
 import { DndContext, closestCorners, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove} from '@dnd-kit/sortable';
 import Header from "./Header";
 import Column from "../Column/Column.jsx";
 import Task from "../Task/Task.jsx";
@@ -14,13 +15,9 @@ const KanbanBoard = () => {
   
   const [activeTask, setActiveTask] = useState(null);
   const [addTimer, setAddTimer] = useState(false);
-  const [activeProject, setActiveProject] = useState("all");
+  const { projects, activeProjectId, setActiveProjectId } = useProjects();
   
-  const projects = [
-    { id: "1", name: "Mobile App" },
-    { id: "2", name: "Website Redesign" },
-    { id: "3", name: "Design System" },
-  ];
+
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -131,11 +128,16 @@ const KanbanBoard = () => {
     setColumns(prevColumns =>
       prevColumns.map(column =>
         column.id === columnId
-          ? { ...column, tasks: [...column.tasks, { ...newTask, id: Date.now().toString() }] }
+          ? { ...column, tasks: [...column.tasks, { ...newTask, id: Date.now().toString(), projectId: activeProjectId }] }
           : column
       )
     );
   };
+  
+  const filteredColumns = columns.map(column => ({
+    ...column,
+    tasks: column.tasks.filter(task => activeProjectId === "all" || task.projectId === activeProjectId)
+  }));
   
   return (
     <div className="kanban-container p-4">
@@ -143,8 +145,8 @@ const KanbanBoard = () => {
         addTimer={addTimer}
         setAddTimer={setAddTimer}
         projects={projects}
-        activeProject={activeProject}
-        setActiveProject={setActiveProject}
+        activeProjectId={activeProjectId}
+        setActiveProjectId={setActiveProjectId}
       />
       
       <DndContext
@@ -155,7 +157,7 @@ const KanbanBoard = () => {
         onDragEnd={onDragEnd}
       >
         <div className="flex space-x-4 pb-4">
-          {columns.map((column) => (
+          {filteredColumns.map((column) => (
             <Column
               key={column.id}
               column={column}
