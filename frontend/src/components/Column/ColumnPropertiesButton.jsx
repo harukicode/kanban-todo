@@ -26,7 +26,6 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-const labels = ["feature", "bug", "enhancement", "documentation", "design", "question", "maintenance"];
 
 const colors = [
 	{ name: "Purple", value: "#9333ea" },
@@ -39,11 +38,8 @@ const colors = [
 	{ name: "Teal", value: "#14b8a6" },
 ];
 
-export const ColumnPropertiesButton = React.memo(({ setLabel, open, setOpen, handleOpenModal, onColorChange }) => {
-	const handleLabelSelect = useCallback((value) => {
-		setLabel(value);
-		setOpen(false);
-	}, [setLabel, setOpen]);
+export const ColumnPropertiesButton = React.memo(({ open, setOpen, handleOpenModal, onColorChange }) => {
+
 	
 	const handleColorSelect = useCallback((color) => {
 		onColorChange(color);

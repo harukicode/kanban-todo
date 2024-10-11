@@ -1,11 +1,12 @@
-import { useSortable } from '@dnd-kit/sortable'
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 import Task from '../Task/Task';
 import ModalNewTask from '../ModalNewTask/ModalNewTask';
 import { ColumnPropertiesButton } from './ColumnPropertiesButton';
-import { Button } from "@/components/ui/button"
-import {CSS} from '@dnd-kit/utilities'
+import { Button } from "@/components/ui/button";
 
 const useModal = () => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -14,39 +15,26 @@ const useModal = () => {
 	return { isOpen, open, close };
 };
 
-export default function Column({ column, addNewTask, updateColumnColor, deleteTask }) {
+export default function Column({ column, tasks, addNewTask }) {
 	const { isOpen: isModalOpen, open: handleOpenModal, close: handleCloseModal } = useModal();
 	const [label, setLabel] = useState("feature");
 	const [propertiesOpen, setPropertiesOpen] = useState(false);
 	
-	const handleColorChange = useCallback((newColor) => {
-		updateColumnColor(column.id, newColor);
-	}, [column.id, updateColumnColor]);
-	
-	const handleDeleteTask = useCallback((taskId) => {
-		deleteTask(column.id, taskId);
-	}, [column.id, deleteTask]);
-	
-	const { setNodeRef, attributes, listeners, transform, transition } = useSortable({
+	const { setNodeRef } = useDroppable({
 		id: column.id,
-		data: { column },
 	});
 	
-	const style = {
-		transform: CSS.Transform.toString(transform),
-		transition,
+	const handleAddTask = (newTask) => {
+		addNewTask(newTask);
+		handleCloseModal();
 	};
 	
-	
 	return (
-		<div className="flex-grow w-72">
-			<div className="mb-4">
-				<div ref={setNodeRef} style={style} className="flex items-center justify-between mb-2">
-					<h3 {...attributes} {...listeners}
-						className="text-sm font-semibold"
-						style={{ color: column.color || 'inherit' }}
-					>
-						{column.title.toUpperCase()} {column.tasks?.length}
+		<div ref={setNodeRef} className="flex-grow w-72 min-h-[300px] flex flex-col">
+			<div className="mb-4 flex-grow flex flex-col">
+				<div className="flex items-center justify-between mb-2">
+					<h3 className="text-sm font-semibold" style={{ color: column.color || 'inherit' }}>
+						{column.title.toUpperCase()} ({tasks.length})
 					</h3>
 					<div className="flex items-center space-x-1">
 						<Button variant="ghost" size="icon" onClick={handleOpenModal}>
@@ -58,25 +46,34 @@ export default function Column({ column, addNewTask, updateColumnColor, deleteTa
 							open={propertiesOpen}
 							setOpen={setPropertiesOpen}
 							handleOpenModal={handleOpenModal}
-							onColorChange={handleColorChange}
 						/>
 					</div>
 				</div>
-				<div
-					className="h-0.5 w-full"
-					style={{ backgroundColor: column.color || 'rgba(255, 255, 255, 0.1)' }}
-				></div>
-			</div>
-			<div className="space-y-2">
-				{column.tasks?.map((task) => (
-					<Task key={task.id} task={task} onDelete={handleDeleteTask} />
-				))}
+				<div className="space-y-2 flex-grow">
+					<SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
+						{tasks.map((task) => (
+							<Task key={task.id} task={task} />
+						))}
+					</SortableContext>
+				</div>
 			</div>
 			<ModalNewTask
 				isOpen={isModalOpen}
 				onClose={handleCloseModal}
-				addNewTask={(task) => addNewTask(column.id, task)}
+				addNewTask={handleAddTask}
 			/>
 		</div>
 	);
 }
+
+Column.propTypes = {
+	column: PropTypes.shape({
+		id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+		title: PropTypes.string.isRequired,
+		color: PropTypes.string,
+	}).isRequired,
+	tasks: PropTypes.arrayOf(PropTypes.shape({
+		id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	})).isRequired,
+	addNewTask: PropTypes.func.isRequired,
+};
