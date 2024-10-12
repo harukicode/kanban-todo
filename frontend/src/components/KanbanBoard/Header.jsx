@@ -12,9 +12,18 @@ import { ChevronDown } from "lucide-react";
 import { useProjects } from '../ProjectContext'
 
 
-const Header = ({ addTimer, setAddTimer }) => {
+const Header = ({ addTimer, setAddTimer, priorityFilter, setPriorityFilter }) => {
 	const { projects, activeProjectId, setActiveProjectId } = useProjects();
 	const activeProject = projects.find(p => p.id === activeProjectId) || projects[0];
+	
+	const priorities = [
+		{ value: "all", label: "All Priorities" },
+		{ value: "high", label: "High" },
+		{ value: "secondary", label: "Secondary" },
+		{ value: "low", label: "Low" },
+	];
+	
+	const activePriority = priorities.find(p => p.value === priorityFilter) || priorities[0];
 	
 	return (
 		<div className="mb-4">
@@ -32,30 +41,51 @@ const Header = ({ addTimer, setAddTimer }) => {
 				</Popover>
 			</div>
 			
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button variant="flat" className="w-[200px] justify-between">
-						{activeProject.name}
-						<ChevronDown className="ml-2 h-4 w-4" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent className="w-[200px]">
-					{projects.map((project) => (
-						<DropdownMenuItem
-							key={project.id}
-							onSelect={() => setActiveProjectId(project.id)}
-						>
-							<div className="flex items-center">
-								<div
-									className="w-3 h-3 rounded-full mr-2"
-									style={{ backgroundColor: project.color }}
-								/>
-								{project.name}
-							</div>
-						</DropdownMenuItem>
-					))}
-				</DropdownMenuContent>
-			</DropdownMenu>
+			<div className="flex space-x-4">
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="flat" className="w-[200px] justify-between">
+							{activeProject.name}
+							<ChevronDown className="ml-2 h-4 w-4" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent className="w-[200px]">
+						{projects.map((project) => (
+							<DropdownMenuItem
+								key={project.id}
+								onSelect={() => setActiveProjectId(project.id)}
+							>
+								<div className="flex items-center">
+									<div
+										className="w-3 h-3 rounded-full mr-2"
+										style={{ backgroundColor: project.color }}
+									/>
+									{project.name}
+								</div>
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
+				
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="flat" className="w-[200px] justify-between">
+							{activePriority.label}
+							<ChevronDown className="ml-2 h-4 w-4" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent className="w-[200px]">
+						{priorities.map((priority) => (
+							<DropdownMenuItem
+								key={priority.value}
+								onSelect={() => setPriorityFilter(priority.value)}
+							>
+								{priority.label}
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
 		</div>
 	);
 };

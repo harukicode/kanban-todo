@@ -15,6 +15,7 @@ const KanbanBoard = () => {
   const [activeTask, setActiveTask] = useState(null);
   const [addTimer, setAddTimer] = useState(false);
   const { projects, activeProjectId } = useProjects();
+  const [priorityFilter, setPriorityFilter] = useState("all");
 
   
   const sensors = useSensors(
@@ -134,14 +135,19 @@ const KanbanBoard = () => {
   
   const filteredColumns = columns.map(column => ({
     ...column,
-    tasks: column.tasks.filter(task => activeProjectId === "all" || task.projectId === activeProjectId)
+    tasks: column.tasks.filter(task =>
+      (activeProjectId === "all" || task.projectId === activeProjectId) &&
+      (priorityFilter === "all" || task.priority.toLowerCase() === priorityFilter)
+    )
   }));
   
   return (
-    <div className="kanban-container p-4">
+    <div className="kanban-board p-4">
       <Header
         addTimer={addTimer}
         setAddTimer={setAddTimer}
+        priorityFilter={priorityFilter}
+        setPriorityFilter={setPriorityFilter}
       />
       
       <DndContext
