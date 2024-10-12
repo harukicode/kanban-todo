@@ -1,10 +1,10 @@
-import { useState } from "react";
+import useProjectStore from '@/Stores/ProjectsStore.jsx'
+import { useCallback, useState } from 'react'
 import { DndContext, closestCorners, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { arrayMove} from '@dnd-kit/sortable';
 import Header from "./Header";
 import Column from "../Column/Column.jsx";
 import Task from "../Task/Task.jsx";
-import { useProjects } from '../ProjectContext.jsx'
 
 const KanbanBoard = () => {
   const [columns, setColumns] = useState([
@@ -14,8 +14,7 @@ const KanbanBoard = () => {
   ]);
   const [activeTask, setActiveTask] = useState(null);
   const [addTimer, setAddTimer] = useState(false);
-  const { projects, activeProjectId } = useProjects();
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  const { projects, activeProjectId, addProject, setActiveProjectId } = useProjectStore();  const [priorityFilter, setPriorityFilter] = useState("all");
 
   
   const sensors = useSensors(
@@ -123,7 +122,17 @@ const KanbanBoard = () => {
     }
   };
   
-  const addNewTask = (columnId, newTask) => {
+  const addNewColumn = useCallback(() => {
+    const newColumn = {
+      id: Date.now().toString(),
+      title: "New Column",
+      tasks: [],
+      color: "#6b7280" // default color
+    };
+    setColumns(prevColumns => [...prevColumns, newColumn]);
+  }, []);
+  
+  const addNewTask = useCallback((columnId, newTask) => {
     setColumns(prevColumns =>
       prevColumns.map(column =>
         column.id === columnId
@@ -131,7 +140,19 @@ const KanbanBoard = () => {
           : column
       )
     );
-  };
+  }, [activeProjectId]);
+  
+  const updateColumn = useCallback((updatedColumn) => {
+    setColumns(prevColumns =>
+      prevColumns.map(col =>
+        col.id === updatedColumn.id ? updatedColumn : col
+      )
+    );
+  }, []);
+  
+  const deleteColumn = useCallback((columnId) => {
+    setColumns(prevColumns => prevColumns.filter(col => col.id !== columnId));
+  }, []);
   
   const filteredColumns = columns.map(column => ({
     ...column,
@@ -148,6 +169,7 @@ const KanbanBoard = () => {
         setAddTimer={setAddTimer}
         priorityFilter={priorityFilter}
         setPriorityFilter={setPriorityFilter}
+        onAddColumn={addNewColumn}
       />
       
       <DndContext
@@ -157,13 +179,15 @@ const KanbanBoard = () => {
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
-        <div className="flex space-x-4 pb-4">
+        <div className="flex space-x-4 pb-4 overflow-x-auto">
           {filteredColumns.map((column) => (
             <Column
               key={column.id}
               column={column}
               tasks={column.tasks}
               addNewTask={(task) => addNewTask(column.id, task)}
+              updateColumn={updateColumn}
+              deleteColumn={deleteColumn}
             />
           ))}
         </div>

@@ -5,15 +5,14 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import useProjectStore from '@/Stores/ProjectsStore.jsx'
 import { IoIosTimer } from "react-icons/io";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import AddTimer from '@/components/KanbanBoard/AddTimer/AddTimer.jsx'
-import { ChevronDown } from "lucide-react";
-import { useProjects } from '../ProjectContext'
+import { ChevronDown, Plus } from "lucide-react";
 
-
-const Header = ({ addTimer, setAddTimer, priorityFilter, setPriorityFilter }) => {
-	const { projects, activeProjectId, setActiveProjectId } = useProjects();
+const Header = ({ addTimer, setAddTimer, priorityFilter, setPriorityFilter, onAddColumn }) => {
+	const { projects, activeProjectId, addProject, setActiveProjectId } = useProjectStore();
 	const activeProject = projects.find(p => p.id === activeProjectId) || projects[0];
 	
 	const priorities = [
@@ -29,16 +28,21 @@ const Header = ({ addTimer, setAddTimer, priorityFilter, setPriorityFilter }) =>
 		<div className="mb-4">
 			<div className="flex justify-between items-center mb-2">
 				<h1 className="text-2xl font-bold">Kanban Board</h1>
-				<Popover open={addTimer} onOpenChange={setAddTimer}>
-					<PopoverTrigger asChild>
-						<Button variant="outline" className="flex items-center space-x-2">
-							<IoIosTimer size={20} />
-						</Button>
-					</PopoverTrigger>
-					<PopoverContent side="left" className="mr-16 bg-transparent shadow-none border-none">
-						<AddTimer />
-					</PopoverContent>
-				</Popover>
+				<div className="flex space-x-2">
+					<Popover open={addTimer} onOpenChange={setAddTimer}>
+						<PopoverTrigger asChild>
+							<Button variant="outline" className="flex items-center space-x-2">
+								<IoIosTimer size={20} />
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent side="left" className="mr-16 bg-transparent shadow-none border-none">
+							<AddTimer />
+						</PopoverContent>
+					</Popover>
+					<Button variant="outline" onClick={onAddColumn}>
+						<Plus size={20} />
+					</Button>
+				</div>
 			</div>
 			
 			<div className="flex space-x-4">

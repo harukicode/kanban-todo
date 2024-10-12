@@ -1,4 +1,5 @@
 import AddProjectModal from '@/components/SideBar/NewProjectModal.jsx'
+import useProjectStore from '@/Stores/ProjectsStore.jsx'
 import { useState } from 'react'
 import { Link } from "react-router-dom";
 import { IoAddOutline } from "react-icons/io5";
@@ -14,11 +15,10 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useNavigationItems } from '@/hooks/navigationMenuHooks/useNavigationItems.jsx'
-import { useProjects } from '../ProjectContext.jsx'
 
 const Sidebar = () => {
   const { navigationItems, currentPath } = useNavigationItems();
-  const { projects, activeProjectId, setActiveProjectId, addProject } = useProjects();
+  const { projects, activeProjectId, addProject, setActiveProjectId } = useProjectStore();
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   return (
     <aside className="w-64 h-screen bg-zinc-100 border-spacing-1.5 shadow-xl backdrop-blur-md rounded-r-3xl flex flex-col overflow-hidden">

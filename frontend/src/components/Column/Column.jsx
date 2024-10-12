@@ -15,9 +15,8 @@ const useModal = () => {
 	return { isOpen, open, close };
 };
 
-export default function Column({ column, tasks, addNewTask }) {
+export default function Column({ column, tasks, addNewTask, updateColumn, deleteColumn }) {
 	const { isOpen: isModalOpen, open: handleOpenModal, close: handleCloseModal } = useModal();
-	const [label, setLabel] = useState("feature");
 	const [propertiesOpen, setPropertiesOpen] = useState(false);
 	
 	const { setNodeRef } = useDroppable({
@@ -27,6 +26,18 @@ export default function Column({ column, tasks, addNewTask }) {
 	const handleAddTask = (newTask) => {
 		addNewTask(newTask);
 		handleCloseModal();
+	};
+	
+	const handleNameChange = (newName) => {
+		updateColumn({ ...column, title: newName });
+	};
+	
+	const handleColorChange = (newColor) => {
+		updateColumn({ ...column, color: newColor });
+	};
+	
+	const handleDeleteColumn = () => {
+		deleteColumn(column.id);
 	};
 	
 	return (
@@ -41,11 +52,13 @@ export default function Column({ column, tasks, addNewTask }) {
 							<Plus className="h-4 w-4" />
 						</Button>
 						<ColumnPropertiesButton
-							label={label}
-							setLabel={setLabel}
 							open={propertiesOpen}
 							setOpen={setPropertiesOpen}
 							handleOpenModal={handleOpenModal}
+							onColorChange={handleColorChange}
+							onNameChange={handleNameChange}
+							columnName={column.title}
+							onDeleteColumn={handleDeleteColumn}
 						/>
 					</div>
 				</div>
@@ -76,4 +89,6 @@ Column.propTypes = {
 		id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 	})).isRequired,
 	addNewTask: PropTypes.func.isRequired,
+	updateColumn: PropTypes.func.isRequired,
+	deleteColumn: PropTypes.func.isRequired,
 };
