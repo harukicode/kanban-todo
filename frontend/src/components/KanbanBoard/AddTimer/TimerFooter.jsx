@@ -1,17 +1,14 @@
 import React from 'react';
-import { Button } from "@/components/ui/button.jsx"
-import { Settings } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 import AddTimeDialog from './dialogs/AddTimeDialog';
 import LogDialog from './dialogs/LogDialog';
+import SettingsDialog from './dialogs/SettingsDialog';
 
-const TimerFooter = () => (
+const TimerFooter = ({ settings, onSettingsChange, isPomodoroMode }) => (
 	<div className="flex justify-between w-full">
 		<AddTimeDialog />
 		<LogDialog />
-		<Button variant="ghost" size="sm">
-			<Settings className="mr-2 h-4 w-4" />
-			Settings
-		</Button>
+		<SettingsDialog settings={settings} onSettingsChange={onSettingsChange} isPomodoroMode={isPomodoroMode} />
 	</div>
 );
 

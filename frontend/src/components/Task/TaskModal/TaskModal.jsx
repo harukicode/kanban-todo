@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, MoveRight, Clock, FileText, MoreHorizontal, Trash } from 'lucide-react';
 import { useTaskModal } from '@/hooks/taskHooks/modalTaskHooks/useTaskModal.jsx';
 import { useSubtasks } from '@/hooks/taskHooks/modalTaskHooks/useSubtasks.jsx';
-import { useTimer } from '@/hooks/taskHooks/modalTaskHooks/useTimer.jsx';
+import { useTaskModalTimer } from '@/hooks/taskHooks/modalTaskHooks/useTaskModalTimer.jsx';
 import SubtaskList from '@/components/Task//TaskModal/SubtaskList.jsx';
 import TaskDescription from '@/components/Task/TaskModal/TaskDescription.jsx'
 import AddTimer from '@/components/KanbanBoard/AddTimer/AddTimer.jsx';
@@ -22,7 +22,7 @@ export default function TaskModal({ isOpen, onClose, task, onUpdate, onDelete })
 		handleSubtaskToggle,
 		handleAddSubtask
 	} = useSubtasks(editedTask, setEditedTask);
-	const { isTimerOpen, setIsTimerOpen, timerPosition, timerVisible, dialogRef } = useTimer(isOpen);
+	const { isTimerOpen, setIsTimerOpen, timerPosition, timerVisible, dialogRef } = useTaskModalTimer(isOpen);
 	
 	return (
 		<>

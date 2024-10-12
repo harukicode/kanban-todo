@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-export function useTimer(isOpen) {
+export function useTaskModalTimer(isOpen) {
 	const [isTimerOpen, setIsTimerOpen] = useState(false);
 	const dialogRef = useRef(null);
 	const [timerPosition, setTimerPosition] = useState({ top: 0, left: 0 });
