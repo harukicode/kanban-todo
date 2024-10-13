@@ -1,5 +1,6 @@
 import { Label } from '@/components/ui/label.jsx'
-import React, { useState } from "react";
+import PropTypes from 'prop-types'
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -72,5 +73,9 @@ const ModalNewTask = ({ isOpen, onClose, addNewTask }) => {
     </Dialog>
   );
 };
-
+ModalNewTask.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  addNewTask: PropTypes.func.isRequired,
+};
 export default ModalNewTask;

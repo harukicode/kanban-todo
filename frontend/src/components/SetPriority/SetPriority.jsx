@@ -1,4 +1,3 @@
-import React from "react";
 import {
 	Select,
 	SelectContent,
@@ -6,6 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import PropTypes from 'prop-types'
 
 /**
  * SetPriority component provides a dropdown to select the priority of a task.
@@ -35,6 +35,10 @@ const SetPriority = ({ selectedPriority, setSelectedPriority }) => {
 			</Select>
 		</div>
 	);
+};
+SetPriority.propTypes = {
+	selectedPriority: PropTypes.string.isRequired,
+	setSelectedPriority: PropTypes.func.isRequired,
 };
 
 export default SetPriority;

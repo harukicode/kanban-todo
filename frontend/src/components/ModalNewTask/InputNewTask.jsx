@@ -1,6 +1,6 @@
-import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PropTypes from 'prop-types'
 
 /**
  * InputNewTask component provides an input field for the task title.
@@ -26,5 +26,8 @@ const InputNewTask = ({ value, onChange }) => (
     </div>
   </div>
 );
-
+InputNewTask.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
 export default InputNewTask;

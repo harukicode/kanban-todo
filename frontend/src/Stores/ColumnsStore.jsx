@@ -33,7 +33,6 @@ const useColumnsStore = create((set) => ({
 	
 	moveTask: (fromColumnId, toColumnId, taskId) => set((state) => {
 		const fromColumn = state.columns.find(col => col.id === fromColumnId);
-		const toColumn = state.columns.find(col => col.id === toColumnId);
 		const taskToMove = fromColumn.tasks.find(task => task.id === taskId);
 		
 		return {

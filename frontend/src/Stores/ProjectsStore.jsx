@@ -17,6 +17,13 @@ const useProjectStore = create((set) => ({
 		activeProjectId: state.activeProjectId === id ? "all" : state.activeProjectId
 	})),
 	
+	filterByProject: (tasks, activeProjectId) => {
+		if (activeProjectId === 'all') {
+			return tasks; // Возвращаем все задачи, если выбран проект "all"
+		}
+		return tasks.filter(task => task.projectId === activeProjectId);
+	},
+	
 	editProject: (id, updatedProject) => set((state) => ({
 		projects: state.projects.map(project =>
 			project.id === id ? { ...project, ...updatedProject } : project
