@@ -7,6 +7,8 @@ import Task from '../Task/Task';
 import ModalNewTask from '../ModalNewTask/ModalNewTask';
 import { ColumnPropertiesButton } from './ColumnPropertiesButton';
 import { Button } from "@/components/ui/button";
+import useColumnsStore from '@/Stores/ColumnsStore.jsx';
+import useProjectStore from '@/Stores/ProjectsStore.jsx';
 
 const useModal = () => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -15,16 +17,18 @@ const useModal = () => {
 	return { isOpen, open, close };
 };
 
-export default function Column({ column, tasks, addNewTask, updateColumn, deleteColumn }) {
+export default function Column({ column, tasks, addNewTask }) {
 	const { isOpen: isModalOpen, open: handleOpenModal, close: handleCloseModal } = useModal();
 	const [propertiesOpen, setPropertiesOpen] = useState(false);
+	const { updateColumn, deleteColumn } = useColumnsStore();
+	const { activeProjectId } = useProjectStore();
 	
 	const { setNodeRef } = useDroppable({
 		id: column.id,
 	});
 	
 	const handleAddTask = (newTask) => {
-		addNewTask(newTask);
+		addNewTask({ ...newTask, projectId: activeProjectId });
 		handleCloseModal();
 	};
 	
@@ -89,6 +93,4 @@ Column.propTypes = {
 		id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 	})).isRequired,
 	addNewTask: PropTypes.func.isRequired,
-	updateColumn: PropTypes.func.isRequired,
-	deleteColumn: PropTypes.func.isRequired,
 };

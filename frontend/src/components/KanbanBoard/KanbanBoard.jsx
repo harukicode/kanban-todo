@@ -1,21 +1,17 @@
 import useProjectStore from '@/Stores/ProjectsStore.jsx'
-import { useCallback, useState } from 'react'
+import useColumnsStore from '@/Stores/ColumnsStore.jsx'
+import { useCallback, useState, useMemo } from 'react'
 import { DndContext, closestCorners, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { arrayMove} from '@dnd-kit/sortable';
 import Header from "./Header";
 import Column from "../Column/Column.jsx";
 import Task from "../Task/Task.jsx";
 
 const KanbanBoard = () => {
-  const [columns, setColumns] = useState([
-    { id: "1", title: "To Do", tasks: [], color: "#9333ea" },
-    { id: "2", title: "In Progress", tasks: [], color: "#eab308" },
-    { id: "3", title: "Done", tasks: [], color: "#3b82f6" },
-  ]);
+  const { columns, setColumns, addColumn, updateColumn, deleteColumn, addTask, moveTask, reorderTasks } = useColumnsStore();
   const [activeTask, setActiveTask] = useState(null);
   const [addTimer, setAddTimer] = useState(false);
-  const { projects, activeProjectId, addProject, setActiveProjectId } = useProjectStore();  const [priorityFilter, setPriorityFilter] = useState("all");
-
+  const { projects, activeProjectId, addProject, setActiveProjectId } = useProjectStore();
+  const [priorityFilter, setPriorityFilter] = useState("all");
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -39,36 +35,16 @@ const KanbanBoard = () => {
   };
   
   const onDragOver = ({ active, over }) => {
+    if (!active || !over) return;
+    
     const activeColumn = findColumnByTaskId(active.id);
-    const overColumn = findColumnByTaskId(over?.id) || columns.find(col => col.id === over?.id);
+    const overColumn = findColumnByTaskId(over.id) || columns.find(col => col.id === over.id);
     
     if (!activeColumn || !overColumn || activeColumn === overColumn) {
       return;
     }
     
-    setColumns(prevColumns => {
-      const activeItems = activeColumn.tasks;
-      const overItems = overColumn.tasks;
-      
-      const activeIndex = activeItems.findIndex(item => item.id === active.id);
-      const overIndex = overItems.findIndex(item => item.id === over?.id) + 1;
-      
-      return prevColumns.map(column => {
-        if (column.id === activeColumn.id) {
-          column.tasks = activeItems.filter(item => item.id !== active.id);
-          return column;
-        } else if (column.id === overColumn.id) {
-          column.tasks = [
-            ...overItems.slice(0, overIndex),
-            activeItems[activeIndex],
-            ...overItems.slice(overIndex)
-          ];
-          return column;
-        } else {
-          return column;
-        }
-      });
-    });
+    moveTask(activeColumn.id, overColumn.id, active.id);
   };
   
   const onDragEnd = (event) => {
@@ -86,81 +62,36 @@ const KanbanBoard = () => {
     if (!activeColumn || !overColumn) return;
     
     if (activeColumn !== overColumn) {
-      setColumns(prevColumns => {
-        const activeTask = activeColumn.tasks.find(task => task.id === activeId);
-        
-        return prevColumns.map(column => {
-          if (column.id === activeColumn.id) {
-            return {
-              ...column,
-              tasks: column.tasks.filter(task => task.id !== activeId)
-            };
-          } else if (column.id === overColumn.id) {
-            return {
-              ...column,
-              tasks: [...column.tasks, activeTask]
-            };
-          } else {
-            return column;
-          }
-        });
-      });
+      moveTask(activeColumn.id, overColumn.id, activeId);
     } else {
-      setColumns(prevColumns => {
-        const columnIndex = prevColumns.indexOf(activeColumn);
-        const oldIndex = activeColumn.tasks.findIndex(task => task.id === activeId);
-        const newIndex = activeColumn.tasks.findIndex(task => task.id === overId);
-        
-        const newColumns = [...prevColumns];
-        newColumns[columnIndex] = {
-          ...activeColumn,
-          tasks: arrayMove(activeColumn.tasks, oldIndex, newIndex)
-        };
-        
-        return newColumns;
-      });
+      const oldIndex = activeColumn.tasks.findIndex(task => task.id === activeId);
+      const newIndex = activeColumn.tasks.findIndex(task => task.id === overId);
+      reorderTasks(activeColumn.id, oldIndex, newIndex);
     }
   };
   
   const addNewColumn = useCallback(() => {
     const newColumn = {
-      id: Date.now().toString(),
       title: "New Column",
       tasks: [],
       color: "#6b7280" // default color
     };
-    setColumns(prevColumns => [...prevColumns, newColumn]);
-  }, []);
+    addColumn(newColumn);
+  }, [addColumn]);
   
-  const addNewTask = useCallback((columnId, newTask) => {
-    setColumns(prevColumns =>
-      prevColumns.map(column =>
-        column.id === columnId
-          ? { ...column, tasks: [...column.tasks, { ...newTask, id: Date.now().toString(), projectId: activeProjectId }] }
-          : column
+  const handleAddNewTask = useCallback((columnId, newTask) => {
+    addTask(columnId, { ...newTask, projectId: activeProjectId });
+  }, [addTask, activeProjectId]);
+  
+  const filteredColumns = useMemo(() => {
+    return columns.map(column => ({
+      ...column,
+      tasks: column.tasks.filter(task =>
+        (activeProjectId === "all" || task.projectId === activeProjectId) &&
+        (priorityFilter === "all" || task.priority.toLowerCase() === priorityFilter)
       )
-    );
-  }, [activeProjectId]);
-  
-  const updateColumn = useCallback((updatedColumn) => {
-    setColumns(prevColumns =>
-      prevColumns.map(col =>
-        col.id === updatedColumn.id ? updatedColumn : col
-      )
-    );
-  }, []);
-  
-  const deleteColumn = useCallback((columnId) => {
-    setColumns(prevColumns => prevColumns.filter(col => col.id !== columnId));
-  }, []);
-  
-  const filteredColumns = columns.map(column => ({
-    ...column,
-    tasks: column.tasks.filter(task =>
-      (activeProjectId === "all" || task.projectId === activeProjectId) &&
-      (priorityFilter === "all" || task.priority.toLowerCase() === priorityFilter)
-    )
-  }));
+    }));
+  }, [columns, activeProjectId, priorityFilter]);
   
   return (
     <div className="kanban-board p-4">
@@ -185,7 +116,7 @@ const KanbanBoard = () => {
               key={column.id}
               column={column}
               tasks={column.tasks}
-              addNewTask={(task) => addNewTask(column.id, task)}
+              addNewTask={(task) => handleAddNewTask(column.id, task)}
               updateColumn={updateColumn}
               deleteColumn={deleteColumn}
             />
@@ -198,4 +129,5 @@ const KanbanBoard = () => {
     </div>
   );
 };
+
 export default KanbanBoard;
