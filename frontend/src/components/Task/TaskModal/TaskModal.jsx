@@ -1,28 +1,26 @@
+import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Plus, MoveRight, Clock, FileText, MoreHorizontal, Trash } from 'lucide-react';
 import { useTaskModal } from '@/hooks/taskHooks/modalTaskHooks/useTaskModal.jsx';
 import { useSubtasks } from '@/hooks/taskHooks/modalTaskHooks/useSubtasks.jsx';
 import { useTaskModalTimer } from '@/hooks/taskHooks/modalTaskHooks/useTaskModalTimer.jsx';
-import SubtaskList from '@/components/Task//TaskModal/SubtaskList.jsx';
-import TaskDescription from '@/components/Task/TaskModal/TaskDescription.jsx'
+import SubtaskList from '@/components/Task/TaskModal/SubtaskList.jsx';
+import TaskDescription from '@/components/Task/TaskModal/TaskDescription.jsx';
 import AddTimer from '@/components/KanbanBoard/AddTimer/AddTimer.jsx';
 
-
-
-export default function TaskModal({ isOpen, onClose, task, onUpdate, onDelete }) {
+export default function TaskModal({ isOpen, onClose, task, onUpdate, onDelete, columnId }) {
 	const { editedTask, setEditedTask, handleSave, handleClose } = useTaskModal(task, onUpdate, onClose);
-	const {
-		subtasks,
-		completedSubtasks,
-		newSubtask,
-		setNewSubtask,
-		handleSubtaskToggle,
-		handleAddSubtask
-	} = useSubtasks(editedTask, setEditedTask);
+	const { subtasks, completedSubtasks, newSubtask, setNewSubtask, handleSubtaskToggle, handleAddSubtask } = useSubtasks(editedTask, setEditedTask);
 	const { isTimerOpen, setIsTimerOpen, timerPosition, timerVisible, dialogRef } = useTaskModalTimer(isOpen);
+	
+	// Удаление задачи
+	const handleDeleteTask = () => {
+		onDelete(columnId, task.id);  // Передаем columnId и task.id для удаления задачи
+		handleClose();  // Закрываем модальное окно после удаления
+	};
 	
 	return (
 		<>
@@ -32,12 +30,23 @@ export default function TaskModal({ isOpen, onClose, task, onUpdate, onDelete })
 						<DialogHeader className="mb-4">
 							<div className="flex items-center space-x-2">
 								<div className="w-4 h-4 rounded-full bg-yellow-400"></div>
-								<DialogTitle className="text-2xl font-bold">{editedTask.title}</DialogTitle>
+								{/* Возможность редактирования заголовка задачи */}
+								<input
+									className="text-2xl font-bold w-full bg-transparent border-b-2 border-gray-200 focus:outline-none"
+									value={editedTask.title}
+									onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
+								/>
 							</div>
 						</DialogHeader>
 						<div className="space-y-4">
-							<TaskDescription description={editedTask.description} timeSpent={editedTask.timeSpent} />
+							{/* Описание задачи */}
+							<TaskDescription
+								description={editedTask.description}
+								timeSpent={editedTask.timeSpent}
+								onChange={(newDescription) => setEditedTask({ ...editedTask, description: newDescription })}
+							/>
 							<Separator />
+							{/* Subtask List */}
 							<SubtaskList
 								subtasks={subtasks}
 								completedSubtasks={completedSubtasks}
@@ -60,7 +69,11 @@ export default function TaskModal({ isOpen, onClose, task, onUpdate, onDelete })
 								<Button variant="outline" size="sm"><MoreHorizontal size={16} className="mr-2" /> More</Button>
 							</div>
 							<div className="flex gap-2">
-								<Button variant="destructive" size="sm" onClick={() => { onDelete(editedTask.id); handleClose(); }}>
+								<Button
+									variant="destructive"
+									size="sm"
+									onClick={handleDeleteTask}  // Вызываем handleDeleteTask для удаления
+								>
 									<Trash size={16} className="mr-2" /> Delete
 								</Button>
 								<Button size="sm" onClick={handleSave}>Save Changes</Button>
@@ -90,3 +103,17 @@ export default function TaskModal({ isOpen, onClose, task, onUpdate, onDelete })
 		</>
 	);
 }
+
+TaskModal.propTypes = {
+	isOpen: PropTypes.bool.isRequired,
+	onClose: PropTypes.func.isRequired,
+	task: PropTypes.shape({
+		id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+		title: PropTypes.string.isRequired,
+		description: PropTypes.string,
+		timeSpent: PropTypes.number,
+	}).isRequired,
+	onUpdate: PropTypes.func.isRequired,
+	onDelete: PropTypes.func.isRequired,
+	columnId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+};

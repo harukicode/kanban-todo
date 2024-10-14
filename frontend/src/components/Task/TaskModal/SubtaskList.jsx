@@ -1,8 +1,8 @@
-import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import PropTypes from 'prop-types'
 
 export default function SubtaskList({
 	                                    subtasks,
@@ -48,3 +48,18 @@ export default function SubtaskList({
 		</div>
 	);
 }
+
+
+SubtaskList.propTypes = {
+	subtasks: PropTypes.arrayOf(
+		PropTypes.shape({
+			title: PropTypes.string.isRequired,
+			completed: PropTypes.bool.isRequired,
+		})
+	).isRequired,
+	completedSubtasks: PropTypes.number.isRequired,
+	newSubtask: PropTypes.string.isRequired,
+	setNewSubtask: PropTypes.func.isRequired,
+	onSubtaskToggle: PropTypes.func.isRequired,
+	onAddSubtask: PropTypes.func.isRequired,
+};

@@ -27,6 +27,7 @@ export default function Column({ column, tasks, addNewTask }) {
 		id: column.id,
 	});
 	
+	// Добавление новой задачи с привязкой к текущему проекту
 	const handleAddTask = (newTask) => {
 		addNewTask({ ...newTask, projectId: activeProjectId });
 		handleCloseModal();
@@ -69,7 +70,7 @@ export default function Column({ column, tasks, addNewTask }) {
 				<div className="space-y-2 flex-grow">
 					<SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
 						{tasks.map((task) => (
-							<Task key={task.id} task={task} />
+							<Task key={task.id} task={task} columnId={column.id}/>
 						))}
 					</SortableContext>
 				</div>

@@ -1,7 +1,8 @@
 import useKanbanDnD from '@/hooks/KanbanHooks/useKanbanDND.jsx';
 import useProjectStore from '@/Stores/ProjectsStore.jsx';
 import useColumnsStore from '@/Stores/ColumnsStore.jsx';
-import useFilteredTasks from '@/hooks/KanbanHooks/useFilteredTasks.jsx';
+import useTaskStore from '@/Stores/TaskStore';  // Новый TaskStore
+import useFilteredTasks from '@/hooks/KanbanHooks/useFilteredTasks.jsx';  // Хук для фильтрации по приоритету
 import { useCallback, useState, useMemo } from 'react';
 import { DndContext, closestCorners, DragOverlay } from '@dnd-kit/core';
 import Header from './Header';
@@ -9,26 +10,28 @@ import Column from '../Column/Column.jsx';
 import Task from '../Task/Task.jsx';
 
 const KanbanBoard = () => {
-  const { columns, addColumn, updateColumn, deleteColumn, addTask, moveTask, reorderTasks } = useColumnsStore();
+  const { columns, addColumn, updateColumn, deleteColumn } = useColumnsStore();
   const { activeProjectId, filterByProject } = useProjectStore();  // Получаем метод фильтрации по проекту
-  const [priorityFilter, setPriorityFilter] = useState('all');     // Локальный фильтр по приоритету
+  const { addTask, moveTask } = useTaskStore();  // Используем TaskStore для работы с задачами
+  const [priorityFilter, setPriorityFilter] = useState('all');  // Локальный фильтр по приоритету
   const { sensors, activeTask, handleDragStart, handleDragOver, handleDragEnd } = useKanbanDnD({
     columns,
     moveTask,
-    reorderTasks,
   });
   
   // Фильтрация задач по проекту
   const projectFilteredColumns = useMemo(() => {
     return columns.map(column => ({
       ...column,
-      tasks: filterByProject(column.tasks, activeProjectId),  // Фильтрация по проекту
+      tasks: filterByProject(column.tasks, activeProjectId),  // Фильтрация задач по проекту
     }));
   }, [columns, activeProjectId, filterByProject]);
+  
   
   // Фильтрация задач по приоритету
   const filteredColumns = useFilteredTasks(projectFilteredColumns, priorityFilter);
   
+  // Добавление новой колонки
   const addNewColumn = useCallback(() => {
     const newColumn = {
       title: 'New Column',
@@ -38,6 +41,7 @@ const KanbanBoard = () => {
     addColumn(newColumn);  // Используем функцию из ColumnsStore
   }, [addColumn]);
   
+  // Добавление новой задачи
   const handleAddNewTask = useCallback((columnId, newTask) => {
     addTask(columnId, { ...newTask, projectId: activeProjectId });  // Привязываем задачу к проекту
   }, [addTask, activeProjectId]);
