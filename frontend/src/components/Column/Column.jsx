@@ -8,7 +8,6 @@ import ModalNewTask from '../ModalNewTask/ModalNewTask';
 import { ColumnPropertiesButton } from './ColumnPropertiesButton';
 import { Button } from "@/components/ui/button";
 import useColumnsStore from '@/Stores/ColumnsStore.jsx';
-import useProjectStore from '@/Stores/ProjectsStore.jsx';
 
 const useModal = () => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -17,19 +16,23 @@ const useModal = () => {
 	return { isOpen, open, close };
 };
 
-export default function Column({ column, tasks, addNewTask }) {
+export default function Column({
+	                               column,
+	                               columnId,
+	                               tasks,
+	                               addNewTask,
+	                               updateColumn,
+	                               deleteColumn,
+	                               isSelectingTaskForTimer,
+	                               onTaskSelect
+                               }) {
 	const { isOpen: isModalOpen, open: handleOpenModal, close: handleCloseModal } = useModal();
 	const [propertiesOpen, setPropertiesOpen] = useState(false);
-	const { updateColumn, deleteColumn } = useColumnsStore();
-	const { activeProjectId } = useProjectStore();
-	
-	const { setNodeRef } = useDroppable({
-		id: column.id,
-	});
+	const { setNodeRef } = useDroppable({ id: column.id });
 	
 	// Добавление новой задачи с привязкой к текущему проекту
 	const handleAddTask = (newTask) => {
-		addNewTask({ ...newTask, projectId: activeProjectId });
+		addNewTask({ ...newTask, projectId: column.projectId });
 		handleCloseModal();
 	};
 	
@@ -52,46 +55,52 @@ export default function Column({ column, tasks, addNewTask }) {
 					<h3 className="text-sm font-semibold" style={{ color: column.color || 'inherit' }}>
 						{column.title.toUpperCase()} ({tasks.length})
 					</h3>
-					<div className="flex items-center space-x-1">
-						<Button variant="ghost" size="icon" onClick={handleOpenModal}>
-							<Plus className="h-4 w-4" />
-						</Button>
-						<ColumnPropertiesButton
-							open={propertiesOpen}
-							setOpen={setPropertiesOpen}
-							handleOpenModal={handleOpenModal}
-							onColorChange={handleColorChange}
-							onNameChange={handleNameChange}
-							columnName={column.title}
-							onDeleteColumn={handleDeleteColumn}
-						/>
-					</div>
+					{!isSelectingTaskForTimer && (
+						<div className="flex items-center space-x-1">
+							<Button variant="ghost" size="icon" onClick={handleOpenModal}>
+								<Plus className="h-4 w-4" />
+							</Button>
+							<ColumnPropertiesButton
+								open={propertiesOpen}
+								setOpen={setPropertiesOpen}
+								handleOpenModal={handleOpenModal}
+								onColorChange={handleColorChange}
+								onNameChange={handleNameChange}
+								columnName={column.title}
+								onDeleteColumn={handleDeleteColumn}
+							/>
+						</div>
+					)}
 				</div>
 				<div className="space-y-2 flex-grow">
 					<SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
 						{tasks.map((task) => (
-							<Task key={task.id} task={task} columnId={column.id}/>
+							<Task
+								key={task.id}
+								task={task}
+								columnId={columnId}
+								isSelectingTaskForTimer={isSelectingTaskForTimer}
+								onTaskSelect={onTaskSelect}
+							/>
 						))}
 					</SortableContext>
 				</div>
 			</div>
-			<ModalNewTask
-				isOpen={isModalOpen}
-				onClose={handleCloseModal}
-				addNewTask={handleAddTask}
-			/>
+			{!isSelectingTaskForTimer && (
+				<ModalNewTask
+					isOpen={isModalOpen}
+					onClose={handleCloseModal}
+					addNewTask={addNewTask}
+				/>
+			)}
 		</div>
 	);
 }
 
 Column.propTypes = {
-	column: PropTypes.shape({
-		id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-		title: PropTypes.string.isRequired,
-		color: PropTypes.string,
-	}).isRequired,
-	tasks: PropTypes.arrayOf(PropTypes.shape({
-		id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-	})).isRequired,
+	column: PropTypes.object.isRequired,
+	tasks: PropTypes.array.isRequired,
 	addNewTask: PropTypes.func.isRequired,
+	updateColumn: PropTypes.func.isRequired,
+	deleteColumn: PropTypes.func.isRequired,
 };

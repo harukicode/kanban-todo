@@ -5,14 +5,25 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useTimer } from '@/components/KanbanBoard/AddTimer/TimerContext.jsx'
 import useProjectStore from '@/Stores/ProjectsStore.jsx'
+import { useCallback } from 'react'
 import { IoIosTimer } from "react-icons/io";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import AddTimer from '@/components/KanbanBoard/AddTimer/AddTimer.jsx'
 import { ChevronDown, Plus } from "lucide-react";
 
-const Header = ({ addTimer, setAddTimer, priorityFilter, setPriorityFilter, onAddColumn }) => {
-	const { projects, activeProjectId, addProject, setActiveProjectId } = useProjectStore();
+const Header = ({ priorityFilter, setPriorityFilter, onAddColumn }) => {
+	const { projects, activeProjectId, setActiveProjectId } = useProjectStore();
+	const {
+		isSelectingTaskForTimer,
+		setIsSelectingTaskForTimer,
+		selectedTask,
+		setSelectedTask,
+		addTimer,
+		setAddTimer
+	} = useTimer();
+	
 	const activeProject = projects.find(p => p.id === activeProjectId) || projects[0];
 	
 	const priorities = [
@@ -23,6 +34,17 @@ const Header = ({ addTimer, setAddTimer, priorityFilter, setPriorityFilter, onAd
 	];
 	
 	const activePriority = priorities.find(p => p.value === priorityFilter) || priorities[0];
+	
+	const handleStartTaskSelection = useCallback(() => {
+		setIsSelectingTaskForTimer(true);
+		setAddTimer(false);
+	}, [setIsSelectingTaskForTimer, setAddTimer]);
+	
+	const handleTaskSelect = useCallback((task) => {
+		setSelectedTask(task);
+		setIsSelectingTaskForTimer(false);
+		setAddTimer(true);
+	}, [setSelectedTask, setIsSelectingTaskForTimer, setAddTimer]);
 	
 	return (
 		<div className="mb-4">
@@ -36,7 +58,10 @@ const Header = ({ addTimer, setAddTimer, priorityFilter, setPriorityFilter, onAd
 							</Button>
 						</PopoverTrigger>
 						<PopoverContent side="left" className="mr-16 bg-transparent shadow-none border-none">
-							<AddTimer />
+							<AddTimer
+								onStartTaskSelection={handleStartTaskSelection}
+								selectedTask={selectedTask}
+							/>
 						</PopoverContent>
 					</Popover>
 					<Button variant="outline" onClick={onAddColumn}>

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 const useProjectStore = create((set) => ({
 	projects: [
-		{ id: "all", name: "All Projects", color: "#6b7280" }
+		{ id: "new_project", name: "New Project", color: "#6b7280" }
 	],
 	activeProjectId: "all",
 	

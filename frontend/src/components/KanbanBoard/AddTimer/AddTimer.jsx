@@ -8,7 +8,7 @@ import TaskSelect from './TaskSelect';
 import TimerFooter from './TimerFooter';
 import { useTimer } from '@/hooks/timerHooks/useTimer';
 
-const AddTimer = () => {
+const AddTimer = ({ onStartTaskSelection, selectedTask }) => {
 	const [settings, setSettings] = useState({
 		workTime: 25,
 		shortBreakTime: 5,
@@ -18,6 +18,7 @@ const AddTimer = () => {
 	const [currentMode, setCurrentMode] = useState('work');
 	const [currentInterval, setCurrentInterval] = useState(1);
 	const [isPomodoroMode, setIsPomodoroMode] = useState(false);
+	const [isVisible, setIsVisible] = useState(true);
 	
 	const getCurrentDuration = useCallback(() => {
 		if (!isPomodoroMode) return 0; // Start from 0 in normal mode
@@ -79,11 +80,13 @@ const AddTimer = () => {
 		}
 	};
 	
-	return (
+	return isVisible ? (
 		<Card className="w-80 bg-white shadow-lg rounded-lg overflow-hidden">
 			<CardHeader className="bg-gray-100 border-b border-gray-200">
 				<div className="flex justify-between items-center">
-					<CardTitle className="text-lg font-semibold text-gray-800">Timer</CardTitle>
+					<CardTitle className="text-lg font-semibold text-gray-800">
+						{selectedTask ? `Timer - ${selectedTask.title}` : 'Timer'}
+					</CardTitle>
 					<div className="flex items-center space-x-2 bg-white rounded-full px-2 py-1 shadow-sm">
 						<Clock className="h-4 w-4 text-gray-500" />
 						<Switch
@@ -102,13 +105,22 @@ const AddTimer = () => {
 					onStartStop={handleStartStop}
 					onReset={handleReset}
 				/>
-				<TaskSelect />
+				<TaskSelect
+					onStartSelection={() => {
+						setIsVisible(false);
+						onStartTaskSelection();
+					}}
+				/>
 			</CardContent>
 			<CardFooter className="bg-gray-50 border-t border-gray-200 p-2">
-				<TimerFooter settings={settings} onSettingsChange={handleSettingsChange} isPomodoroMode={isPomodoroMode} />
+				<TimerFooter
+					settings={settings}
+					onSettingsChange={handleSettingsChange}
+					isPomodoroMode={isPomodoroMode}
+				/>
 			</CardFooter>
 		</Card>
-	);
+	) : null;
 };
 
 export default AddTimer;
