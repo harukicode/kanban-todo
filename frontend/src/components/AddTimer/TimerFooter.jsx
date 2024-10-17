@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from "@/components/ui/button";
 import AddTimeDialog from './dialogs/AddTimeDialog';
 import LogDialog from './dialogs/LogDialog';
 import SettingsDialog from './dialogs/SettingsDialog';

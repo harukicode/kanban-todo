@@ -1,106 +1,93 @@
-import { useState, useCallback } from 'react';
-import { Plus } from 'lucide-react';
-import PropTypes from 'prop-types';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useDroppable } from '@dnd-kit/core';
-import Task from '../Task/Task';
-import ModalNewTask from '../ModalNewTask/ModalNewTask';
-import { ColumnPropertiesButton } from './ColumnPropertiesButton';
+import { Plus } from "lucide-react";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
+import ModalNewTask from "@/components/ModalNewTask/ModalNewTask";
+import { ColumnPropertiesButton } from "./ColumnPropertiesButton";
 import { Button } from "@/components/ui/button";
-import useColumnsStore from '@/Stores/ColumnsStore.jsx';
-
-const useModal = () => {
-	const [isOpen, setIsOpen] = useState(false);
-	const open = useCallback(() => setIsOpen(true), []);
-	const close = useCallback(() => setIsOpen(false), []);
-	return { isOpen, open, close };
-};
+import { useColumnModal } from "@/hooks/Column/useColumnModal";
+import { useState } from "react";
+import Task from "@/components/Task/Task";
 
 export default function Column({
-	                               column,
-	                               columnId,
-	                               tasks,
-	                               addNewTask,
-	                               updateColumn,
-	                               deleteColumn,
-	                               isSelectingTaskForTimer,
-	                               onTaskSelect
-                               }) {
-	const { isOpen: isModalOpen, open: handleOpenModal, close: handleCloseModal } = useModal();
-	const [propertiesOpen, setPropertiesOpen] = useState(false);
-	const { setNodeRef } = useDroppable({ id: column.id });
-	
-	// Добавление новой задачи с привязкой к текущему проекту
-	const handleAddTask = (newTask) => {
-		addNewTask({ ...newTask, projectId: column.projectId });
-		handleCloseModal();
-	};
-	
-	const handleNameChange = (newName) => {
-		updateColumn({ ...column, title: newName });
-	};
-	
-	const handleColorChange = (newColor) => {
-		updateColumn({ ...column, color: newColor });
-	};
-	
-	const handleDeleteColumn = () => {
-		deleteColumn(column.id);
-	};
-	
-	return (
-		<div ref={setNodeRef} className="flex-grow w-72 min-h-[300px] flex flex-col">
-			<div className="mb-4 flex-grow flex flex-col">
-				<div className="flex items-center justify-between mb-2">
-					<h3 className="text-sm font-semibold" style={{ color: column.color || 'inherit' }}>
-						{column.title.toUpperCase()} ({tasks.length})
-					</h3>
-					{!isSelectingTaskForTimer && (
-						<div className="flex items-center space-x-1">
-							<Button variant="ghost" size="icon" onClick={handleOpenModal}>
-								<Plus className="h-4 w-4" />
-							</Button>
-							<ColumnPropertiesButton
-								open={propertiesOpen}
-								setOpen={setPropertiesOpen}
-								handleOpenModal={handleOpenModal}
-								onColorChange={handleColorChange}
-								onNameChange={handleNameChange}
-								columnName={column.title}
-								onDeleteColumn={handleDeleteColumn}
-							/>
-						</div>
-					)}
-				</div>
-				<div className="space-y-2 flex-grow">
-					<SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
-						{tasks.map((task) => (
-							<Task
-								key={task.id}
-								task={task}
-								columnId={columnId}
-								isSelectingTaskForTimer={isSelectingTaskForTimer}
-								onTaskSelect={onTaskSelect}
-							/>
-						))}
-					</SortableContext>
-				</div>
-			</div>
-			{!isSelectingTaskForTimer && (
-				<ModalNewTask
-					isOpen={isModalOpen}
-					onClose={handleCloseModal}
-					addNewTask={addNewTask}
-				/>
-			)}
-		</div>
-	);
-}
+  column,
+  columnId,
+  tasks,
+  addNewTask,
+  updateColumn,
+  deleteColumn,
+}) {
+  const {
+    isOpen: isModalOpen,
+    open: handleOpenModal,
+    close: handleCloseModal,
+  } = useColumnModal();
+  const { setNodeRef } = useDroppable({
+    id: columnId,
+  });
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
 
-Column.propTypes = {
-	column: PropTypes.object.isRequired,
-	tasks: PropTypes.array.isRequired,
-	addNewTask: PropTypes.func.isRequired,
-	updateColumn: PropTypes.func.isRequired,
-	deleteColumn: PropTypes.func.isRequired,
-};
+  // Изменение заголовка колонки
+  const handleNameChange = (newName) => {
+    updateColumn({ ...column, title: newName });
+  };
+
+  // Изменение цвета колонки
+  const handleColorChange = (newColor) => {
+    updateColumn({ ...column, color: newColor });
+  };
+
+  // Удаление колонки
+  const handleDeleteColumn = () => {
+    deleteColumn(column.id);
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="flex-grow w-72 min-h-[300px] flex flex-col"
+    >
+      <div className="mb-4 flex-grow flex flex-col">
+        <div className="flex items-center justify-between mb-2">
+          <h3
+            className="text-sm font-semibold"
+            style={{ color: column.color || "inherit" }}
+          >
+            {column.title} ({tasks.length})
+          </h3>
+          <div className="flex items-center space-x-1">
+            <Button variant="ghost" size="icon" onClick={handleOpenModal}>
+              <Plus className="h-4 w-4" />
+            </Button>
+            <ColumnPropertiesButton
+              open={propertiesOpen}
+              setOpen={setPropertiesOpen}
+              handleOpenModal={handleOpenModal}
+              onColorChange={handleColorChange}
+              onNameChange={handleNameChange}
+              columnName={column.title}
+              onDeleteColumn={handleDeleteColumn}
+            />
+          </div>
+        </div>
+        <div className="space-y-2 flex-grow">
+          <SortableContext
+            items={tasks.map((task) => task.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {tasks.map((task) => (
+              <Task key={task.id} task={task} columnId={columnId} />
+            ))}
+          </SortableContext>
+        </div>
+      </div>
+      <ModalNewTask
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        addNewTask={addNewTask}
+      />
+    </div>
+  );
+}

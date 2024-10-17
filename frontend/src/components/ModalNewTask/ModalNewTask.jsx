@@ -1,5 +1,4 @@
-import { Label } from '@/components/ui/label.jsx'
-import PropTypes from 'prop-types'
+import { Label } from "@/components/ui/label.jsx";
 import { useState } from "react";
 import {
   Dialog,
@@ -11,13 +10,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import InputNewTask from "./InputNewTask";
-import SetPriority from "../SetPriority/SetPriority";
+import SetPriority from "./SetPriority";
 
 const ModalNewTask = ({ isOpen, onClose, addNewTask }) => {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskPriority, setTaskPriority] = useState("None");
-  
+
   const handleAddTask = () => {
     if (taskTitle.trim() === "") {
       alert("Task title cannot be empty.");
@@ -35,7 +34,7 @@ const ModalNewTask = ({ isOpen, onClose, addNewTask }) => {
     setTaskPriority("None");
     onClose();
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -65,17 +64,11 @@ const ModalNewTask = ({ isOpen, onClose, addNewTask }) => {
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button onClick={handleAddTask}>
-            Done
-          </Button>
+          <Button onClick={handleAddTask}>Done</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
-ModalNewTask.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  addNewTask: PropTypes.func.isRequired,
-};
+
 export default ModalNewTask;

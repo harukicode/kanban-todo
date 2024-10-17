@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useCallback, useState } from "react"
 import { MoreHorizontal, Trash } from "lucide-react"
 import { AiOutlineFolderAdd } from "react-icons/ai";

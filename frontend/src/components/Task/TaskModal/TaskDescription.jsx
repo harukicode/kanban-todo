@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types'
 
 export default function TaskDescription({ description, timeSpent }) {
 	return (
@@ -17,7 +16,3 @@ export default function TaskDescription({ description, timeSpent }) {
 }
 
 
-TaskDescription.propTypes = {
-	description: PropTypes.string.isRequired,
-	timeSpent: PropTypes.string,
-};

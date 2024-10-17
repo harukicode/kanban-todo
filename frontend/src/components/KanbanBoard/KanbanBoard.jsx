@@ -1,73 +1,80 @@
-import useFilteredTasks from '@/hooks/KanbanHooks/useFilteredTasks.jsx';
-import useKanbanDnD from '@/hooks/KanbanHooks/useKanbanDND.jsx';
-import { useTimer } from '@/hooks/timerHooks/useTimer.jsx'
-import useColumnsStore from '@/Stores/ColumnsStore.jsx';
-import useProjectStore from '@/Stores/ProjectsStore.jsx';
-import useTaskStore from '@/Stores/TaskStore';
-import { closestCorners, DndContext, DragOverlay } from '@dnd-kit/core';
-import { useCallback, useMemo, useState } from 'react';
-import Column from '../Column/Column.jsx';
-import Task from '../Task/Task.jsx';
-import Header from './Header';
+import Header from "./Header";
+import useColumnsStore from "@/Stores/ColumnsStore";
+import useProjectStore from "@/Stores/ProjectsStore";
+import useTaskStore from "@/Stores/TaskStore";
+import { closestCorners, DndContext, DragOverlay } from "@dnd-kit/core";
+import { useMemo, useState, useCallback } from "react";
+import { useKanbanDnD } from "@/hooks/KanbanBoard/useKanbanDnD";
+import { useFilteredTasks } from "@/hooks/KanbanBoard/useFilteredTasks";
+import Column from "../Column/Column";
+import Task from "../Task/Task";
 
-const KanbanBoard = () => {
-  const { columns, setColumns, addColumn, updateColumn, deleteColumn } = useColumnsStore(); // Теперь setColumns импортирован
-  const { activeProjectId } = useProjectStore();  // Получаем активный проект
-  const { addTask, moveTask } = useTaskStore();  // Работа с задачами
-  const [priorityFilter, setPriorityFilter] = useState('all');  // Фильтр по приоритету
-  const { isSelectingTaskForTimer, setSelectedTask, setIsSelectingTaskForTimer, setAddTimer } = useTimer();
-  
-  const handleTaskSelect = (task) => {
-    setSelectedTask(task);
-    setIsSelectingTaskForTimer(false);
-    setAddTimer(true);
-  };
-  
+export default function KanbanBoard() {
+  const { columns, setColumns, addColumn, deleteColumn, updateColumn } =
+    useColumnsStore(); // Получаем колонки
+  const { activeProjectId } = useProjectStore(); // Получаем активный проект
+  const [priorityFilter, setPriorityFilter] = useState("all"); // Фильтр по приоритету
+  const { moveTask, addTask } = useTaskStore(); // Получаем функцию перемещения задачи
+
   // Функция reorderTasks для перемещения задач в колонке
-  const reorderTasks = useCallback((columnId, oldIndex, newIndex) => {
-    const updatedColumns = columns.map(column => {
-      if (column.id === columnId) {
-        const updatedTasks = Array.from(column.tasks);
-        const [movedTask] = updatedTasks.splice(oldIndex, 1);
-        updatedTasks.splice(newIndex, 0, movedTask);
-        return { ...column, tasks: updatedTasks };
-      }
-      return column;
-    });
-    setColumns(updatedColumns);  // Обновляем состояние колонок
-  }, [columns, setColumns]);
-  
+  const reorderTasks = useCallback(
+    (columnId, oldIndex, newIndex) => {
+      const updatedColumns = columns.map((column) => {
+        if (column.id === columnId) {
+          const updatedTasks = Array.from(column.tasks);
+          const [movedTask] = updatedTasks.splice(oldIndex, 1);
+          updatedTasks.splice(newIndex, 0, movedTask);
+          return { ...column, tasks: updatedTasks };
+        }
+        return column;
+      });
+      setColumns(updatedColumns); // Обновляем состояние колонок
+    },
+    [columns, setColumns]
+  );
   // Инициализация DnD
-  const { sensors, activeTask, handleDragStart, handleDragOver, handleDragEnd } = useKanbanDnD({
+  const {
+    sensors,
+    activeTask,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+  } = useKanbanDnD({
     columns,
     moveTask,
-    reorderTasks,  // Передаем функцию reorderTasks
+    reorderTasks,
   });
-  
+
   // Фильтрация колонок по проекту
   const projectFilteredColumns = useMemo(() => {
-    return columns.filter(column => column.projectId === activeProjectId);
+    return columns.filter((column) => column.projectId === activeProjectId);
   }, [columns, activeProjectId]);
-  
+
   // Фильтрация задач по приоритету
-  const filteredColumns = useFilteredTasks(projectFilteredColumns, priorityFilter);
-  
+  const filteredColumns = useFilteredTasks(
+    projectFilteredColumns,
+    priorityFilter
+  );
+
   // Добавление новой колонки
   const addNewColumn = useCallback(() => {
     const newColumn = {
-      title: 'New Column',
+      title: "New Column",
       tasks: [],
-      color: '#6b7280',
+      color: "#6b7280",
       projectId: activeProjectId,
     };
     addColumn(newColumn);
   }, [addColumn, activeProjectId]);
-  
+
   // Добавление новой задачи
-  const handleAddNewTask = useCallback((columnId, newTask) => {
-    addTask(columnId, { ...newTask, projectId: activeProjectId });
-  }, [addTask, activeProjectId]);
-  
+  const handleAddNewTask = useCallback(
+    (columnId, newTask) => {
+      addTask(columnId, { ...newTask, projectId: activeProjectId });
+    },
+    [addTask, activeProjectId]
+  );
+
   return (
     <div className="kanban-board p-4">
       <Header
@@ -75,7 +82,7 @@ const KanbanBoard = () => {
         setPriorityFilter={setPriorityFilter}
         onAddColumn={addNewColumn}
       />
-      
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -93,8 +100,6 @@ const KanbanBoard = () => {
               addNewTask={(task) => handleAddNewTask(column.id, task)}
               updateColumn={updateColumn}
               deleteColumn={deleteColumn}
-              isSelectingTaskForTimer={isSelectingTaskForTimer}
-              onTaskSelect={handleTaskSelect}
             />
           ))}
         </div>
@@ -102,9 +107,12 @@ const KanbanBoard = () => {
           {activeTask ? (
             <Task
               task={activeTask}
-              columnId={activeTask.columnId || columns.find(col =>
-                col.tasks.some(t => t.id === activeTask.id)
-              )?.id}
+              columnId={
+                activeTask.columnId ||
+                columns.find((col) =>
+                  col.tasks.some((t) => t.id === activeTask.id)
+                )?.id
+              }
               isDragging
             />
           ) : null}
@@ -112,6 +120,4 @@ const KanbanBoard = () => {
       </DndContext>
     </div>
   );
-};
-
-export default KanbanBoard;
+}
