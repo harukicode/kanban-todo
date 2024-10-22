@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import useColumnsStore from "./ColumnsStore";
+import useProjectStore from "./ProjectsStore";
 
 const useTaskStore = create((set) => ({
   tasks: [],
@@ -68,25 +69,67 @@ const useTaskStore = create((set) => ({
   },
 
   // Перемещение задачи между колонками
-  moveTask: (fromColumnId, toColumnId, taskId) => {
+  moveTask: (taskId, fromColumnId, toColumnId, toProjectId) => {
     const { columns, setColumns } = useColumnsStore.getState();
-    const fromColumn = columns.find((col) => col.id === fromColumnId);
-    const taskToMove = fromColumn.tasks.find((task) => task.id === taskId);
 
-    const updatedColumns = columns.map((column) => {
-      if (column.id === fromColumnId) {
-        return {
-          ...column,
-          tasks: column.tasks.filter((task) => task.id !== taskId),
-        };
+    // Сначала ищем задачу в общем хранилище задач
+    set((state) => {
+      const taskToMove = state.tasks.find((task) => task.id === taskId);
+
+      if (!taskToMove) {
+        console.error(`Task with id ${taskId} not found in tasks store`);
+        return state;
       }
-      if (column.id === toColumnId) {
-        return { ...column, tasks: [...column.tasks, taskToMove] };
-      }
-      return column;
+
+      // Создаем обновленную задачу
+      const updatedTask = {
+        ...taskToMove,
+        columnId: toColumnId,
+        projectId: toProjectId,
+      };
+
+      // Обновляем колонки
+      const updatedColumns = columns.map((column) => {
+        if (column.id === fromColumnId) {
+          return {
+            ...column,
+            tasks: column.tasks.filter((task) => task.id !== taskId),
+          };
+        }
+        if (column.id === toColumnId) {
+          return {
+            ...column,
+            tasks: [...column.tasks, updatedTask],
+          };
+        }
+        return column;
+      });
+
+      setColumns(updatedColumns);
+
+      // Обновляем состояние tasks в TaskStore
+      return {
+        tasks: state.tasks.map((task) =>
+          task.id === taskId ? updatedTask : task
+        ),
+      };
     });
+  },
 
-    setColumns(updatedColumns); // Обновляем колонки после перемещения задачи
+  // Вспомогательная функция для синхронизации задач
+  syncTasksWithColumns: () => {
+    const { columns, setColumns } = useColumnsStore.getState();
+
+    set((state) => {
+      // Создаем обновленные колонки с актуальными задачами
+      const updatedColumns = columns.map((column) => ({
+        ...column,
+        tasks: state.tasks.filter((task) => task.columnId === column.id),
+      }));
+
+      setColumns(updatedColumns);
+      return state;
+    });
   },
 }));
 

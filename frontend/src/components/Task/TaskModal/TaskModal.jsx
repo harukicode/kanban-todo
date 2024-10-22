@@ -7,19 +7,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  Plus,
-  MoveRight,
-  Clock,
-  FileText,
-  MoreHorizontal,
-  Trash,
-} from "lucide-react";
+import { Plus, Clock, FileText, MoreHorizontal, Trash } from "lucide-react";
 import { useTaskModal } from "@/hooks/Task/modalTaskHooks/useTaskModal.jsx";
 import { useSubtasks } from "@/hooks/Task/modalTaskHooks/useSubtasks.jsx";
 import SubtaskList from "@/components/Task/TaskModal/SubtaskList.jsx";
 import TaskDescription from "@/components/Task/TaskModal/TaskDescription.jsx";
 import AddTimer from "@/components/AddTimer/AddTimer.jsx";
+import MoveTaskDropdown from "@/components/Task/TaskModal/MoveTaskDropdown.jsx";
 
 export default function TaskModal({
   isOpen,
@@ -147,9 +141,7 @@ export default function TaskModal({
               <Button variant="outline" size="sm">
                 <Plus size={16} className="mr-2" /> Add
               </Button>
-              <Button variant="outline" size="sm">
-                <MoveRight size={16} className="mr-2" /> Move
-              </Button>
+              <MoveTaskDropdown task={editedTask} onClose={handleClose} />
               <Button
                 ref={timerButtonRef}
                 variant="outline"

@@ -33,8 +33,19 @@ export const useKanbanDnD = ({ columns, moveTask, reorderTasks }) => {
         findColumnByTaskId(over.id) ||
         columns.find((col) => col.id === over.id);
 
-      if (activeColumn && overColumn && activeColumn !== overColumn) {
-        moveTask(activeColumn.id, overColumn.id, active.id); // Перемещаем задачу между колонками
+      if (
+        activeColumn &&
+        overColumn &&
+        (activeColumn !== overColumn ||
+          activeColumn.projectId !== overColumn.projectId)
+      ) {
+        // Здесь мы проверяем, изменился ли проект
+        moveTask(
+          active.id,
+          activeColumn.id,
+          overColumn.id,
+          overColumn.projectId
+        );
       }
     }
   };
@@ -42,7 +53,7 @@ export const useKanbanDnD = ({ columns, moveTask, reorderTasks }) => {
   // Функция для завершения перетаскивания
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    setActiveTask(null); // Очищаем активную задачу
+    setActiveTask(null);
 
     if (!active || !over) return;
 
@@ -55,8 +66,11 @@ export const useKanbanDnD = ({ columns, moveTask, reorderTasks }) => {
 
     if (!activeColumn || !overColumn) return;
 
-    if (activeColumn !== overColumn) {
-      moveTask(activeColumn.id, overColumn.id, activeId);
+    if (
+      activeColumn !== overColumn ||
+      activeColumn.projectId !== overColumn.projectId
+    ) {
+      moveTask(activeId, activeColumn.id, overColumn.id, overColumn.projectId);
     } else {
       const oldIndex = activeColumn.tasks.findIndex(
         (task) => task.id === activeId
