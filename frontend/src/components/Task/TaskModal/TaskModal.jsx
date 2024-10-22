@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Clock, FileText, MoreHorizontal, Trash } from "lucide-react";
 import { useTaskModal } from "@/hooks/Task/modalTaskHooks/useTaskModal.jsx";
-import { useSubtasks } from "@/hooks/Task/modalTaskHooks/useSubtasks.jsx";
+import useSubtaskStore from "@/Stores/SubtaskStore";
 import SubtaskList from "@/components/Task/TaskModal/SubtaskList.jsx";
 import TaskDescription from "@/components/Task/TaskModal/TaskDescription.jsx";
 import AddTimer from "@/components/AddTimer/AddTimer.jsx";
@@ -28,14 +28,14 @@ export default function TaskModal({
     onUpdate,
     onClose
   );
-  const {
-    subtasks,
-    completedSubtasks,
-    newSubtask,
-    setNewSubtask,
-    handleSubtaskToggle,
-    handleAddSubtask,
-  } = useSubtasks(editedTask, setEditedTask);
+  const { getSubtasksForTask, addSubtask, toggleSubtask, deleteSubtask } =
+    useSubtaskStore();
+  const [newSubtask, setNewSubtask] = useState("");
+
+  const subtasks = getSubtasksForTask(task.id);
+  const completedSubtasks = subtasks.filter(
+    (subtask) => subtask.completed
+  ).length;
 
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [timerPosition, setTimerPosition] = useState({ top: 0, left: 0 });
@@ -60,20 +60,18 @@ export default function TaskModal({
 
       let { top, left } = timerPosition;
 
-      // Проверяем и корректируем позицию по горизонтали
       if (left + timerRect.width > viewportWidth) {
-        left = viewportWidth - timerRect.width - 10; // 10px отступ от края
+        left = viewportWidth - timerRect.width - 10;
       }
       if (left < 0) {
-        left = 10; // 10px отступ от левого края
+        left = 10;
       }
 
-      // Проверяем и корректируем позицию по вертикали
       if (top + timerRect.height > viewportHeight) {
-        top = viewportHeight - timerRect.height - 10; // 10px отступ от низа
+        top = viewportHeight - timerRect.height - 10;
       }
       if (top < 0) {
-        top = 10; // 10px отступ от верха
+        top = 10;
       }
 
       setTimerPosition({ top, left });
@@ -89,13 +87,20 @@ export default function TaskModal({
     e.stopPropagation();
     if (!isTimerOpen && timerButtonRef.current) {
       const rect = timerButtonRef.current.getBoundingClientRect();
-      const timerHeight = 200; // Примерная высота таймера, уточните это значение
+      const timerHeight = 200;
       setTimerPosition({
-        top: Math.max(rect.top + window.scrollY - timerHeight - 1000, 10), // Размещаем над кнопкой, но не выше верха экрана
+        top: Math.max(rect.top + window.scrollY - timerHeight - 1000, 10),
         left: rect.left + window.scrollX,
       });
     }
     setIsTimerOpen(!isTimerOpen);
+  };
+
+  const handleAddSubtask = () => {
+    if (newSubtask.trim()) {
+      addSubtask(task.id, newSubtask.trim());
+      setNewSubtask("");
+    }
   };
 
   return (
@@ -130,8 +135,9 @@ export default function TaskModal({
               completedSubtasks={completedSubtasks}
               newSubtask={newSubtask}
               setNewSubtask={setNewSubtask}
-              onSubtaskToggle={handleSubtaskToggle}
+              onSubtaskToggle={toggleSubtask}
               onAddSubtask={handleAddSubtask}
+              onDeleteSubtask={deleteSubtask}
             />
           </div>
         </div>
