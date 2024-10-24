@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Trash, ChevronDown, ChevronUp } from "lucide-react";
-import { defaultAnimateLayoutChanges, useSortable } from '@dnd-kit/sortable'
+import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
