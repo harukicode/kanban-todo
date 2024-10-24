@@ -1,35 +1,37 @@
-import React from "react";
+import React, { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
+import useSubtaskStore from "@/Stores/SubtaskStore";
 
-/**
- * SubtaskList Component
- * Displays and manages a list of subtasks for a task
- *
- * @param {Array} subtasks - Array of subtask objects
- * @param {number} completedSubtasks - Number of completed subtasks
- * @param {string} newSubtask - Value of the new subtask input
- * @param {Function} setNewSubtask - Function to update new subtask input
- * @param {Function} onSubtaskToggle - Function to toggle subtask completion
- * @param {Function} onAddSubtask - Function to add a new subtask
- * @param {Function} onDeleteSubtask - Function to delete a subtask
- */
-export default function SubtaskList({
-                                      subtasks,
-                                      completedSubtasks,
-                                      newSubtask,
-                                      setNewSubtask,
-                                      onSubtaskToggle,
-                                      onAddSubtask,
-                                      onDeleteSubtask,
-                                    }) {
-  // Handle enter key press in input
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      onAddSubtask();
+export default function SubtaskList({ taskId }) {
+  // Access subtask store
+  const {
+    getSubtasksForTask,
+    getSubtaskStats,
+    addSubtask,
+    toggleSubtask,
+    deleteSubtask
+  } = useSubtaskStore();
+  
+  // Local state for new subtask input
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  
+  // Get subtasks and stats
+  const subtasks = getSubtasksForTask(taskId);
+  const { completed, total } = getSubtaskStats(taskId);
+  
+  /**
+   * Handles adding a new subtask
+   * @param {Event} e - Optional event object
+   */
+  const handleAddSubtask = (e) => {
+    e?.preventDefault();
+    if (newSubtaskTitle.trim()) {
+      addSubtask(taskId, newSubtaskTitle.trim());
+      setNewSubtaskTitle("");
     }
   };
   
@@ -37,23 +39,27 @@ export default function SubtaskList({
     <div>
       {/* Subtasks header */}
       <h3 className="text-lg font-semibold mb-2">
-        Subtasks {completedSubtasks}/{subtasks.length}
+        Subtasks {completed}/{total}
       </h3>
       
       {/* Scrollable subtasks area */}
       <ScrollArea className="h-[200px] w-full rounded-md border p-4">
         <div className="space-y-4">
           {subtasks.map((subtask) => (
-            <div key={subtask.id} className="flex items-center justify-between">
+            <div
+              key={subtask.id}
+              className="flex items-center justify-between group"
+            >
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id={`subtask-${subtask.id}`}
                   checked={subtask.completed}
-                  onCheckedChange={() => onSubtaskToggle(subtask.id)}
+                  onCheckedChange={() => toggleSubtask(subtask.id)}
                 />
                 <label
                   htmlFor={`subtask-${subtask.id}`}
-                  className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${
+                  className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed
+                    peer-disabled:opacity-70 ${
                     subtask.completed
                       ? "line-through text-muted-foreground"
                       : ""
@@ -65,7 +71,8 @@ export default function SubtaskList({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onDeleteSubtask(subtask.id)}
+                onClick={() => deleteSubtask(subtask.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Trash size={14} />
               </Button>
@@ -74,19 +81,21 @@ export default function SubtaskList({
         </div>
       </ScrollArea>
       
-      {/* Add new subtask input */}
-      <div className="flex items-center space-x-2 mt-4">
+      {/* Add new subtask form */}
+      <form
+        onSubmit={handleAddSubtask}
+        className="flex items-center space-x-2 mt-4"
+      >
         <Input
-          value={newSubtask}
-          onChange={(e) => setNewSubtask(e.target.value)}
-          onKeyPress={handleKeyPress}
+          value={newSubtaskTitle}
+          onChange={(e) => setNewSubtaskTitle(e.target.value)}
           placeholder="Add new subtask..."
           className="flex-grow"
         />
-        <Button onClick={onAddSubtask} size="sm">
+        <Button type="submit" size="sm">
           Add
         </Button>
-      </div>
+      </form>
     </div>
   );
 }

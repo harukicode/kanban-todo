@@ -15,17 +15,7 @@ import TaskDescription from "@/components/Task/TaskModal/TaskDescription.jsx";
 import AddTimer from "@/components/AddTimer/AddTimer.jsx";
 import MoveTaskDropdown from "@/components/Task/TaskModal/MoveTaskDropdown.jsx";
 
-/**
- * TaskModal Component
- * Modal dialog for viewing and editing task details
- *
- * @param {boolean} isOpen - Whether the modal is open
- * @param {Function} onClose - Function to close the modal
- * @param {Object} task - Task data object
- * @param {Function} onUpdate - Function to update task
- * @param {Function} onDelete - Function to delete task
- * @param {string} columnId - ID of the column containing this task
- */
+
 export default function TaskModal({
                                     isOpen,
                                     onClose,
@@ -40,19 +30,14 @@ export default function TaskModal({
     onUpdate,
     onClose
   );
-  const { getSubtasksForTask, addSubtask, toggleSubtask, deleteSubtask } =
-    useSubtaskStore();
+  const { getSubtaskStats } = useSubtaskStore();
   
   // Local state
-  const [newSubtask, setNewSubtask] = useState("");
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [timerPosition, setTimerPosition] = useState({ top: 0, left: 0 });
   
-  // Get subtasks and count completed ones
-  const subtasks = getSubtasksForTask(task.id);
-  const completedSubtasks = subtasks.filter(
-    (subtask) => subtask.completed
-  ).length;
+  // Get subtask statistics
+  const { total, completed } = getSubtaskStats(task.id);
   
   // Refs
   const titleInputRef = useRef(null);
@@ -68,7 +53,6 @@ export default function TaskModal({
     }
   }, [isOpen]);
   
-  // Timer positioning effect
   useEffect(() => {
     if (isTimerOpen && timerRef.current) {
       const timerRect = timerRef.current.getBoundingClientRect();
@@ -114,13 +98,6 @@ export default function TaskModal({
     setIsTimerOpen(!isTimerOpen);
   };
   
-  const handleAddSubtask = () => {
-    if (newSubtask.trim()) {
-      addSubtask(task.id, newSubtask.trim());
-      setNewSubtask("");
-    }
-  };
-  
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] bg-white p-0 flex flex-col max-h-[90vh]">
@@ -151,15 +128,7 @@ export default function TaskModal({
               }
             />
             <Separator />
-            <SubtaskList
-              subtasks={subtasks}
-              completedSubtasks={completedSubtasks}
-              newSubtask={newSubtask}
-              setNewSubtask={setNewSubtask}
-              onSubtaskToggle={toggleSubtask}
-              onAddSubtask={handleAddSubtask}
-              onDeleteSubtask={deleteSubtask}
-            />
+            <SubtaskList taskId={task.id} />
           </div>
         </div>
         

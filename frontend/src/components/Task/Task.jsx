@@ -9,33 +9,26 @@ import useTaskStore from "@/Stores/TaskStore";
 import useSubtaskStore from "@/Stores/SubtaskStore";
 import { usePriorityColor } from "@/hooks/Task/usePriorityColor";
 import TaskModal from "@/components/Task/TaskModal/TaskModal";
-import AddTimer from "@/components/AddTimer/AddTimer";
 import { Progress } from "@/components/ui/progress";
 
-/**
- * Task Component
- * Represents a single task card in the kanban board
- *
- * @param {Object} task - Task data object
- * @param {string} columnId - ID of the column containing this task
- * @param {boolean} isDragging - Whether the task is currently being dragged
- */
 export default function Task({ task, columnId, isDragging = false }) {
   // Custom hooks and store access
   const priorityColorClass = usePriorityColor(task.priority);
   const { deleteTask, updateTask } = useTaskStore();
-  const { getSubtasksForTask, toggleSubtask } = useSubtaskStore();
+  const {
+    getSubtasksForTask,
+    getSubtaskStats,
+    toggleSubtask,
+    deleteSubtasksForTask
+  } = useSubtaskStore();
   
   // Local state
-  const actualColumnId = columnId || task.columnId;
-  const [showTimer] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSubtasks, setShowSubtasks] = useState(false);
   
-  // Get subtasks and calculate progress
+  // Get subtask data
   const subtasks = getSubtasksForTask(task.id);
-  const completedSubtasks = subtasks.filter(subtask => subtask.completed).length;
-  const subtaskProgress = subtasks.length > 0 ? (completedSubtasks / subtasks.length) * 100 : 0;
+  const { progress, total, completed } = getSubtaskStats(task.id);
   
   // DnD-kit sortable hook setup
   const {
@@ -49,31 +42,26 @@ export default function Task({ task, columnId, isDragging = false }) {
     id: task.id,
     data: {
       ...task,
-      columnId: actualColumnId,
+      columnId,
     },
   });
   
-  // Event handlers
-  const handleDeleteTask = () => {
-    deleteTask(actualColumnId, task.id);
+  /**
+   * Handles task deletion
+   * Deletes both the task and its subtasks
+   */
+  const handleDeleteTask = (e) => {
+    e.stopPropagation();
+    deleteSubtasksForTask(task.id);
+    deleteTask(columnId, task.id);
   };
   
-  const handleUpdateTask = (updatedTask) => {
-    updateTask(updatedTask, actualColumnId);
-  };
-  
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
-  };
-  
+  /**
+   * Handles toggling subtask visibility
+   */
   const handleToggleSubtasks = (e) => {
     e.stopPropagation();
     setShowSubtasks(!showSubtasks);
-  };
-  
-  const handleSubtaskToggle = (e, subtaskId) => {
-    e.stopPropagation();
-    toggleSubtask(subtaskId);
   };
   
   // Drag styles
@@ -92,17 +80,9 @@ export default function Task({ task, columnId, isDragging = false }) {
       {...listeners}
       className="relative"
     >
-      {/* Timer overlay */}
-      {showTimer && (
-        <div className="absolute right-full mr-2 top-0">
-          <AddTimer />
-        </div>
-      )}
-      
-      {/* Task card */}
       <Card
         className={`mb-2 ${priorityColorClass} ${isDragging ? "shadow-lg" : ""}`}
-        onClick={handleOpenModal}
+        onClick={() => setIsModalOpen(true)}
       >
         <CardHeader className="p-4">
           <div className="flex items-center justify-between">
@@ -110,7 +90,6 @@ export default function Task({ task, columnId, isDragging = false }) {
               {task.title}
             </CardTitle>
             <div className="flex items-center space-x-2">
-              {/* Subtasks toggle button */}
               {subtasks.length > 0 && (
                 <Button
                   variant="ghost"
@@ -125,7 +104,6 @@ export default function Task({ task, columnId, isDragging = false }) {
                   )}
                 </Button>
               )}
-              {/* Delete button */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -138,22 +116,25 @@ export default function Task({ task, columnId, isDragging = false }) {
           </div>
         </CardHeader>
         
-        {/* Subtasks section */}
         {showSubtasks && subtasks.length > 0 && (
           <CardContent>
             <div className="mt-2">
               <div className="text-xs text-muted-foreground mb-1">
-                Subtasks: {completedSubtasks}/{subtasks.length}
+                Subtasks: {completed}/{total}
               </div>
-              <Progress value={subtaskProgress} className="h-1 mb-2" />
-              <div className="mt-2 space-y-1 overflow-hidden">
+              <Progress value={progress} className="h-1 mb-2" />
+              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
                 {subtasks.map((subtask) => (
-                  <div key={subtask.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`subtask-${subtask.id}`}
-                      checked={subtask.completed}
-                      onCheckedChange={(e) => handleSubtaskToggle(e, subtask.id)}
-                    />
+                  <div
+                    key={subtask.id}
+                    className="flex items-center space-x-2"
+                    onClick={(e) => e.stopPropagation()}
+                  ><Checkbox
+                    id={`subtask-${subtask.id}`}
+                    checked={subtask.completed}
+                    onCheckedChange={() => toggleSubtask(subtask.id)}
+                    className="h-3 w-3"
+                  />
                     <label
                       htmlFor={`subtask-${subtask.id}`}
                       className={`text-xs ${
@@ -175,9 +156,9 @@ export default function Task({ task, columnId, isDragging = false }) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         task={task}
-        onUpdate={handleUpdateTask}
+        onUpdate={(updatedTask) => updateTask(updatedTask, columnId)}
         onDelete={handleDeleteTask}
-        columnId={actualColumnId}
+        columnId={columnId}
       />
     </div>
   );
