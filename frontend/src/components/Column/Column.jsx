@@ -33,6 +33,10 @@ export default function Column({
   const [showColumnSubtasks, setShowColumnSubtasks] = useState(showAllSubtasks); // Локальное состояние
   const { updateSubtask, getSubtasksForTask } = useSubtaskStore();
   
+  
+
+  
+  
   // Синхронизируем локальное состояние с глобальным
   useEffect(() => {
     setShowColumnSubtasks(showAllSubtasks);
@@ -135,6 +139,7 @@ export default function Column({
           <SortableContext
             items={tasks.map((task) => task.id)}
             strategy={verticalListSortingStrategy}
+          
           >
             {tasks.map((task) => (
               <Task key={task.id} task={task} columnId={columnId} showSubtasks={showColumnSubtasks} doneColumn={column.doneColumn} />

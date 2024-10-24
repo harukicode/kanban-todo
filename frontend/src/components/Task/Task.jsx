@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Trash, ChevronDown, ChevronUp } from "lucide-react";
-import { useSortable } from "@dnd-kit/sortable";
+import { defaultAnimateLayoutChanges, useSortable } from '@dnd-kit/sortable'
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,9 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks,
   const subtasks = getSubtasksForTask(task.id);
   const { progress, total, completed } = getSubtaskStats(task.id);
   
+  // Determine if layout changes should be animated
+  const shouldAnimateLayoutChanges = ({ isSorting, wasDragging }) => isSorting || wasDragging;
+  
   // DnD-kit sortable hook setup
   const {
     attributes,
@@ -49,7 +52,15 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks,
       ...task,
       columnId,
     },
+    animateLayoutChanges: ({ isSorting, wasDragging }) => {
+      return shouldAnimateLayoutChanges({ isSorting, wasDragging });
+    },
+    transition: {
+      duration: 300,
+      easing: 'ease-in-out', // Плавная анимация
+    },
   });
+  
   
   /**
    * Handles task deletion
@@ -72,7 +83,7 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks,
   // Drag styles
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: transition || "transform 1000ms ease", // Добавляем более плавный переход
     opacity: isSortableDragging ? 0 : 1,
     zIndex: isSortableDragging ? 1000 : 1,
   };
