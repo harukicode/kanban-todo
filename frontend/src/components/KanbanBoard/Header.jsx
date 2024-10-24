@@ -20,6 +20,8 @@ export default function Header({
   onAddColumn,
   setPriorityFilter,
   priorityFilter,
+  showAllSubtasks,
+  toggleShowAllSubtasks,
 }) {
   const { projects, activeProjectId, setActiveProjectId } = useProjectStore();
   const [addTimer, setAddTimer] = useState(false);
@@ -104,6 +106,9 @@ export default function Header({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button variant="outline" onClick={toggleShowAllSubtasks}>
+          {showAllSubtasks ? "Скрыть все подзадачи" : "Показать все подзадачи"}
+        </Button>
       </div>
     </div>
   );

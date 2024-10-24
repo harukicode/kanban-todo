@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus } from 'lucide-react'
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -8,7 +8,7 @@ import ModalNewTask from "@/components/ModalNewTask/ModalNewTask";
 import { ColumnPropertiesButton } from "./ColumnPropertiesButton";
 import { Button } from "@/components/ui/button";
 import { useColumnModal } from "@/hooks/Column/useColumnModal";
-import { useState } from "react";
+import React, { useEffect, useState } from 'react'
 import Task from "@/components/Task/Task";
 
 export default function Column({
@@ -18,6 +18,7 @@ export default function Column({
   addNewTask,
   updateColumn,
   deleteColumn,
+  showAllSubtasks,
 }) {
   const {
     isOpen: isModalOpen,
@@ -28,7 +29,18 @@ export default function Column({
     id: columnId,
   });
   const [propertiesOpen, setPropertiesOpen] = useState(false);
-
+  const [showColumnSubtasks, setShowColumnSubtasks] = useState(showAllSubtasks); // Локальное состояние
+  
+  // Синхронизируем локальное состояние с глобальным
+  useEffect(() => {
+    setShowColumnSubtasks(showAllSubtasks);
+  }, [showAllSubtasks]);
+  
+  // Переключение отображения подзадач только для этой колонки
+  const handleToggleAllSubtasks = () => {
+    setShowColumnSubtasks(!showColumnSubtasks);
+  };
+  
   // Изменение заголовка колонки
   const handleNameChange = (newName) => {
     updateColumn({ ...column, title: newName });
@@ -67,6 +79,13 @@ export default function Column({
             <Button variant="ghost" size="icon" onClick={handleOpenModal}>
               <Plus className="h-4 w-4" />
             </Button>
+            <Button onClick={handleToggleAllSubtasks} variant={"ghost"}>
+              {showAllSubtasks ? (
+                <ChevronUp size={14} />
+              ) : (
+                <ChevronDown size={14} />
+              )}
+            </Button>
             <ColumnPropertiesButton
               open={propertiesOpen}
               setOpen={setPropertiesOpen}
@@ -88,7 +107,7 @@ export default function Column({
             strategy={verticalListSortingStrategy}
           >
             {tasks.map((task) => (
-              <Task key={task.id} task={task} columnId={columnId} />
+              <Task key={task.id} task={task} columnId={columnId} showSubtasks={showColumnSubtasks} />
             ))}
           </SortableContext>
         </div>

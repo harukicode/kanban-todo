@@ -15,7 +15,13 @@ export default function KanbanBoard() {
   const { activeProjectId } = useProjectStore(); // Получаем активный проект
   const [priorityFilter, setPriorityFilter] = useState("all"); // Фильтр по приоритету
   const { moveTask, addTask } = useTaskStore(); // Получаем функцию перемещения задачи
-
+  const [showSubtasksForAllColumns, setShowSubtasksForAllColumns] = useState(false);
+  
+  // Функция для переключения показа всех подзадач
+  const toggleShowSubtasksForAllColumns = () => {
+    setShowSubtasksForAllColumns(!showSubtasksForAllColumns);
+  };
+  
   // Функция reorderTasks для перемещения задач в колонке
   const reorderTasks = useCallback(
     (columnId, oldIndex, newIndex) => {
@@ -81,6 +87,8 @@ export default function KanbanBoard() {
         priorityFilter={priorityFilter}
         setPriorityFilter={setPriorityFilter}
         onAddColumn={addNewColumn}
+        toggleShowAllSubtasks={toggleShowSubtasksForAllColumns}
+        showAllSubtasks={showSubtasksForAllColumns} // Передаем состояние в Header
       />
 
       <DndContext
@@ -100,6 +108,8 @@ export default function KanbanBoard() {
               addNewTask={(task) => handleAddNewTask(column.id, task)}
               updateColumn={updateColumn}
               deleteColumn={deleteColumn}
+              showAllSubtasks={showSubtasksForAllColumns} // Передаем глобальное состояние в каждую колонку
+            
             />
           ))}
         </div>

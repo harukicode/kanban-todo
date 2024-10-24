@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from 'react'
 import { Trash, ChevronDown, ChevronUp } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -11,7 +11,7 @@ import { usePriorityColor } from "@/hooks/Task/usePriorityColor";
 import TaskModal from "@/components/Task/TaskModal/TaskModal";
 import { Progress } from "@/components/ui/progress";
 
-export default function Task({ task, columnId, isDragging = false }) {
+export default function Task({ task, columnId, isDragging = false, showSubtasks }) {
   // Custom hooks and store access
   const priorityColorClass = usePriorityColor(task.priority);
   const { deleteTask, updateTask } = useTaskStore();
@@ -24,7 +24,12 @@ export default function Task({ task, columnId, isDragging = false }) {
   
   // Local state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showSubtasks, setShowSubtasks] = useState(false);
+  const [showTaskSubtasks, setShowTaskSubtasks] = useState(showSubtasks);
+  
+  useEffect(() => {
+    setShowTaskSubtasks(showSubtasks);
+  }, [showSubtasks]);
+  
   
   // Get subtask data
   const subtasks = getSubtasksForTask(task.id);
@@ -61,7 +66,7 @@ export default function Task({ task, columnId, isDragging = false }) {
    */
   const handleToggleSubtasks = (e) => {
     e.stopPropagation();
-    setShowSubtasks(!showSubtasks);
+    setShowTaskSubtasks(!showTaskSubtasks);
   };
   
   // Drag styles
@@ -116,7 +121,7 @@ export default function Task({ task, columnId, isDragging = false }) {
           </div>
         </CardHeader>
         
-        {showSubtasks && subtasks.length > 0 && (
+        {showTaskSubtasks && subtasks.length > 0 && (
           <CardContent>
             <div className="mt-2">
               <div className="text-xs text-muted-foreground mb-1">
