@@ -8,7 +8,7 @@ const useColumnsStore = create((set) => ({
   // добавление новой колонки
   addColumn: (newColumn) =>
     set((state) => ({
-      columns: [...state.columns, { ...newColumn, id: Date.now().toString() }], // добавляю новую колонку в массив колонок
+      columns: [...state.columns, { ...newColumn, id: Date.now().toString(), doneColumn: false }], // добавляю новую колонку в массив колонок
     })),
 
   // удаление колонки

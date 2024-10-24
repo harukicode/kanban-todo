@@ -53,7 +53,16 @@ const colors = [
 	{ name: "Teal", value: "#14b8a6" },
 ];
 
-export const ColumnPropertiesButton = React.memo(({ open, setOpen, handleOpenModal, onColorChange, onNameChange, columnName, onDeleteColumn }) => {
+export const ColumnPropertiesButton = React.memo(({
+	                                                  open,
+	                                                  setOpen,
+	                                                  handleOpenModal,
+	                                                  onColorChange,
+	                                                  onNameChange,
+	                                                  columnName,
+	                                                  onDeleteColumn,
+	                                                  doneColumn,
+	                                                  onToggleDoneColumn }) => {
 	const [isEditNameModalOpen, setIsEditNameModalOpen] = useState(false);
 	const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 	const [newColumnName, setNewColumnName] = useState(columnName);
@@ -102,6 +111,15 @@ export const ColumnPropertiesButton = React.memo(({ open, setOpen, handleOpenMod
 						<DropdownMenuItem onSelect={handleEditNameClick}>
 							<BiEditAlt className="mr-2 h-4 w-4" />
 							Edit Column Name
+						</DropdownMenuItem>
+						<DropdownMenuItem>
+							<input
+								type="checkbox"
+								checked={doneColumn}
+								onChange={onToggleDoneColumn}
+								className="mr-2 h-4 w-4"
+							/>
+							Done Column
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuSub>

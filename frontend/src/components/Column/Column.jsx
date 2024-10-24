@@ -55,6 +55,11 @@ export default function Column({
   const handleDeleteColumn = () => {
     deleteColumn(column.id);
   };
+  
+  // Обработчик переключения doneColumn
+  const handleToggleDoneColumn = () => {
+    updateColumn({ ...column, doneColumn: !column.doneColumn });
+  };
 
   return (
     <div
@@ -94,6 +99,8 @@ export default function Column({
               onNameChange={handleNameChange}
               columnName={column.title}
               onDeleteColumn={handleDeleteColumn}
+              doneColumn={column.doneColumn} // Передаём текущее состояние doneColumn
+              onToggleDoneColumn={handleToggleDoneColumn} // Передаём функцию переключения
             />
           </div>
           <div
@@ -107,7 +114,7 @@ export default function Column({
             strategy={verticalListSortingStrategy}
           >
             {tasks.map((task) => (
-              <Task key={task.id} task={task} columnId={columnId} showSubtasks={showColumnSubtasks} />
+              <Task key={task.id} task={task} columnId={columnId} showSubtasks={showColumnSubtasks} doneColumn={column.doneColumn} />
             ))}
           </SortableContext>
         </div>

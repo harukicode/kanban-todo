@@ -11,7 +11,7 @@ import { usePriorityColor } from "@/hooks/Task/usePriorityColor";
 import TaskModal from "@/components/Task/TaskModal/TaskModal";
 import { Progress } from "@/components/ui/progress";
 
-export default function Task({ task, columnId, isDragging = false, showSubtasks }) {
+export default function Task({ task, columnId, isDragging = false, showSubtasks, doneColumn }) {
   // Custom hooks and store access
   const priorityColorClass = usePriorityColor(task.priority);
   const { deleteTask, updateTask } = useTaskStore();
@@ -77,6 +77,10 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks 
     zIndex: isSortableDragging ? 1000 : 1,
   };
   
+  // Стиль для зачеркнутого текста (если задача завершена)
+  const taskStyle = doneColumn ? "line-through text-muted-foreground" : "";
+  
+  
   return (
     <div
       ref={setNodeRef}
@@ -91,7 +95,7 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks 
       >
         <CardHeader className="p-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm truncate mr-2">
+            <CardTitle className={`text-sm truncate mr-2 ${taskStyle}`}>
               {task.title}
             </CardTitle>
             <div className="flex items-center space-x-2">
@@ -136,15 +140,14 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks 
                     onClick={(e) => e.stopPropagation()}
                   ><Checkbox
                     id={`subtask-${subtask.id}`}
-                    checked={subtask.completed}
+                    checked={doneColumn || subtask.completed}
                     onCheckedChange={() => toggleSubtask(subtask.id)}
                     className="h-4 w-4"
+                    disabled={doneColumn}
                   />
                     <label
                       htmlFor={`subtask-${subtask.id}`}
-                      className={`text-xs ${
-                        subtask.completed ? "line-through text-muted-foreground" : ""
-                      }`}
+                      className={`text-xs ${doneColumn || subtask.completed ? 'line-through text-muted-foreground' : ''}`}
                     >
                       {subtask.title}
                     </label>
