@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import useColumnsStore from "./ColumnsStore";
-import useProjectStore from "./ProjectsStore";
+import useSubtaskStore from "./SubtaskStore";
 
 const useTaskStore = create((set) => ({
   tasks: [],
@@ -67,27 +67,27 @@ const useTaskStore = create((set) => ({
     );
     setColumns(updatedColumns);
   },
-
+  
   // Перемещение задачи между колонками
   moveTask: (taskId, fromColumnId, toColumnId, toProjectId) => {
     const { columns, setColumns } = useColumnsStore.getState();
-
-    // Сначала ищем задачу в общем хранилище задач
+    const { getSubtasksForTask, updateSubtask } = useSubtaskStore.getState(); // Получаем методы для работы с подзадачами
+    
     set((state) => {
       const taskToMove = state.tasks.find((task) => task.id === taskId);
-
+      
       if (!taskToMove) {
         console.error(`Task with id ${taskId} not found in tasks store`);
         return state;
       }
-
+      
       // Создаем обновленную задачу
       const updatedTask = {
         ...taskToMove,
         columnId: toColumnId,
         projectId: toProjectId,
       };
-
+      
       // Обновляем колонки
       const updatedColumns = columns.map((column) => {
         if (column.id === fromColumnId) {
@@ -104,9 +104,26 @@ const useTaskStore = create((set) => ({
         }
         return column;
       });
-
+      
       setColumns(updatedColumns);
-
+      
+      // Проверяем, является ли новая колонка выполненной
+      const targetColumn = columns.find((column) => column.id === toColumnId);
+      if (targetColumn && targetColumn.doneColumn) {
+        // Если колонка помечена как doneColumn, обновляем задачу и её подзадачи
+        const subtasks = getSubtasksForTask(taskId);
+        subtasks.forEach((subtask) => {
+          updateSubtask(subtask.id, {
+            completed: true,
+            completedAt: new Date().toISOString(),
+          });
+        });
+        
+        // Обновляем задачу как выполненную
+        updatedTask.completed = true;
+        updatedTask.completedAt = new Date().toISOString();
+      }
+      
       // Обновляем состояние tasks в TaskStore
       return {
         tasks: state.tasks.map((task) =>

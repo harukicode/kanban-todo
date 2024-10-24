@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useColumnModal } from "@/hooks/Column/useColumnModal";
 import React, { useEffect, useState } from 'react'
 import Task from "@/components/Task/Task";
+import useSubtaskStore from "@/Stores/SubtaskStore";
 
 export default function Column({
   column,
@@ -30,6 +31,7 @@ export default function Column({
   });
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const [showColumnSubtasks, setShowColumnSubtasks] = useState(showAllSubtasks); // Локальное состояние
+  const { updateSubtask, getSubtasksForTask } = useSubtaskStore();
   
   // Синхронизируем локальное состояние с глобальным
   useEffect(() => {
@@ -58,13 +60,34 @@ export default function Column({
   
   // Обработчик переключения doneColumn
   const handleToggleDoneColumn = () => {
-    updateColumn({ ...column, doneColumn: !column.doneColumn });
+    const newDoneColumnState = !column.doneColumn; // Переключаем состояние doneColumn
+    updateColumn({ ...column, doneColumn: newDoneColumnState });
+    
+    console.log("Column state changed to:", newDoneColumnState); // Логируем новое состояние колонки
+    
+    // Если колонка помечена как выполненная, обновляем все подзадачи для всех задач
+    tasks.forEach((task) => {
+      const subtasks = getSubtasksForTask(task.id); // Получаем подзадачи для задачи из хранилища
+      console.log(`Subtasks for task ${task.id}:`, subtasks); // Логируем подзадачи задачи
+      
+      subtasks.forEach((subtask) => {
+        // Обновляем состояние каждой подзадачи в хранилище
+        updateSubtask(subtask.id, {
+          completed: newDoneColumnState, // Обновляем состояние подзадачи
+          completedAt: newDoneColumnState ? new Date().toISOString() : null,
+        });
+        console.log(`Subtask ${subtask.id} updated:`, {
+          completed: newDoneColumnState,
+          completedAt: newDoneColumnState ? new Date().toISOString() : null,
+        }); // Логируем обновление подзадачи
+      });
+    });
   };
 
   return (
     <div
       ref={setNodeRef}
-      className="flex-grow w-72 min-h-[300px] flex flex-col"
+      className="flex-grow w-72 min-h-[300px] flex flex-col overflow-hidden"
     >
       <div className="mb-4 flex-grow flex flex-col">
         <div className="flex items-center justify-between mb-2 pb-2 relative">

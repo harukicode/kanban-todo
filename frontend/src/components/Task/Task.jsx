@@ -143,7 +143,7 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks,
                     checked={doneColumn || subtask.completed}
                     onCheckedChange={() => toggleSubtask(subtask.id)}
                     className="h-4 w-4"
-                    disabled={doneColumn}
+                    // disabled={doneColumn}
                   />
                     <label
                       htmlFor={`subtask-${subtask.id}`}
