@@ -54,8 +54,7 @@ export default function Task({ task, columnId, isDragging = false }) {
   });
   
   // Event handlers
-  const handleDeleteTask = (e) => {
-    e.stopPropagation();
+  const handleDeleteTask = () => {
     deleteTask(actualColumnId, task.id);
   };
   
