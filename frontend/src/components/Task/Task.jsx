@@ -128,7 +128,7 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks 
                 Subtasks: {completed}/{total}
               </div>
               <Progress value={progress} className="h-1 mb-2" />
-              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+              <div className="mt-2 space-y-1 max-h-32 ">
                 {subtasks.map((subtask) => (
                   <div
                     key={subtask.id}
@@ -138,7 +138,7 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks 
                     id={`subtask-${subtask.id}`}
                     checked={subtask.completed}
                     onCheckedChange={() => toggleSubtask(subtask.id)}
-                    className="h-3 w-3"
+                    className="h-4 w-4"
                   />
                     <label
                       htmlFor={`subtask-${subtask.id}`}

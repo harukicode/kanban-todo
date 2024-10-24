@@ -106,8 +106,8 @@ export default function Header({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" onClick={toggleShowAllSubtasks}>
-          {showAllSubtasks ? "Скрыть все подзадачи" : "Показать все подзадачи"}
+        <Button variant="ghost" onClick={toggleShowAllSubtasks}>
+          {showAllSubtasks ? "Hide all subtasks" : "Show all subtasks"}
         </Button>
       </div>
     </div>

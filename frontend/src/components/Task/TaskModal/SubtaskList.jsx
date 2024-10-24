@@ -23,10 +23,7 @@ export default function SubtaskList({ taskId }) {
   const subtasks = getSubtasksForTask(taskId);
   const { completed, total } = getSubtaskStats(taskId);
   
-  /**
-   * Handles adding a new subtask
-   * @param {Event} e - Optional event object
-   */
+
   const handleAddSubtask = (e) => {
     e?.preventDefault();
     if (newSubtaskTitle.trim()) {
@@ -43,8 +40,8 @@ export default function SubtaskList({ taskId }) {
       </h3>
       
       {/* Scrollable subtasks area */}
-      <ScrollArea className="h-[200px] w-full rounded-md border p-4">
-        <div className="space-y-4">
+      <ScrollArea className="h-[200px] w-full rounded-md border p-4 overflow-hidden ">
+        <div className="space-y-1 overflow-hidden">
           {subtasks.map((subtask) => (
             <div
               key={subtask.id}
