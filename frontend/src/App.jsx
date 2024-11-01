@@ -8,20 +8,21 @@ import {
 } from "react-router-dom";
 import KanbanBoard from "./components/KanbanBoard/KanbanBoard.jsx";
 import "./App.css";
-import SideBarS from "./components/SideBar/SideBarS.jsx";
+import SideBar from "./components/SideBar/SideBar.jsx";
+import SideTimer from "./components/SideTimer/SideTimer.jsx";
 
 const App = () => {
   return (
     <Router>
       <div className="flex">
         <SidebarProvider>
-        <SideBarS />
+        <SideBar />
         <main className="flex-grow p-4">
           <SidebarTrigger />
           <Routes>
             <Route path="/" element={<Navigate to="/kanban" />} />
             <Route path="/kanban" element={<KanbanBoard />} />
-            <Route path="/timer" element={<div>Timer Component</div>} />
+            <Route path="/timer" element={<SideTimer/>} />
             <Route path="/notes" element={<div>Notes Component</div>} />
           </Routes>
         </main>
