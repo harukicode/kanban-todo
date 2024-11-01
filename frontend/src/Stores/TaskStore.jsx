@@ -12,6 +12,7 @@ const useTaskStore = create((set) => ({
       ...newTask,
       id: Date.now().toString(),
       columnId: columnId, // Добавляем привязку к колонке
+      
     };
 
     // Обновляем состояние tasks в TaskStore
@@ -130,22 +131,6 @@ const useTaskStore = create((set) => ({
           task.id === taskId ? updatedTask : task
         ),
       };
-    });
-  },
-
-  // Вспомогательная функция для синхронизации задач
-  syncTasksWithColumns: () => {
-    const { columns, setColumns } = useColumnsStore.getState();
-
-    set((state) => {
-      // Создаем обновленные колонки с актуальными задачами
-      const updatedColumns = columns.map((column) => ({
-        ...column,
-        tasks: state.tasks.filter((task) => task.columnId === column.id),
-      }));
-
-      setColumns(updatedColumns);
-      return state;
     });
   },
 }));

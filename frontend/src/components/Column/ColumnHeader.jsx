@@ -42,7 +42,7 @@ export const ColumnHeader = ({
 			/>
 			<div
 				className="absolute bottom-0 left-0 right-0 h-0.5"
-				style={{ backgroundColor: color || "inherit" }}
+				style={{ backgroundColor: column.color || "inherit" }}
 			/>
 		</div>
 	);
