@@ -37,7 +37,7 @@ export default function TaskModal({
   // Local state
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [timerPosition, setTimerPosition] = useState({ top: 0, left: 0 });
-  
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
   // Get subtask statistics
   const { total, completed } = getSubtaskStats(task.id);
   
@@ -104,6 +104,15 @@ export default function TaskModal({
     setEditedTask({ ...editedTask, dueDate: newDate });
   };
   
+  const handleDescriptionChange = () => {
+    setIsEditingDescription(true);
+  };
+  
+  const handleDescriptionSave = (newDescription) => {
+    setEditedTask({ ...editedTask, description: newDescription });
+    setIsEditingDescription(false);
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] bg-white p-0 flex flex-col max-h-[90vh] ">
@@ -132,9 +141,9 @@ export default function TaskModal({
             <TaskDescription
               description={editedTask.description}
               timeSpent={editedTask.timeSpent}
-              onChange={(newDescription) =>
-                setEditedTask({ ...editedTask, description: newDescription })
-              }
+              isEditing={isEditingDescription}
+              onSave={handleDescriptionSave}
+              onCancel={() => setIsEditingDescription(false)}
             />
             <Separator />
             <SubtaskList taskId={task.id} />
@@ -176,7 +185,11 @@ export default function TaskModal({
         <DialogFooter className="px-6 py-4 bg-gray-50 mt-auto">
           <div className="flex flex-wrap gap-2 justify-between w-full">
             <div className="flex flex-wrap gap-2">
-              <AddButton description={task.description} dueDate={task.dueDate} comments={task.comments} onDueDateChange={handleDueDateChange}/>
+              <AddButton description={task.description}
+                         dueDate={task.dueDate}
+                         comments={task.comments}
+                         onDueDateChange={handleDueDateChange}
+                         onDescriptionChange={handleDescriptionChange}/>
               <MoveTaskDropdown task={editedTask} onClose={handleClose} />
               <Button
                 ref={timerButtonRef}

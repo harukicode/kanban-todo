@@ -41,7 +41,7 @@ export const useKanbanDnD = ({ columns, moveTask, reorderTasks }) => {
     const overColumn = findColumnByTaskId(over.id) || columns.find((col) => col.id === over.id);
     
     if (activeColumn && overColumn && (activeColumn !== overColumn || activeColumn.projectId !== overColumn.projectId)) {
-      moveTask(active.data.current.comments, active.data.current.dueDate,active.id, activeColumn.id, overColumn.id, overColumn.projectId);
+      moveTask( active.data.current.description, active.data.current.comments, active.data.current.dueDate,active.id, activeColumn.id, overColumn.id, overColumn.projectId);
     }
   }, [findColumnByTaskId, columns, moveTask]);
   
@@ -58,7 +58,7 @@ export const useKanbanDnD = ({ columns, moveTask, reorderTasks }) => {
     if (!activeColumn || !overColumn) return;
     
     if (activeColumn !== overColumn || activeColumn.projectId !== overColumn.projectId) {
-      moveTask( active.data.current.comments,  active.data.current.dueDate, active.id, activeColumn.id, overColumn.id, overColumn.projectId);
+      moveTask( active.data.current.description, active.data.current.comments,  active.data.current.dueDate, active.id, activeColumn.id, overColumn.id, overColumn.projectId);
     } else {
       const oldIndex = activeColumn.tasks.findIndex((task) => task.id === active.id);
       const newIndex = activeColumn.tasks.findIndex((task) => task.id === over.id);

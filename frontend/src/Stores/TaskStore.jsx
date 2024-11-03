@@ -72,7 +72,7 @@ const useTaskStore = create((set) => {
     },
     
     // Перемещение задачи между колонками
-    moveTask: (comments, dueDate, taskId, fromColumnId, toColumnId, toProjectId) => {
+    moveTask: (description,comments, dueDate, taskId, fromColumnId, toColumnId, toProjectId) => {
       const { columns, setColumns } = useColumnsStore.getState()
       const { getSubtasksForTask, updateSubtask } = useSubtaskStore.getState() // Получаем методы для работы с подзадачами
       
@@ -87,6 +87,7 @@ const useTaskStore = create((set) => {
         // Создаем обновленную задачу
         const updatedTask = {
           ...taskToMove,
+          description: description,
           columnId: toColumnId,
           projectId: toProjectId,
           dueDate: dueDate,

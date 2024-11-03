@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { AlignLeft, Calendar as CalendarIcon, MessageCircle, Plus } from 'lucide-react'
 import { format, parseISO } from "date-fns"
 
-export function AddButton({ dueDate, comments, description, onDueDateChange }) {
+export function AddButton({ dueDate, comments, description, onDueDateChange, onDescriptionChange }) {
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 	const [selectedDate, setSelectedDate] = useState(dueDate)
 	
@@ -26,6 +26,10 @@ export function AddButton({ dueDate, comments, description, onDueDateChange }) {
 		onDueDateChange(formattedDate);
 	}
 	
+	const handleDescriptionClick = () => {
+		onDescriptionChange();
+	}
+	
 	return (
 		<Popover>
 			<PopoverTrigger asChild>
@@ -35,7 +39,7 @@ export function AddButton({ dueDate, comments, description, onDueDateChange }) {
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-0">
 				<div className="grid gap-2">
-					<Button variant="ghost" className="justify-start">
+					<Button variant="ghost" className="justify-start" onClick={handleDescriptionClick}>
 						<AlignLeft className="mr-2 h-4 w-4" />
 						Description
 					</Button>
