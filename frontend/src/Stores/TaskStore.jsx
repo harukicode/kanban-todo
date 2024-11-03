@@ -15,6 +15,7 @@ const useTaskStore = create((set) => {
         columnId: columnId, // Добавляем привязку к колонке
         dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
         comments: newTask.comments || [],
+        timeSpent: 0,
       }
       
       // Обновляем состояние tasks в TaskStore
@@ -72,7 +73,7 @@ const useTaskStore = create((set) => {
     },
     
     // Перемещение задачи между колонками
-    moveTask: (description,comments, dueDate, taskId, fromColumnId, toColumnId, toProjectId) => {
+    moveTask: (timeSpent, description,comments, dueDate, taskId, fromColumnId, toColumnId, toProjectId) => {
       const { columns, setColumns } = useColumnsStore.getState()
       const { getSubtasksForTask, updateSubtask } = useSubtaskStore.getState() // Получаем методы для работы с подзадачами
       
@@ -92,6 +93,7 @@ const useTaskStore = create((set) => {
           projectId: toProjectId,
           dueDate: dueDate,
           comments: comments,
+          timeSpent: timeSpent,
         }
         
         // Обновляем колонки
