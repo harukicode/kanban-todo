@@ -23,8 +23,7 @@ const AddTimer = () => {
   const [currentMode, setCurrentMode] = useState("work");
   const [currentInterval, setCurrentInterval] = useState(1);
   const [isPomodoroMode, setIsPomodoroMode] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-
+  
   const getCurrentDuration = useCallback(() => {
     if (!isPomodoroMode) return 0; // Start from 0 in normal mode
     switch (currentMode) {
@@ -93,7 +92,7 @@ const AddTimer = () => {
     }
   };
 
-  return isVisible ? (
+  return (
     <Card className="w-80 bg-white shadow-lg rounded-lg overflow-hidden">
       <CardHeader className="bg-gray-100 border-b border-gray-200">
         <div className="flex justify-between items-center">
@@ -127,7 +126,7 @@ const AddTimer = () => {
         />
       </CardFooter>
     </Card>
-  ) : null;
+  );
 };
 
 export default AddTimer;
