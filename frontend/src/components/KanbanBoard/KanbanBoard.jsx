@@ -1,13 +1,13 @@
-import { ColumnsList } from '@/components/Column/ColumnList.jsx'
-import BoardHeader from '@/components/KanbanBoard/BoadrHeader.jsx'
-import Task from '@/components/Task/Task.jsx'
-import { useFilteredTasks } from '@/hooks/KanbanBoard/useFilteredTasks.jsx'
-import { useKanbanDnD } from '@/hooks/KanbanBoard/useKanbanDnd.jsx'
-import useColumnsStore from '@/Stores/ColumnsStore.jsx'
-import useProjectStore from '@/Stores/ProjectsStore.jsx'
-import useTaskStore from '@/Stores/TaskStore.jsx'
-import { closestCorners, DndContext, DragOverlay } from '@dnd-kit/core'
-import { useCallback, useMemo, useState } from 'react'
+import { ColumnsList } from "@/components/Column/ColumnList.jsx";
+import BoardHeader from "@/components/KanbanBoard/BoadrHeader.jsx";
+import Task from "@/components/Task/Task.jsx";
+import { useFilteredTasks } from "@/hooks/KanbanBoard/useFilteredTasks.jsx";
+import { useKanbanDnD } from "@/hooks/KanbanBoard/useKanbanDnd.jsx";
+import useColumnsStore from "@/Stores/ColumnsStore.jsx";
+import useProjectStore from "@/Stores/ProjectsStore.jsx";
+import useTaskStore from "@/Stores/TaskStore.jsx";
+import { closestCorners, DndContext, DragOverlay } from "@dnd-kit/core";
+import { useCallback, useMemo, useState } from "react";
 
 export default function KanbanBoard() {
   const { columns, setColumns, addColumn, deleteColumn, updateColumn } =
@@ -15,12 +15,13 @@ export default function KanbanBoard() {
   const { activeProjectId } = useProjectStore();
   const [priorityFilter, setPriorityFilter] = useState("all");
   const { moveTask, addTask } = useTaskStore();
-  const [showSubtasksForAllColumns, setShowSubtasksForAllColumns] = useState(false);
-  
+  const [showSubtasksForAllColumns, setShowSubtasksForAllColumns] =
+    useState(false);
+
   const toggleShowSubtasksForAllColumns = () => {
     setShowSubtasksForAllColumns(!showSubtasksForAllColumns);
   };
-  
+
   const {
     sensors,
     activeTask,
@@ -43,19 +44,19 @@ export default function KanbanBoard() {
         });
         setColumns(updatedColumns);
       },
-      [columns, setColumns]
+      [columns, setColumns],
     ),
   });
-  
+
   const projectFilteredColumns = useMemo(() => {
     return columns.filter((column) => column.projectId === activeProjectId);
   }, [columns, activeProjectId]);
-  
+
   const filteredColumns = useFilteredTasks(
     projectFilteredColumns,
-    priorityFilter
+    priorityFilter,
   );
-  
+
   const addNewColumn = useCallback(() => {
     addColumn({
       title: "New Column",
@@ -64,14 +65,14 @@ export default function KanbanBoard() {
       projectId: activeProjectId,
     });
   }, [addColumn, activeProjectId]);
-  
+
   const handleAddNewTask = useCallback(
     (columnId, newTask) => {
       addTask(columnId, { ...newTask, projectId: activeProjectId });
     },
-    [addTask, activeProjectId]
+    [addTask, activeProjectId],
   );
-  
+
   return (
     <div className="kanban-board p-4">
       <BoardHeader
@@ -81,7 +82,7 @@ export default function KanbanBoard() {
         toggleShowAllSubtasks={toggleShowSubtasksForAllColumns}
         showAllSubtasks={showSubtasksForAllColumns}
       />
-      
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -103,7 +104,7 @@ export default function KanbanBoard() {
               columnId={
                 activeTask.columnId ||
                 columns.find((col) =>
-                  col.tasks.some((t) => t.id === activeTask.id)
+                  col.tasks.some((t) => t.id === activeTask.id),
                 )?.id
               }
               isDragging

@@ -7,7 +7,7 @@ export const useFilteredTasks = (columns, priorityFilter) => {
       tasks: column.tasks.filter(
         (task) =>
           priorityFilter === "all" ||
-          task.priority.toLowerCase() === priorityFilter
+          task.priority.toLowerCase() === priorityFilter,
       ),
     }));
   }, [columns, priorityFilter]);

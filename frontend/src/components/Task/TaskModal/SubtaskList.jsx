@@ -13,16 +13,15 @@ export default function SubtaskList({ taskId }) {
     getSubtaskStats,
     addSubtask,
     toggleSubtask,
-    deleteSubtask
+    deleteSubtask,
   } = useSubtaskStore();
-  
+
   // Local state for new subtask input
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
-  
+
   // Get subtasks and stats
   const subtasks = getSubtasksForTask(taskId);
   const { completed, total } = getSubtaskStats(taskId);
-  
 
   const handleAddSubtask = (e) => {
     e?.preventDefault();
@@ -31,14 +30,14 @@ export default function SubtaskList({ taskId }) {
       setNewSubtaskTitle("");
     }
   };
-  
+
   return (
     <div>
       {/* Subtasks header */}
       <h3 className="text-lg font-semibold mb-2">
         Subtasks {completed}/{total}
       </h3>
-      
+
       {/* Scrollable subtasks area */}
       <ScrollArea className="h-[200px] w-full rounded-md border p-4 overflow-hidden ">
         <div className="space-y-1 overflow-hidden">
@@ -57,10 +56,10 @@ export default function SubtaskList({ taskId }) {
                   htmlFor={`subtask-${subtask.id}`}
                   className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed
                     peer-disabled:opacity-70 ${
-                    subtask.completed
-                      ? "line-through text-muted-foreground"
-                      : ""
-                  }`}
+                      subtask.completed
+                        ? "line-through text-muted-foreground"
+                        : ""
+                    }`}
                 >
                   {subtask.title}
                 </label>
@@ -77,7 +76,7 @@ export default function SubtaskList({ taskId }) {
           ))}
         </div>
       </ScrollArea>
-      
+
       {/* Add new subtask form */}
       <form
         onSubmit={handleAddSubtask}

@@ -29,7 +29,7 @@ export default function MoveTaskDropdown({ task, onClose }) {
 
   // Фильтруем колонки для выбранного проекта
   const availableColumns = columns.filter(
-    (column) => column.projectId === selectedProject
+    (column) => column.projectId === selectedProject,
   );
 
   // Обработчик изменения проекта
@@ -38,7 +38,7 @@ export default function MoveTaskDropdown({ task, onClose }) {
 
     // Получаем колонки для нового проекта
     const newProjectColumns = columns.filter(
-      (column) => column.projectId === newProjectId
+      (column) => column.projectId === newProjectId,
     );
 
     // Если есть доступные колонки, выбираем первую
@@ -75,7 +75,16 @@ export default function MoveTaskDropdown({ task, onClose }) {
         toProjectId: selectedProject,
       });
 
-      moveTask(task.timeSpent,task.description, task.comments,task.dueDate, task.id, task.columnId, selectedColumn, selectedProject);
+      moveTask(
+        task.timeSpent,
+        task.description,
+        task.comments,
+        task.dueDate,
+        task.id,
+        task.columnId,
+        selectedColumn,
+        selectedProject,
+      );
       onClose();
     }
   };

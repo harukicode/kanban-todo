@@ -1,10 +1,12 @@
-import React from 'react';
-import { formatTime } from './timeUtils.jsx';
+import React from "react";
+import { formatTime } from "./timeUtils.jsx";
 
 const TimerDisplay = ({ time }) => (
-	<div className="text-center mb-4">
-		<span className="text-4xl font-light text-gray-700">{formatTime(time)}</span>
-	</div>
+  <div className="text-center mb-4">
+    <span className="text-4xl font-light text-gray-700">
+      {formatTime(time)}
+    </span>
+  </div>
 );
 
 export default TimerDisplay;

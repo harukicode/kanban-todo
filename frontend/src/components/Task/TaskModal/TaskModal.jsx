@@ -1,4 +1,4 @@
-import { CommentCard } from '@/components/Task/TaskModal/TaskComments.jsx'
+import { CommentCard } from "@/components/Task/TaskModal/TaskComments.jsx";
 import React, { useRef, useEffect, useState } from "react";
 import {
   Dialog,
@@ -15,37 +15,36 @@ import SubtaskList from "@/components/Task/TaskModal/SubtaskList.jsx";
 import TaskDescription from "@/components/Task/TaskModal/TaskDescription.jsx";
 import AddTimer from "@/components/AddTimer/AddTimer.jsx";
 import MoveTaskDropdown from "@/components/Task/TaskModal/MoveTaskDropdown.jsx";
-import { AddButton } from '@/components/Task/TaskModal/AddButton.jsx'
-
+import { AddButton } from "@/components/Task/TaskModal/AddButton.jsx";
 
 export default function TaskModal({
-                                    isOpen,
-                                    onClose,
-                                    task,
-                                    onUpdate,
-                                    onDelete,
-                                    columnId,
-                                  }) {
+  isOpen,
+  onClose,
+  task,
+  onUpdate,
+  onDelete,
+  columnId,
+}) {
   // Custom hooks and store access
   const { editedTask, setEditedTask, handleSave, handleClose } = useTaskModal(
     task,
     onUpdate,
-    onClose
+    onClose,
   );
   const { getSubtaskStats } = useSubtaskStore();
-  
+
   // Local state
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [timerPosition, setTimerPosition] = useState({ top: 0, left: 0 });
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   // Get subtask statistics
   const { total, completed } = getSubtaskStats(task.id);
-  
+
   // Refs
   const titleInputRef = useRef(null);
   const timerButtonRef = useRef(null);
   const timerRef = useRef(null);
-  
+
   // Effects
   useEffect(() => {
     if (isOpen && titleInputRef.current) {
@@ -54,15 +53,15 @@ export default function TaskModal({
       }, 100);
     }
   }, [isOpen]);
-  
+
   useEffect(() => {
     if (isTimerOpen && timerRef.current) {
       const timerRect = timerRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      
+
       let { top, left } = timerPosition;
-      
+
       // Adjust position to keep timer within viewport
       if (left + timerRect.width > viewportWidth) {
         left = viewportWidth - timerRect.width - 10;
@@ -76,17 +75,17 @@ export default function TaskModal({
       if (top < 0) {
         top = 10;
       }
-      
+
       setTimerPosition({ top, left });
     }
   }, [isTimerOpen, timerPosition]);
-  
+
   // Event handlers
   const handleDeleteTask = () => {
     onDelete(columnId, task.id);
     handleClose();
   };
-  
+
   const handleTimerToggle = (e) => {
     e.stopPropagation();
     if (!isTimerOpen && timerButtonRef.current) {
@@ -99,28 +98,31 @@ export default function TaskModal({
     }
     setIsTimerOpen(!isTimerOpen);
   };
-  
+
   const handleDueDateChange = (newDate) => {
     setEditedTask({ ...editedTask, dueDate: newDate });
   };
-  
+
   const handleDescriptionChange = () => {
     setIsEditingDescription(true);
   };
-  
+
   const handleDescriptionSave = (newDescription) => {
     setEditedTask({ ...editedTask, description: newDescription });
     setIsEditingDescription(false);
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] bg-white p-0 flex flex-col max-h-[90vh] ">
         {/* Modal content */}
-        <div className="p-6 flex-grow overflow-y-auto scrollbar-hide" style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}>
+        <div
+          className="p-6 flex-grow overflow-y-auto scrollbar-hide"
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
           <DialogHeader className="mb-4">
             <div className="flex items-center space-x-2 ">
               <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
@@ -135,7 +137,7 @@ export default function TaskModal({
               />
             </div>
           </DialogHeader>
-          
+
           {/* Task details */}
           <div className="space-y-4">
             <TaskDescription
@@ -154,42 +156,48 @@ export default function TaskModal({
               onAddComment={(taskId, content) => {
                 const newComment = {
                   id: Date.now().toString(),
-                  author: 'Illia', // Замените на реальное имя пользователя
+                  author: "Illia", // Замените на реальное имя пользователя
                   content,
                   createdAt: new Date().toISOString(),
-                }
+                };
                 setEditedTask({
                   ...editedTask,
                   comments: [...editedTask.comments, newComment],
-                })
+                });
               }}
               onUpdateComment={(taskId, commentId, newContent) => {
                 setEditedTask({
                   ...editedTask,
-                  comments: editedTask.comments.map(comment =>
-                    comment.id === commentId ? { ...comment, content: newContent } : comment
+                  comments: editedTask.comments.map((comment) =>
+                    comment.id === commentId
+                      ? { ...comment, content: newContent }
+                      : comment,
                   ),
-                })
+                });
               }}
               onDeleteComment={(taskId, commentId) => {
                 setEditedTask({
                   ...editedTask,
-                  comments: editedTask.comments.filter(comment => comment.id !== commentId),
-                })
+                  comments: editedTask.comments.filter(
+                    (comment) => comment.id !== commentId,
+                  ),
+                });
               }}
             />
           </div>
         </div>
-        
+
         {/* Modal footer */}
         <DialogFooter className="px-6 py-4 bg-gray-50 mt-auto">
           <div className="flex flex-wrap gap-2 justify-between w-full">
             <div className="flex flex-wrap gap-2">
-              <AddButton description={task.description}
-                         dueDate={task.dueDate}
-                         comments={task.comments}
-                         onDueDateChange={handleDueDateChange}
-                         onDescriptionChange={handleDescriptionChange}/>
+              <AddButton
+                description={task.description}
+                dueDate={task.dueDate}
+                comments={task.comments}
+                onDueDateChange={handleDueDateChange}
+                onDescriptionChange={handleDescriptionChange}
+              />
               <MoveTaskDropdown task={editedTask} onClose={handleClose} />
               <Button
                 ref={timerButtonRef}
@@ -220,7 +228,7 @@ export default function TaskModal({
             </div>
           </div>
         </DialogFooter>
-        
+
         {/* Timer overlay */}
         {isTimerOpen && (
           <div

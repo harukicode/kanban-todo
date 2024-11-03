@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar.jsx'
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar.jsx";
 import React from "react";
 import {
   BrowserRouter as Router,
@@ -16,16 +16,16 @@ const App = () => {
     <Router>
       <div className="flex">
         <SidebarProvider>
-        <SideBar />
-        <main className="flex-grow p-4">
-          <SidebarTrigger />
-          <Routes>
-            <Route path="/" element={<Navigate to="/kanban" />} />
-            <Route path="/kanban" element={<KanbanBoard />} />
-            <Route path="/timer" element={<SideTimer/>} />
-            <Route path="/notes" element={<div>Notes Component</div>} />
-          </Routes>
-        </main>
+          <SideBar />
+          <main className="flex-grow p-4">
+            <SidebarTrigger />
+            <Routes>
+              <Route path="/" element={<Navigate to="/kanban" />} />
+              <Route path="/kanban" element={<KanbanBoard />} />
+              <Route path="/timer" element={<SideTimer />} />
+              <Route path="/notes" element={<div>Notes Component</div>} />
+            </Routes>
+          </main>
         </SidebarProvider>
       </div>
     </Router>
