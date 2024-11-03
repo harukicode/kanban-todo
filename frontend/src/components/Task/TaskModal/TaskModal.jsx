@@ -1,3 +1,4 @@
+import { CommentCard } from '@/components/Task/TaskModal/TaskComments.jsx'
 import React, { useRef, useEffect, useState } from "react";
 import {
   Dialog,
@@ -14,6 +15,7 @@ import SubtaskList from "@/components/Task/TaskModal/SubtaskList.jsx";
 import TaskDescription from "@/components/Task/TaskModal/TaskDescription.jsx";
 import AddTimer from "@/components/AddTimer/AddTimer.jsx";
 import MoveTaskDropdown from "@/components/Task/TaskModal/MoveTaskDropdown.jsx";
+import { AddButton } from '@/components/Task/TaskModal/AddButton.jsx'
 
 
 export default function TaskModal({
@@ -98,13 +100,20 @@ export default function TaskModal({
     setIsTimerOpen(!isTimerOpen);
   };
   
+  const handleDueDateChange = (newDate) => {
+    setEditedTask({ ...editedTask, dueDate: newDate });
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[700px] bg-white p-0 flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-[700px] bg-white p-0 flex flex-col max-h-[90vh] ">
         {/* Modal content */}
-        <div className="p-6 flex-grow overflow-y-auto">
+        <div className="p-6 flex-grow overflow-y-auto scrollbar-hide" style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}>
           <DialogHeader className="mb-4">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 ">
               <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
               <input
                 ref={titleInputRef}
@@ -129,6 +138,37 @@ export default function TaskModal({
             />
             <Separator />
             <SubtaskList taskId={task.id} />
+            <Separator />
+            <CommentCard
+              taskId={task.id}
+              comments={editedTask.comments}
+              onAddComment={(taskId, content) => {
+                const newComment = {
+                  id: Date.now().toString(),
+                  author: 'Illia', // Замените на реальное имя пользователя
+                  content,
+                  createdAt: new Date().toISOString(),
+                }
+                setEditedTask({
+                  ...editedTask,
+                  comments: [...editedTask.comments, newComment],
+                })
+              }}
+              onUpdateComment={(taskId, commentId, newContent) => {
+                setEditedTask({
+                  ...editedTask,
+                  comments: editedTask.comments.map(comment =>
+                    comment.id === commentId ? { ...comment, content: newContent } : comment
+                  ),
+                })
+              }}
+              onDeleteComment={(taskId, commentId) => {
+                setEditedTask({
+                  ...editedTask,
+                  comments: editedTask.comments.filter(comment => comment.id !== commentId),
+                })
+              }}
+            />
           </div>
         </div>
         
@@ -136,9 +176,7 @@ export default function TaskModal({
         <DialogFooter className="px-6 py-4 bg-gray-50 mt-auto">
           <div className="flex flex-wrap gap-2 justify-between w-full">
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm">
-                <Plus size={16} className="mr-2" /> Add
-              </Button>
+              <AddButton description={task.description} dueDate={task.dueDate} comments={task.comments} onDueDateChange={handleDueDateChange}/>
               <MoveTaskDropdown task={editedTask} onClose={handleClose} />
               <Button
                 ref={timerButtonRef}

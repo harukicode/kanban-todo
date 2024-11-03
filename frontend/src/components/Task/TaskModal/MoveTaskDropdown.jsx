@@ -75,7 +75,7 @@ export default function MoveTaskDropdown({ task, onClose }) {
         toProjectId: selectedProject,
       });
 
-      moveTask(task.id, task.columnId, selectedColumn, selectedProject);
+      moveTask(task.dueDate, task.id, task.columnId, selectedColumn, selectedProject);
       onClose();
     }
   };

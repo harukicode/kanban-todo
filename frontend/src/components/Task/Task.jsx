@@ -1,3 +1,5 @@
+import { format, parseISO } from 'date-fns'
+import { enGB, ru } from 'date-fns/locale'
 import React, { useEffect, useState } from 'react'
 import { Trash, ChevronDown, ChevronUp } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable'
@@ -109,7 +111,14 @@ export default function Task({ task, columnId, isDragging = false, showSubtasks,
             <CardTitle className={`text-sm truncate mr-2 ${taskStyle}`}>
               {task.title}
             </CardTitle>
+            
             <div className="flex items-center space-x-2">
+              {task.dueDate && (
+                <div className="text-xs text-muted-foreground justify-end">
+                  <p className="text-red-500 text-sm">Due date: </p>
+                  {format(parseISO(task.dueDate), "d MMM yyyy", { locale: enGB })}
+                </div>
+              )}
               {subtasks.length > 0 && (
                 <Button
                   variant="ghost"
