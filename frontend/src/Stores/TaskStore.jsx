@@ -9,44 +9,42 @@ const useTaskStore = create(
       tasks: [],
       selectedTaskId: null,
       isTaskFindActive: false,
-      
+
       startFind: () =>
         set({
           selectedTaskId: null,
           isTaskFindActive: true,
         }),
-      
+
       setSelectedTaskId: (taskId) =>
         set({
           selectedTaskId: taskId,
-          isTaskFindActive: false
+          isTaskFindActive: false,
         }),
-      
-     
-      
+
       updateTimeSpent: (taskId, timeSpent) => {
         const { columns, setColumns } = useColumnsStore.getState();
         const task = get().tasks.find((t) => t.id === taskId);
-        
+
         if (!task) return;
-        
+
         const updatedTask = {
           ...task,
           timeSpent: timeSpent,
         };
-        
+
         const updatedColumns = columns.map((column) => ({
           ...column,
           tasks: column.tasks.map((t) => (t.id === taskId ? updatedTask : t)),
         }));
-        
+
         setColumns(updatedColumns);
-        
+
         set((state) => ({
           tasks: state.tasks.map((t) => (t.id === taskId ? updatedTask : t)),
         }));
       },
-      
+
       addTask: (columnId, newTask) => {
         const { columns, setColumns } = useColumnsStore.getState();
         const taskWithId = {
@@ -59,55 +57,55 @@ const useTaskStore = create(
           comments: newTask.comments || [],
           timeSpent: 0,
         };
-        
+
         set((state) => ({
           tasks: [...state.tasks, taskWithId],
         }));
-        
+
         const updatedColumns = columns.map((column) =>
           column.id === columnId
             ? {
-              ...column,
-              tasks: [...column.tasks, taskWithId],
-            }
-            : column
+                ...column,
+                tasks: [...column.tasks, taskWithId],
+              }
+            : column,
         );
         setColumns(updatedColumns);
       },
-      
+
       deleteTask: (columnId, taskId) => {
         const { columns, setColumns } = useColumnsStore.getState();
-        
+
         set((state) => ({
           tasks: state.tasks.filter((task) => task.id !== taskId),
         }));
-        
+
         const updatedColumns = columns.map((column) =>
           column.id === columnId
             ? {
-              ...column,
-              tasks: column.tasks.filter((task) => task.id !== taskId),
-            }
-            : column
+                ...column,
+                tasks: column.tasks.filter((task) => task.id !== taskId),
+              }
+            : column,
         );
         setColumns(updatedColumns);
       },
-      
+
       updateTask: (updatedTask, columnId) => {
         const { columns, setColumns } = useColumnsStore.getState();
         const updatedColumns = columns.map((column) =>
           column.id === columnId
             ? {
-              ...column,
-              tasks: column.tasks.map((task) =>
-                task.id === updatedTask.id ? updatedTask : task
-              ),
-            }
-            : column
+                ...column,
+                tasks: column.tasks.map((task) =>
+                  task.id === updatedTask.id ? updatedTask : task,
+                ),
+              }
+            : column,
         );
         setColumns(updatedColumns);
       },
-      
+
       moveTask: (
         timeSpent,
         description,
@@ -116,19 +114,20 @@ const useTaskStore = create(
         taskId,
         fromColumnId,
         toColumnId,
-        toProjectId
+        toProjectId,
       ) => {
         const { columns, setColumns } = useColumnsStore.getState();
-        const { getSubtasksForTask, updateSubtask } = useSubtaskStore.getState();
-        
+        const { getSubtasksForTask, updateSubtask } =
+          useSubtaskStore.getState();
+
         set((state) => {
           const taskToMove = state.tasks.find((task) => task.id === taskId);
-          
+
           if (!taskToMove) {
             console.error(`Task with id ${taskId} not found in tasks store`);
             return state;
           }
-          
+
           const updatedTask = {
             ...taskToMove,
             description: description,
@@ -138,7 +137,7 @@ const useTaskStore = create(
             comments: comments,
             timeSpent: timeSpent,
           };
-          
+
           const updatedColumns = columns.map((column) => {
             if (column.id === fromColumnId) {
               return {
@@ -154,10 +153,12 @@ const useTaskStore = create(
             }
             return column;
           });
-          
+
           setColumns(updatedColumns);
-          
-          const targetColumn = columns.find((column) => column.id === toColumnId);
+
+          const targetColumn = columns.find(
+            (column) => column.id === toColumnId,
+          );
           if (targetColumn && targetColumn.doneColumn) {
             const subtasks = getSubtasksForTask(taskId);
             subtasks.forEach((subtask) => {
@@ -166,14 +167,14 @@ const useTaskStore = create(
                 completedAt: new Date().toISOString(),
               });
             });
-            
+
             updatedTask.completed = true;
             updatedTask.completedAt = new Date().toISOString();
           }
-          
+
           return {
             tasks: state.tasks.map((task) =>
-              task.id === taskId ? updatedTask : task
+              task.id === taskId ? updatedTask : task,
             ),
           };
         });
@@ -186,8 +187,8 @@ const useTaskStore = create(
         // only persist these fields
         tasks: state.tasks,
       }),
-    }
-  )
+    },
+  ),
 );
 
 export default useTaskStore;

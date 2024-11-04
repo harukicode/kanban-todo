@@ -39,7 +39,7 @@ export function CommentCard({
   onDeleteComment,
 }) {
   const [newComment, setNewComment] = useState("");
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedContent, setEditedContent] = useState("");
 
