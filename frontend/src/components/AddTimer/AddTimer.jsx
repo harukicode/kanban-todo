@@ -26,7 +26,6 @@ export default function AddTimer() {
   const updateTimeSpent = useTaskStore((state) => state.updateTimeSpent);
   const addTimeLog = useTaskStore((state) => state.addTimeLog);
   const startFind = useTaskStore((state) => state.startFind);
-  const timeLogs = useTaskStore((state) => state.timeLogs);
   
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) || null;
   
@@ -46,7 +45,7 @@ export default function AddTimer() {
     }
   }, [currentMode, settings, isPomodoroMode, selectedTask]);
   
-  const { time, isRunning, handleStartStop, updateTime, resetTimer } = useTimer(settings.workTime * 60, !isPomodoroMode);
+  const { time, isRunning, handleStartStop, updateTime, resetTimer, clearAndResetTimer } = useTimer(settings.workTime * 60, !isPomodoroMode);
   
   useEffect(() => {
     let interval = null;
@@ -108,11 +107,8 @@ export default function AddTimer() {
   
   const handleTimerAction = () => {
     if (isRunning) {
-      // Stop the timer
-      handleStartStop();
-      resetTimer();  // сброс таймера
-      updateTime(0); // обновление времени до 0
-      
+      handleStartStop(); // Остановка таймера
+      clearAndResetTimer(); // Полный сброс таймера
       if (selectedTaskId && !isPomodoroMode && startTime) {
         const endTime = new Date();
         const timeSpent = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
@@ -138,6 +134,14 @@ export default function AddTimer() {
       }
     }
   };
+  useEffect(() => {
+    if (!isRunning && time !== 0) {
+      console.log("Корректировка времени на 0");
+      resetTimer();
+      updateTime(0);
+    }
+  }, [isRunning, time]);
+
   
   return (
     <Card className="w-80 bg-white shadow-lg rounded-lg overflow-hidden">
@@ -166,20 +170,7 @@ export default function AddTimer() {
           onStartStop={handleTimerAction}
           disabled={!selectedTaskId}
         />
-        {/*<div className="mt-4">*/}
-        {/*  <h3 className="font-semibold mb-2">Time Logs:</h3>*/}
-        {/*  <ul className="text-sm">*/}
-        {/*    {timeLogs.map((log, index) => (*/}
-        {/*      <li key={index} className="mb-2">*/}
-        {/*        <strong>{log.taskName}</strong>: {log.timeSpent} seconds*/}
-        {/*        <br />*/}
-        {/*        From: {new Date(log.startTime).toLocaleString()}*/}
-        {/*        <br />*/}
-        {/*        To: {new Date(log.endTime).toLocaleString()}*/}
-        {/*      </li>*/}
-        {/*    ))}*/}
-        {/*  </ul>*/}
-        {/*</div>*/}
+
       </CardContent>
       <CardFooter className="bg-gray-50 border-t border-gray-200 p-2">
         <TimerFooter settings={settings} onSettingsChange={handleSettingsChange} isPomodoroMode={isPomodoroMode} />

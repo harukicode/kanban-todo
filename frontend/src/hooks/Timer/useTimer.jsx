@@ -33,14 +33,22 @@ export const useTimer = (initialDuration, countUp = false) => {
     }
     return () => clearInterval(interval);
   }, [isRunning, countUp]);
+  const clearAndResetTimer = useCallback(() => {
+    setIsRunning(false); // Останавливаем таймер
+    setTime(0); // Принудительно устанавливаем время на 0
+    console.log("Таймер полностью сброшен до 0");
+  }, []);
 
   const updateTime = useCallback((newTime) => {
     setTime(newTime);
   }, []);
   
   const resetTimer = useCallback(() => {
-    setTime(countUp ? 0 : initialDuration);
-  }, [countUp, initialDuration]);
+    setIsRunning(false);
+    setTime(0); // Установка времени на 0
+    console.log("resetTimer устанавливает время на 0");
+  }, []);
 
-  return { time, isRunning, handleStartStop, handleReset, updateTime, resetTimer };
+
+  return { time, isRunning, handleStartStop, handleReset, updateTime, resetTimer, clearAndResetTimer };
 };
