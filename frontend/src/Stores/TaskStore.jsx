@@ -9,39 +9,61 @@ const useTaskStore = create(
       tasks: [],
       selectedTaskId: null,
       isTaskFindActive: false,
-
+      timeLogs: [],
+      
       startFind: () =>
         set({
           selectedTaskId: null,
           isTaskFindActive: true,
         }),
-
+      
       setSelectedTaskId: (taskId) =>
         set({
           selectedTaskId: taskId,
           isTaskFindActive: false,
         }),
-
+      
       updateTimeSpent: (taskId, timeSpent) => {
         const { columns, setColumns } = useColumnsStore.getState();
         const task = get().tasks.find((t) => t.id === taskId);
-
+        
         if (!task) return;
-
+        
         const updatedTask = {
           ...task,
           timeSpent: timeSpent,
         };
-
+        
         const updatedColumns = columns.map((column) => ({
           ...column,
           tasks: column.tasks.map((t) => (t.id === taskId ? updatedTask : t)),
         }));
-
+        
         setColumns(updatedColumns);
-
+        
         set((state) => ({
           tasks: state.tasks.map((t) => (t.id === taskId ? updatedTask : t)),
+        }));
+      },
+      
+      addTimeLog: (log) => {
+        set((state) => ({
+          timeLogs: [...state.timeLogs, log],
+        }));
+        
+      },
+      
+      updateTimeLog: (logId, updatedData) => {
+        set((state) => ({
+          timeLogs: state.timeLogs.map((log) =>
+            log.logId === logId ? { ...log, ...updatedData } : log
+          ),
+        }));
+      },
+      
+      deleteTimeLog: (logId) => {
+        set((state) => ({
+          timeLogs: state.timeLogs.filter((log) => log.logId !== logId),
         }));
       },
 
@@ -181,11 +203,11 @@ const useTaskStore = create(
       },
     }),
     {
-      name: "task-storage", // unique name for localStorage key
-      storage: createJSONStorage(() => localStorage), // use localStorage
+      name: "task-storage",
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        // only persist these fields
         tasks: state.tasks,
+        timeLogs: state.timeLogs,
       }),
     },
   ),

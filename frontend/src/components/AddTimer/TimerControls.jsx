@@ -1,8 +1,9 @@
+// TimerControls.jsx
 import React from "react";
 import { Button } from "@/components/ui/button.jsx";
-import { PlayCircle, PauseCircle, RotateCcw } from "lucide-react";
+import { PlayCircle, PauseCircle } from "lucide-react"; // Удаляем RotateCcw
 
-const TimerControls = ({ isRunning, onStartStop, onReset, disabled }) => (
+const TimerControls = ({ isRunning, onStartStop, disabled }) => (
   <div className="flex justify-center space-x-2 mb-4">
     <Button
       variant={isRunning ? "destructive" : "default"}
@@ -16,15 +17,6 @@ const TimerControls = ({ isRunning, onStartStop, onReset, disabled }) => (
         <PlayCircle className="mr-2 h-4 w-4" />
       )}
       {isRunning ? "Stop" : "Start"}
-    </Button>
-    <Button
-      variant="outline"
-      onClick={onReset}
-      disabled={disabled}
-      className={`w-24 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-    >
-      <RotateCcw className="mr-2 h-4 w-4" />
-      Reset
     </Button>
   </div>
 );

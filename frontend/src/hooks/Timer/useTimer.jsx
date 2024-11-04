@@ -37,6 +37,10 @@ export const useTimer = (initialDuration, countUp = false) => {
   const updateTime = useCallback((newTime) => {
     setTime(newTime);
   }, []);
+  
+  const resetTimer = useCallback(() => {
+    setTime(countUp ? 0 : initialDuration);
+  }, [countUp, initialDuration]);
 
-  return { time, isRunning, handleStartStop, handleReset, updateTime };
+  return { time, isRunning, handleStartStop, handleReset, updateTime, resetTimer };
 };
