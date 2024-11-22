@@ -1,15 +1,18 @@
+import useColumnsStore from '@/Stores/ColumnsStore.jsx'
+import useProjectStore from '@/Stores/ProjectsStore.jsx'
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Plus, ChevronLeft, ChevronRight, MoreVertical, Clock, Calendar as CalendarIcon } from "lucide-react"
+import { Plus, ChevronLeft, ChevronRight, MoreVertical, Clock, CalendarIcon, Filter, Target, Download, SortAsc, SortDesc } from 'lucide-react'
 import { format, parseISO, startOfDay, endOfDay, addSeconds, differenceInSeconds, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay } from "date-fns"
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts"
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, BarChart, PieChart } from 'recharts'
 import useTaskStore from "@/stores/TaskStore"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import FullTimer from './FullTimer'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function SideTimer() {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -19,10 +22,18 @@ export default function SideTimer() {
   const [showFullTimer, setShowFullTimer] = useState(false)
   const [periodType, setPeriodType] = useState("day")
   const [customDateRange, setCustomDateRange] = useState({ from: null, to: null })
+  const [sortBy, setSortBy] = useState("startTime")
+  const [sortOrder, setSortOrder] = useState("desc")
+  const [filterTask, setFilterTask] = useState("")
+  const [groupBy, setGroupBy] = useState("none")
+  const [selectedProject, setSelectedProject] = useState("all")
   
   const timeLogs = useTaskStore((state) => state.timeLogs)
+  const tasks = useTaskStore((state) => state.tasks)
   const updateTimeLog = useTaskStore((state) => state.updateTimeLog)
   const deleteTimeLog = useTaskStore((state) => state.deleteTimeLog)
+  const projects = useProjectStore((state) => state.projects)
+  const columns = useColumnsStore((state) => state.columns)
   
   const getPeriodDates = () => {
     switch (periodType) {
@@ -44,7 +55,6 @@ export default function SideTimer() {
     const data = []
     
     if (periodType === "day") {
-      // For day view, create hourly data points
       for (let hour = 0; hour < 24; hour++) {
         const hourStart = new Date(selectedDate)
         hourStart.setHours(hour, 0, 0, 0)
@@ -60,11 +70,10 @@ export default function SideTimer() {
         
         data.push({
           date: format(hourStart, "HH:mm"),
-          value: value / 60 // Convert seconds to minutes
+          value: value / 60
         })
       }
     } else {
-      // For week/month/custom, keep daily data points
       let currentDate = new Date(start)
       while (currentDate <= end) {
         const dayLogs = timeLogs.filter((log) => {
@@ -121,12 +130,48 @@ export default function SideTimer() {
       return `${remainingSeconds} sec`
     }
   }
+  const getProjectForTask = (taskId) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return null
+    
+    const column = columns.find(c => c.id === task.columnId)
+    if (!column) return null
+    
+    return projects.find(p => p.id === column.projectId) || null
+  }
   
-  const filteredLogs = timeLogs.filter(log => {
-    const { start, end } = getPeriodDates()
-    const logDate = new Date(log.startTime)
-    return logDate >= start && logDate <= end
-  })
+  const filteredAndSortedLogs = timeLogs
+    .filter(log => {
+      const { start, end } = getPeriodDates()
+      const logDate = new Date(log.startTime)
+      const project = getProjectForTask(log.taskId)
+      return logDate >= start && logDate <= end &&
+        log.taskName.toLowerCase().includes(filterTask.toLowerCase()) &&
+        (selectedProject === "all" || (project && project.id === selectedProject))
+    })
+    .sort((a, b) => {
+      if (sortBy === "startTime") {
+        return sortOrder === "asc"
+          ? new Date(a.startTime) - new Date(b.startTime)
+          : new Date(b.startTime) - new Date(a.startTime)
+      } else if (sortBy === "duration") {
+        return sortOrder === "asc"
+          ? a.timeSpent - b.timeSpent
+          : b.timeSpent - a.timeSpent
+      } else if (sortBy === "taskName") {
+        return sortOrder === "asc"
+          ? a.taskName.localeCompare(b.taskName)
+          : b.taskName.localeCompare(a.taskName)
+      } else if (sortBy === "project") {
+        const projectA = getProjectForTask(a.taskId)
+        const projectB = getProjectForTask(b.taskId)
+        const nameA = projectA ? projectA.name : ""
+        const nameB = projectB ? projectB.name : ""
+        return sortOrder === "asc"
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA)
+      }
+    })
   
   const handleUpdateTimeLog = (logId, newTimeSpent) => {
     const log = timeLogs.find(log => log.logId === logId)
@@ -165,6 +210,35 @@ export default function SideTimer() {
     })
   }
   
+  const groupedLogs = React.useMemo(() => {
+    if (groupBy === "none") return { "All Tasks": filteredAndSortedLogs };
+    return filteredAndSortedLogs.reduce((acc, log) => {
+      const key = groupBy === "project"
+        ? (getProjectForTask(log.taskId)?.name || "No Project")
+        : format(new Date(log.startTime), "yyyy-MM-dd");
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(log);
+      return acc;
+    }, {});
+  }, [filteredAndSortedLogs, groupBy, getProjectForTask]);
+  
+  
+  const exportData = () => {
+    const csvContent = "data:text/csv;charset=utf-8,"
+      + "Task Name,Start Time,End Time,Duration\n"
+      + filteredAndSortedLogs.map(log =>
+        `${log.taskName},${log.startTime},${log.endTime},${formatDuration(log.timeSpent)}`
+      ).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "time_logs.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
+ 
   return (
     <div className="w-full max-w-8xl mx-auto p-4 font-sans">
       <div className="flex items-center justify-between mb-4">
@@ -182,7 +256,7 @@ export default function SideTimer() {
             {showFullTimer ? "Show Chart" : "Show Timer"}
           </Button>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Select value={periodType} onValueChange={handlePeriodChange}>
             <SelectTrigger className="w-[120px]">
@@ -198,7 +272,10 @@ export default function SideTimer() {
           {periodType === "custom" ? (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
+                <Button
+                  variant="outline"
+                  className="w-[280px] justify-start text-left font-normal"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {customDateRange.from ? (
                     customDateRange.to ? (
@@ -227,14 +304,28 @@ export default function SideTimer() {
             </Popover>
           ) : (
             <>
-              <Button variant="outline" className="h-9 px-4 font-normal" onClick={() => setSelectedDate(new Date())}>
+              <Button
+                variant="outline"
+                className="h-9 px-4 font-normal"
+                onClick={() => setSelectedDate(new Date())}
+              >
                 Today
               </Button>
               <div className="flex">
-                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => handleDateChange("prev")}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9"
+                  onClick={() => handleDateChange("prev")}
+                >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => handleDateChange("next")}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9"
+                  onClick={() => handleDateChange("next")}
+                >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -242,12 +333,12 @@ export default function SideTimer() {
           )}
         </div>
       </div>
-      
+
+      <Card className="p-4 mb-6 border shadow-sm">
         {showFullTimer ? (
           <FullTimer onClose={() => setShowFullTimer(false)} />
         ) : (
           <>
-          <Card className="p-4 mb-6 border shadow-sm">
             <div className="flex justify-between mb-6">
               <div>
                 <div className="text-sm text-muted-foreground">Total</div>
@@ -264,7 +355,7 @@ export default function SideTimer() {
                 </div>
               </div>
             </div>
-            
+
             <div className="h-[200px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
@@ -289,8 +380,12 @@ export default function SideTimer() {
                     axisLine={true}
                     tickLine={true}
                     tick={{ fontSize: 12, fill: "#666" }}
-                    label={{ value: 'Minutes', angle: -90, position: 'insideLeft' }}
-                    domain={[0, 'auto']}
+                    label={{
+                      value: "Minutes",
+                      angle: -90,
+                      position: "insideLeft",
+                    }}
+                    domain={[0, "auto"]}
                   />
                   <Tooltip
                     content={({ active, payload, label }) => {
@@ -304,9 +399,9 @@ export default function SideTimer() {
                               Minutes spent: {payload[0].value.toFixed(2)}
                             </p>
                           </div>
-                        )
+                        );
                       }
-                      return null
+                      return null;
                     }}
                   />
                   <Area
@@ -319,9 +414,218 @@ export default function SideTimer() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-          </Card>
           </>
         )}
+      </Card>
+      
+      <div className="flex gap-4">
+        {/* Left side: Time log list */}
+        <Card className="flex-1 p-4 mb-6 border shadow-sm overflow-y-auto" style={{maxHeight: "calc(100vh - 500px)"}}>
+          <div className="space-y-1">
+            {Object.entries(groupedLogs).map(([group, logs]) => (
+              <div key={group}>
+                {groupBy !== "none" && (
+                  <h3 className="font-semibold text-lg mt-4 mb-2">{group}</h3>
+                )}
+                {logs.map((log) => {
+                  const project = getProjectForTask(log.taskId)
+                  return (
+                    <div
+                      key={log.logId}
+                      className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 rounded-lg group"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{log.taskName}</div>
+                        <div className="text-xs text-gray-500">
+                          {project ? project.name : "No Project"}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {formatTimeRange(log.startTime, log.endTime)}
+                      </div>
+                      <div className="text-sm font-medium">
+                        {formatDuration(log.timeSpent)}
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="opacity-0 group-hover:opacity-100 h-8 w-8"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56">
+                          <div className="grid gap-4">
+                            <div className="space-y-2">
+                              <h4 className="font-medium leading-none">Edit Time</h4>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="number"
+                                  placeholder="Hours"
+                                  min="0"
+                                  max="23"
+                                  defaultValue={Math.floor(log.timeSpent / 3600)}
+                                  onChange={(e) => {
+                                    const hours = parseInt(e.target.value) || 0
+                                    const minutes = Math.floor((log.timeSpent % 3600) / 60)
+                                    const seconds = log.timeSpent % 60
+                                    updateTimeLog(log.logId, {
+                                      timeSpent: hours * 3600 + minutes * 60 + seconds,
+                                      endTime: new Date(new Date(log.startTime).getTime() + (hours * 3600 + minutes * 60 + seconds) * 1000).toISOString()
+                                    })
+                                  }}
+                                />
+                                <Input
+                                  type="number"
+                                  placeholder="Minutes"
+                                  min="0"
+                                  max="59"
+                                  defaultValue={Math.floor((log.timeSpent % 3600) / 60)}
+                                  onChange={(e) => {
+                                    const hours = Math.floor(log.timeSpent / 3600)
+                                    const minutes = parseInt(e.target.value) || 0
+                                    const seconds = log.timeSpent % 60
+                                    updateTimeLog(log.logId, {
+                                      timeSpent: hours * 3600 + minutes * 60 + seconds,
+                                      endTime: new Date(new Date(log.startTime).getTime() + (hours * 3600 + minutes * 60 + seconds) * 1000).toISOString()
+                                    })
+                                  }}
+                                />
+                                <Input
+                                  type="number"
+                                  placeholder="Seconds"
+                                  min="0"
+                                  max="59"
+                                  defaultValue={log.timeSpent % 60}
+                                  onChange={(e) => {
+                                    const hours = Math.floor(log.timeSpent / 3600)
+                                    const minutes = Math.floor((log.timeSpent % 3600) / 60)
+                                    const seconds = parseInt(e.target.value) || 0
+                                    updateTimeLog(log.logId, {
+                                      timeSpent: hours * 3600 + minutes * 60 + seconds,
+                                      endTime: new Date(new Date(log.startTime).getTime() + (hours * 3600 + minutes * 60 + seconds) * 1000).toISOString()
+                                    })
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <Button
+                              variant="destructive"
+                              onClick={() => deleteTimeLog(log.logId)}
+                            >
+                              Delete Log
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </Card>
+        
+        {/* Right side: Functions menu */}
+        <Card className="w-1/3 p-4 mb-6 border shadow-sm">
+          <Tabs defaultValue="sort" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="sort">Sort & Filter</TabsTrigger>
+              <TabsTrigger value="analyze">Analyze & Export</TabsTrigger>
+            </TabsList>
+            <TabsContent value="sort">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Sort by:</label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select sort criteria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="startTime">Start Time</SelectItem>
+                      <SelectItem value="duration">Duration</SelectItem>
+                      <SelectItem value="taskName">Task Name</SelectItem>
+                      <SelectItem value="project">Project</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Order:</label>
+                  <div className="flex mt-1 space-x-2">
+                    <Button
+                      variant={sortOrder === "asc" ? "default" : "outline"}
+                      onClick={() => setSortOrder("asc")}
+                    >
+                      <SortAsc className="w-4 h-4 mr-2" />
+                      Ascending
+                    </Button>
+                    <Button
+                      variant={sortOrder === "desc" ? "default" : "outline"}
+                      onClick={() => setSortOrder("desc")}
+                    >
+                      <SortDesc className="w-4 h-4 mr-2" />
+                      Descending
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Filter by task name:</label>
+                  <Input
+                    type="text"
+                    placeholder="Enter task name"
+                    value={filterTask}
+                    onChange={(e) => setFilterTask(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Group by:</label>
+                  <Select value={groupBy} onValueChange={setGroupBy}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select grouping" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Grouping</SelectItem>
+                      <SelectItem value="project">Project</SelectItem>
+                      <SelectItem value="date">Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Filter by project:</label>
+                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Projects</SelectItem>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="analyze">
+              <div className="space-y-4">
+                <Button className="w-full" >
+                  <BarChart className="w-4 h-4 mr-2" />
+                  Analyze Productivity
+                </Button>
+                <Button className="w-full" onClick={exportData}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Data
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </Card>
+      </div>
       
       <div className="flex items-center gap-2 mb-4">
         <Button variant="outline" className="h-8 px-3 text-sm font-normal">
@@ -330,91 +634,6 @@ export default function SideTimer() {
         <Button variant="outline" className="h-8 px-3 text-sm font-normal">
           Add break
         </Button>
-      </div>
-      
-      <div className="space-y-1">
-        {filteredLogs.map((log) => (
-          <div
-            key={log.logId}
-            className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 rounded-lg group"
-          >
-            <div className="flex-1">
-              <div className="font-medium text-sm">{log.taskName}</div>
-              <div className="flex gap-2 mt-1"></div>
-            </div>
-            <div className="text-sm text-gray-500">
-              {formatTimeRange(log.startTime, log.endTime)}
-            </div>
-            <div className="text-sm font-medium">
-              {formatDuration(log.timeSpent)}
-            </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 h-8 w-8"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium leading-none">Edit Time</h4>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        placeholder="Hours"
-                        min="0"
-                        max="23"
-                        defaultValue={Math.floor(log.timeSpent / 3600)}
-                        onChange={(e) => {
-                          const hours = parseInt(e.target.value) || 0
-                          const minutes = Math.floor((log.timeSpent % 3600) / 60)
-                          const seconds = log.timeSpent % 60
-                          handleUpdateTimeLog(log.logId, hours * 3600 + minutes * 60 + seconds)
-                        }}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Minutes"
-                        min="0"
-                        max="59"
-                        defaultValue={Math.floor((log.timeSpent % 3600) / 60)}
-                        onChange={(e) => {
-                          const hours = Math.floor(log.timeSpent / 3600)
-                          const minutes = parseInt(e.target.value) || 0
-                          const seconds = log.timeSpent % 60
-                          handleUpdateTimeLog(log.logId, hours * 3600 + minutes * 60 + seconds)
-                        }}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Seconds"
-                        min="0"
-                        max="59"
-                        defaultValue={log.timeSpent % 60}
-                        onChange={(e) => {
-                          const hours = Math.floor(log.timeSpent / 3600)
-                          const minutes = Math.floor((log.timeSpent % 3600) / 60)
-                          const seconds = parseInt(e.target.value) || 0
-                          handleUpdateTimeLog(log.logId, hours * 3600 + minutes * 60 + seconds)
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleDeleteTimeLog(log.logId)}
-                  >
-                    Delete Log
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        ))}
       </div>
     </div>
   )

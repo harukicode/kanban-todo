@@ -95,7 +95,7 @@ export default function FullTimer({ onClose }) {
 	}
 	
 	return (
-		<Card className=" mb-6 w-full h-[180px] flex flex-col justify-between p-4 bg-background">
+		<>
 			<div className="flex justify-between items-center">
 				<h2 className="text-lg font-semibold text-foreground">Timer</h2>
 				<div className="flex items-center space-x-2">
@@ -168,6 +168,6 @@ export default function FullTimer({ onClose }) {
 					</div>
 				)}
 			</div>
-		</Card>
+</>
 	)
 }
