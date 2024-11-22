@@ -420,7 +420,7 @@ export default function SideTimer() {
       
       <div className="flex gap-4">
         {/* Left side: Time log list */}
-        <Card className="flex-1 p-4 mb-6 border shadow-sm overflow-y-auto" style={{maxHeight: "calc(100vh - 500px)"}}>
+        <Card className="flex-1 p-4 mb-6 border shadow-sm overflow-y-auto" style={{maxHeight: "calc(100vh - 400px)"}}>
           <div className="space-y-1">
             {Object.entries(groupedLogs).map(([group, logs]) => (
               <div key={group}>
