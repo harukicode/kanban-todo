@@ -15,7 +15,7 @@ import SetPriority from "./SetPriority";
 const ModalNewTask = ({ isOpen, onClose, addNewTask }) => {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
-  const [taskPriority, setTaskPriority] = useState("None");
+  const [taskPriority, setTaskPriority] = useState("none");
 
   const handleAddTask = () => {
     if (taskTitle.trim() === "") {
