@@ -1,130 +1,130 @@
-import { CommentCard } from "@/components/Task/TaskModal/TaskComments.jsx";
-import React, { useRef, useEffect, useState } from "react";
+import { CommentCard } from "@/components/Task/TaskModal/TaskComments.jsx"
+import React, { useRef, useEffect, useState } from "react"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Plus, Clock, FileText, MoreHorizontal, Trash } from "lucide-react";
-import { useTaskModal } from "@/hooks/Task/modalTaskHooks/useTaskModal.jsx";
-import useSubtaskStore from "@/Stores/SubtaskStore";
-import SubtaskList from "@/components/Task/TaskModal/SubtaskList.jsx";
-import TaskDescription from "@/components/Task/TaskModal/TaskDescription.jsx";
-import AddTimer from "@/components/AddTimer/AddTimer.jsx";
-import MoveTaskDropdown from "@/components/Task/TaskModal/MoveTaskDropdown.jsx";
-import { AddButton } from "@/components/Task/TaskModal/AddButton.jsx";
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Plus, Clock, FileText, MoreHorizontal, Trash } from 'lucide-react'
+import { useTaskModal } from "@/hooks/Task/modalTaskHooks/useTaskModal.jsx"
+import useSubtaskStore from "@/Stores/SubtaskStore"
+import SubtaskList from "@/components/Task/TaskModal/SubtaskList.jsx"
+import TaskDescription from "@/components/Task/TaskModal/TaskDescription.jsx"
+import AddTimer from "@/components/AddTimer/AddTimer.jsx"
+import MoveTaskDropdown from "@/components/Task/TaskModal/MoveTaskDropdown.jsx"
+import { AddButton } from "@/components/Task/TaskModal/AddButton.jsx"
 
 export default function TaskModal({
-  isOpen,
-  onClose,
-  task,
-  onUpdate,
-  onDelete,
-  columnId,
-}) {
+                                    isOpen,
+                                    onClose,
+                                    task,
+                                    onUpdate,
+                                    onDelete,
+                                    columnId,
+                                  }) {
   // Custom hooks and store access
   const { editedTask, setEditedTask, handleSave, handleClose } = useTaskModal(
     task,
     onUpdate,
     onClose,
-  );
-  const { getSubtaskStats } = useSubtaskStore();
-
+  )
+  const { getSubtaskStats } = useSubtaskStore()
+  
   // Local state
-  const [isTimerOpen, setIsTimerOpen] = useState(false);
-  const [timerPosition, setTimerPosition] = useState({ top: 0, left: 0 });
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [isTimerOpen, setIsTimerOpen] = useState(false)
+  const [timerPosition, setTimerPosition] = useState({ top: 0, left: 0 })
+  const [isEditingDescription, setIsEditingDescription] = useState(false)
   // Get subtask statistics
-  const { total, completed } = getSubtaskStats(task.id);
-
+  const { total, completed } = getSubtaskStats(task.id)
+  
   // Refs
-  const titleInputRef = useRef(null);
-  const timerButtonRef = useRef(null);
-  const timerRef = useRef(null);
-
+  const titleInputRef = useRef(null)
+  const timerButtonRef = useRef(null)
+  const timerRef = useRef(null)
+  
   // Effects
   useEffect(() => {
     if (isOpen && titleInputRef.current) {
       setTimeout(() => {
-        titleInputRef.current.blur();
-      }, 100);
+        titleInputRef.current.blur()
+      }, 100)
     }
-  }, [isOpen]);
-
+  }, [isOpen])
+  
   useEffect(() => {
     if (isTimerOpen && timerRef.current) {
-      const timerRect = timerRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      let { top, left } = timerPosition;
-
+      const timerRect = timerRef.current.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+      
+      let { top, left } = timerPosition
+      
       // Adjust position to keep timer within viewport
       if (left + timerRect.width > viewportWidth) {
-        left = viewportWidth - timerRect.width - 10;
+        left = viewportWidth - timerRect.width - 10
       }
       if (left < 0) {
-        left = 10;
+        left = 10
       }
       if (top + timerRect.height > viewportHeight) {
-        top = viewportHeight - timerRect.height - 10;
+        top = viewportHeight - timerRect.height - 10
       }
       if (top < 0) {
-        top = 10;
+        top = 10
       }
-
-      setTimerPosition({ top, left });
+      
+      setTimerPosition({ top, left })
     }
-  }, [isTimerOpen, timerPosition]);
-
+  }, [isTimerOpen, timerPosition])
+  
   // Event handlers
   const handleDeleteTask = () => {
-    onDelete(columnId, task.id);
-    handleClose();
-  };
-
+    onDelete(columnId, task.id)
+    handleClose()
+  }
+  
   const handleTimerToggle = (e) => {
-    e.stopPropagation();
+    e.stopPropagation()
     if (!isTimerOpen && timerButtonRef.current) {
-      const rect = timerButtonRef.current.getBoundingClientRect();
-      const timerHeight = 200;
+      const rect = timerButtonRef.current.getBoundingClientRect()
+      const timerHeight = 200
       setTimerPosition({
         top: Math.max(rect.top + window.scrollY - timerHeight - 1000, 10),
         left: rect.left + window.scrollX,
-      });
+      })
     }
-    setIsTimerOpen(!isTimerOpen);
-  };
-
+    setIsTimerOpen(!isTimerOpen)
+  }
+  
   const handleDueDateChange = (newDate) => {
-    setEditedTask({ ...editedTask, dueDate: newDate });
-  };
-
+    setEditedTask({ ...editedTask, dueDate: newDate })
+  }
+  
   const handleDescriptionChange = () => {
-    setIsEditingDescription(true);
-  };
-
+    setIsEditingDescription(true)
+  }
+  
   const handleDescriptionSave = (newDescription) => {
-    setEditedTask({ ...editedTask, description: newDescription });
-    setIsEditingDescription(false);
-  };
-
+    setEditedTask({ ...editedTask, description: newDescription })
+    setIsEditingDescription(false)
+  }
+  
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[700px] bg-white p-0 flex flex-col max-h-[90vh] ">
+      <DialogContent className="sm:max-w-[750px] bg-white p-0 flex flex-col max-h-[90vh]">
         {/* Modal content */}
         <div
-          className="p-6 flex-grow overflow-y-auto scrollbar-hide"
+          className="p-6 pb-3 flex-grow overflow-y-auto scrollbar-hide"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
           }}
         >
           <DialogHeader className="mb-4">
-            <div className="flex items-center space-x-2 ">
+            <div className="flex items-center space-x-2">
               <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
               <input
                 ref={titleInputRef}
@@ -137,9 +137,9 @@ export default function TaskModal({
               />
             </div>
           </DialogHeader>
-
+          
           {/* Task details */}
-          <div className="space-y-4">
+          <div className="space-y-2">
             <TaskDescription
               description={editedTask.description}
               timeSpent={editedTask.timeSpent}
@@ -156,14 +156,14 @@ export default function TaskModal({
               onAddComment={(taskId, content) => {
                 const newComment = {
                   id: Date.now().toString(),
-                  author: "Illia", // Замените на реальное имя пользователя
+                  author: "Illia",
                   content,
                   createdAt: new Date().toISOString(),
-                };
+                }
                 setEditedTask({
                   ...editedTask,
                   comments: [...editedTask.comments, newComment],
-                });
+                })
               }}
               onUpdateComment={(taskId, commentId, newContent) => {
                 setEditedTask({
@@ -173,7 +173,7 @@ export default function TaskModal({
                       ? { ...comment, content: newContent }
                       : comment,
                   ),
-                });
+                })
               }}
               onDeleteComment={(taskId, commentId) => {
                 setEditedTask({
@@ -181,16 +181,16 @@ export default function TaskModal({
                   comments: editedTask.comments.filter(
                     (comment) => comment.id !== commentId,
                   ),
-                });
+                })
               }}
             />
           </div>
         </div>
-
+        
         {/* Modal footer */}
-        <DialogFooter className="px-6 py-4 bg-gray-50 mt-auto">
-          <div className="flex flex-wrap gap-2 justify-between w-full">
-            <div className="flex flex-wrap gap-2">
+        <DialogFooter className="px-6 py-3 bg-gray-50 mt-auto">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center space-x-2">
               <AddButton
                 description={task.description}
                 dueDate={task.dueDate}
@@ -214,7 +214,7 @@ export default function TaskModal({
                 <MoreHorizontal size={16} className="mr-2" /> More
               </Button>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center space-x-2">
               <Button
                 variant="destructive"
                 size="sm"
@@ -228,7 +228,7 @@ export default function TaskModal({
             </div>
           </div>
         </DialogFooter>
-
+        
         {/* Timer overlay */}
         {isTimerOpen && (
           <div
@@ -246,5 +246,6 @@ export default function TaskModal({
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }
+
