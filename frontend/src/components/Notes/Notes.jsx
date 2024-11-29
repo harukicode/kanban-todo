@@ -4,12 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Pin, Tags, Paperclip, FileText, Activity, LayoutTemplateIcon as Template, Copy, Link, ListTodo, Printer, Trash2, MoreVertical, Bell, Plus, Folder, Edit } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Plus, Folder } from 'lucide-react'
 import NotesList from './NotesList'
 import NoteEditor from './NoteEditor'
 import FolderList from './FolderList'
@@ -136,11 +131,20 @@ function NotesPage() {
 		))
 	}
 	
-	const filteredNotes = notes.filter(note =>
-		(selectedFolder ? note.folderId === selectedFolder : true) &&
-		(note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			note.content.toLowerCase().includes(searchTerm.toLowerCase()))
-	)
+	const filteredNotes = notes
+		.filter(note =>
+			(selectedFolder ? note.folderId === selectedFolder : true) &&
+			(note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				note.content.toLowerCase().includes(searchTerm.toLowerCase()))
+		)
+		.sort((a, b) => {
+			// Сначала сортируем по закрепленности
+			if (a.isPinned && !b.isPinned) return -1;
+			if (!a.isPinned && b.isPinned) return 1;
+			
+			// Если оба закреплены или оба не закреплены, сортируем по дате создания
+			return b.id - a.id;
+		})
 	
 	return (
 		<Card className="flex h-screen bg-background rounded-lg overflow-hidden">
@@ -196,4 +200,3 @@ function NotesPage() {
 }
 
 export default NotesPage
-
