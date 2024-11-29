@@ -10,6 +10,7 @@ import KanbanBoard from "./components/KanbanBoard/KanbanBoard.jsx";
 import "./App.css";
 import SideBar from "./components/SideBar/SideBar.jsx";
 import SideTimer from "./components/SideTimer/SideTimer.jsx";
+import NotesPage from "./components/Notes/Notes.jsx";
 
 const App = () => {
   return (
@@ -23,7 +24,7 @@ const App = () => {
               <Route path="/" element={<Navigate to="/kanban" />} />
               <Route path="/kanban" element={<KanbanBoard />} />
               <Route path="/timer" element={<SideTimer />} />
-              <Route path="/notes" element={<div>Notes Component</div>} />
+              <Route path="/notes" element={<NotesPage />} />
             </Routes>
           </main>
         </SidebarProvider>
