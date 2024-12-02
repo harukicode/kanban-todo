@@ -1,20 +1,24 @@
+import { Comments } from '@/components/Notes/Comments.jsx'
 import { useState, useEffect, useRef } from 'react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Bell, Pin, Tags, Paperclip, FileText, Activity, LayoutTemplateIcon as Template, Copy, Link, ListTodo, Printer, Trash2, MoreVertical, Folder } from 'lucide-react'
+import {  Pin, Tags, Paperclip, LayoutTemplateIcon as Template, Copy, Printer, Trash2, MoreVertical, Folder } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 
-function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, onRemoveTag, onDuplicateNote, onMoveToFolder, onAttachFile, folders }) {
+function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, onRemoveTag, onDuplicateNote, onMoveToFolder, onAttachFile, folders, onAddComment, onEditComment, onDeleteComment }) {
 	const [editedNote, setEditedNote] = useState(note || { title: '', content: '', tags: [], attachments: [] })
 	const [newTag, setNewTag] = useState('')
 	const fileInputRef = useRef(null)
 	
 	useEffect(() => {
-		setEditedNote(note || { title: '', content: '', tags: [], attachments: [] })
+		if (note) {
+			setEditedNote(note);
+		} else {
+			setEditedNote({ title: '', content: '', tags: [], attachments: [] });
+		}
 	}, [note])
 	
 	if (!note) {
@@ -38,9 +42,17 @@ function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, o
 	
 	const handleAddTag = () => {
 		if (newTag && !editedNote.tags.includes(newTag)) {
-			onAddTag(editedNote.id, newTag)
-			setNewTag('')
+			const updatedNote = { ...editedNote, tags: [...editedNote.tags, newTag] };
+			setEditedNote(updatedNote);
+			onAddTag(editedNote.id, newTag);
+			setNewTag('');
 		}
+	}
+	
+	const handleRemoveTag = (tag) => {
+		const updatedNote = { ...editedNote, tags: editedNote.tags.filter(t => t !== tag) };
+		setEditedNote(updatedNote);
+		onRemoveTag(editedNote.id, tag);
 	}
 	
 	const handleFileAttachment = (e) => {
@@ -50,6 +62,48 @@ function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, o
 		}
 	}
 	
+	const handleAddComment = (newComment) => {
+		const updatedNote = {
+			...editedNote,
+			comments: [...(editedNote.comments || []), {
+				id: Date.now(),
+				content: newComment,
+				createdAt: new Date().toISOString(),
+				author: 'Current User',
+			}]
+		};
+		
+		setEditedNote(updatedNote);
+		onUpdateNote(updatedNote);
+	};
+	
+	const handleEditComment = (commentId, newContent) => {
+		const updatedComments = (editedNote.comments || []).map(comment =>
+			comment.id === commentId ? { ...comment, content: newContent } : comment
+		);
+		
+		const updatedNote = {
+			...editedNote,
+			comments: updatedComments
+		};
+		
+		setEditedNote(updatedNote);
+		onUpdateNote(updatedNote);
+	}
+	
+	const handleDeleteComment = (commentId) => {
+		const updatedComments = (editedNote.comments || []).filter(
+			comment => comment.id !== commentId
+		);
+		
+		const updatedNote = {
+			...editedNote,
+			comments: updatedComments
+		};
+		
+		setEditedNote(updatedNote);
+		onUpdateNote(updatedNote);
+	}
 	return (
 		<div className="flex-1 flex flex-col">
 			<div className="flex items-center justify-between p-4 border-b">
@@ -99,7 +153,7 @@ function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, o
 													{tag}
 													<button
 														className="ml-2 text-xs"
-														onClick={() => onRemoveTag(editedNote.id, tag)}
+														onClick={() => handleRemoveTag(tag)}
 													>
 														×
 													</button>
@@ -190,6 +244,14 @@ function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, o
 					</ul>
 				</div>
 			)}
+			
+			<Comments
+				noteId={editedNote.id}
+				comments={editedNote.comments || []}
+				onAddComment={handleAddComment}
+				onEditComment={handleEditComment}
+				onDeleteComment={handleDeleteComment}
+			/>
 		</div>
 	)
 }

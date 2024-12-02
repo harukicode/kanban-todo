@@ -4,7 +4,7 @@ import { Pin } from 'lucide-react'
 
 function NotesList({ notes, selectedNote, onSelectNote }) {
 	return (
-		<ScrollArea className="h-[calc(100vh-8rem)]">
+		<ScrollArea className="h-[calc(100vh-5rem)]">
 			{notes.map(note => (
 				<div
 					key={note.id}

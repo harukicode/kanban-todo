@@ -10,6 +10,7 @@ import NoteEditor from './NoteEditor'
 import FolderList from './FolderList'
 
 function NotesPage() {
+	
 	const [notes, setNotes] = useState(() => {
 		const savedNotes = localStorage.getItem('notes')
 		return savedNotes ? JSON.parse(savedNotes) : [
@@ -34,7 +35,12 @@ function NotesPage() {
 	const [selectedFolder, setSelectedFolder] = useState(null)
 	
 	useEffect(() => {
-		localStorage.setItem('notes', JSON.stringify(notes))
+		if (selectedNote) {
+			const updatedNote = notes.find(note => note.id === selectedNote.id)
+			if (updatedNote) {
+				setSelectedNote(updatedNote)
+			}
+		}
 	}, [notes])
 	
 	useEffect(() => {
@@ -146,8 +152,53 @@ function NotesPage() {
 			return b.id - a.id;
 		})
 	
+	
+	const addComment = (noteId, content) => {
+		const newComment = {
+			id: Date.now(),
+			content,
+			createdAt: new Date().toISOString(),
+			author: 'Current User',
+			authorInitial: 'C'
+		}
+		
+		setNotes(notes.map(note =>
+			note.id === noteId
+				? {
+					...note,
+					comments: [...(note.comments || []), newComment]
+				}
+				: note
+		))
+	}
+	
+	const editComment = (noteId, commentId, newContent) => {
+		const updatedNotes = notes.map(note =>
+			note.id === noteId
+				? {
+					...note,
+					comments: (note.comments || []).map(comment =>
+						comment.id === commentId
+							? { ...comment, content: newContent }
+							: comment
+					)
+				}
+				: note
+		);
+		setNotes(updatedNotes);
+	}
+	
+	const deleteComment = (noteId, commentId) => {
+		const updatedNotes = notes.map(note =>
+			note.id === noteId
+				? { ...note, comments: (note.comments || []).filter(comment => comment.id !== commentId) }
+				: note
+		);
+		setNotes(updatedNotes);
+	}
+	
 	return (
-		<Card className="flex h-screen bg-background rounded-lg overflow-hidden">
+		<Card className="flex h-[calc(100vh-5rem)] bg-background rounded-lg overflow-hidden">
 			<div className="w-64 border-r bg-background p-4 rounded-l-lg">
 				<Button className="w-full mb-4" onClick={addFolder}>
 					<Folder className="mr-2 h-4 w-4" />
