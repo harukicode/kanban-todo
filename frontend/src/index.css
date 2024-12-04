@@ -1,3 +1,35 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+.text-small { font-size: 0.875rem; }
+.text-normal { font-size: 1rem; }
+.text-large { font-size: 1.25rem; }
+#editor {
+	height: calc(100% - 42px);
+	background: white;
+}
+
+.ql-toolbar.ql-snow {
+	border: 1px solid #e2e8f0 !important;
+	border-radius: 6px 6px 0 0;
+	background: white;
+}
+
+.ql-container.ql-snow {
+	height: calc(100% - 42px);
+	border: 1px solid #e2e8f0 !important;
+	border-top: none !important;
+	border-radius: 0 0 6px 6px;
+	background: white;
+}
+
+.ql-editor {
+	height: 100%;
+	font-family: inherit;
+	font-size: 16px;
+}
+
+.ql-editor.ql-blank::before {
+	color: #9ca3af;
+	font-style: normal;
+}

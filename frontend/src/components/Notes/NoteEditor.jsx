@@ -4,41 +4,59 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import {  Pin, Tags, Paperclip, LayoutTemplateIcon as Template, Copy, Printer, Trash2, MoreVertical, Folder } from 'lucide-react'
+import { Pin, Tags, Paperclip, LayoutTemplateIcon as Template, Copy, Printer, Trash2, MoreVertical, Folder } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
+import "quill/dist/quill.core.css";
+import Quill from 'quill';
 
 function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, onRemoveTag, onDuplicateNote, onMoveToFolder, onAttachFile, folders, onAddComment, onEditComment, onDeleteComment }) {
 	const [editedNote, setEditedNote] = useState(note || { title: '', content: '', tags: [], attachments: [] })
 	const [newTag, setNewTag] = useState('')
 	const fileInputRef = useRef(null)
+	const editorRef = useRef(null)
 	
 	useEffect(() => {
-		if (note) {
-			setEditedNote(note);
-		} else {
-			setEditedNote({ title: '', content: '', tags: [], attachments: [] });
+		if (window.Quill && !editorRef.current) {
+			editorRef.current = new window.Quill('#editor', {
+				theme: 'snow',
+				modules: {
+					toolbar: [
+						[{ 'size': ['small', false, 'large'] }],
+						['bold', 'italic', 'underline', 'strike'],
+						[{ 'color': [] }, { 'background': [] }],
+						[{ 'align': [] }],
+						[{ 'list': 'ordered'}, { 'list': 'bullet' }],
+						['clean']
+					]
+				},
+				placeholder: 'Start writing...'
+			});
+			
+			editorRef.current.on('text-change', () => {
+				const content = editorRef.current.root.innerHTML;
+				setEditedNote(prev => ({ ...prev, content }));
+				handleBlur();
+			});
 		}
-	}, [note])
+	}, []);
 	
-	if (!note) {
-		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground">
-				Select a note or create a new one
-			</div>
-		)
-	}
-	
-	const handleChange = (e) => {
-		const { name, value } = e.target
-		setEditedNote(prev => ({ ...prev, [name]: value }))
-	}
+	useEffect(() => {
+		if (note && editorRef.current) {
+			const currentContent = editorRef.current.root.innerHTML;
+			if (note.content !== currentContent) {
+				editorRef.current.root.innerHTML = note.content || '';
+			}
+			setEditedNote(note);
+		}
+	}, [note]);
 	
 	const handleBlur = () => {
 		if (editedNote) {
-			onUpdateNote(editedNote)
+			onUpdateNote(editedNote);
 		}
-	}
+	};
+
 	
 	const handleAddTag = () => {
 		if (newTag && !editedNote.tags.includes(newTag)) {
@@ -104,6 +122,7 @@ function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, o
 		setEditedNote(updatedNote);
 		onUpdateNote(updatedNote);
 	}
+	
 	return (
 		<div className="flex-1 flex flex-col">
 			<div className="flex items-center justify-between p-4 border-b">
@@ -207,7 +226,8 @@ function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, o
 									<Printer className="mr-2 h-4 w-4" /> Print
 								</Button>
 								<Separator />
-								<Button variant="ghost" className="justify-start text-destructive" onClick={() => onDeleteNote(editedNote.id)}>
+								<Button variant="ghost" className="justify-start text-destructive"
+								        onClick={() => onDeleteNote(editedNote.id)}>
 									<Trash2 className="mr-2 h-4 w-4" /> Delete
 								</Button>
 							</div>
@@ -216,24 +236,20 @@ function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, o
 				</div>
 			</div>
 			
-			<div className="flex-1 p-4">
+			<div className="flex-1 p-4 flex flex-col">
 				<Input
 					name="title"
 					value={editedNote.title}
-					onChange={handleChange}
+					onChange={(e) => setEditedNote(prev => ({ ...prev, title: e.target.value }))}
 					onBlur={handleBlur}
 					className="text-xl font-bold mb-4 border-none bg-transparent"
 					placeholder="Note title"
 				/>
-				<textarea
-					name="content"
-					value={editedNote.content}
-					onChange={handleChange}
-					onBlur={handleBlur}
-					className="w-full h-[calc(100%-4rem)] resize-none border-none bg-transparent focus:outline-none"
-					placeholder="Start writing..."
-				/>
+				<div className="flex-1">
+					<div id="editor" />
+				</div>
 			</div>
+			
 			{editedNote.attachments && editedNote.attachments.length > 0 && (
 				<div className="p-4 border-t">
 					<h3 className="font-medium mb-2">Attachments:</h3>
@@ -253,8 +269,7 @@ function NoteEditor({ note, onUpdateNote, onDeleteNote, onTogglePin, onAddTag, o
 				onDeleteComment={handleDeleteComment}
 			/>
 		</div>
-	)
+	);
 }
 
-export default NoteEditor
-
+export default NoteEditor;
