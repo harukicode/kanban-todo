@@ -33,3 +33,28 @@
 	color: #9ca3af;
 	font-style: normal;
 }
+
+.ql-container.ql-snow {
+	border: 1px solid #e2e8f0 !important;
+	border-top: none !important;
+	border-radius: 0 0 6px 6px;
+}
+
+.ql-editor:focus {
+	outline: none !important;
+	box-shadow: none !important;
+}
+
+/* Убираем синюю рамку при фокусе */
+.ql-editor.focused {
+	border-color: #e2e8f0 !important;
+	box-shadow: none !important;
+	outline: none !important;
+}
+
+/* Дополнительно для всего контейнера */
+.ql-container:focus-within {
+	outline: none !important;
+	box-shadow: none !important;
+	border-color: #e2e8f0 !important;
+}
