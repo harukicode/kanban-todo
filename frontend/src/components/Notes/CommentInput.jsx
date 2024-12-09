@@ -5,10 +5,14 @@ import { Bold, Italic, Underline, Strikethrough, Type, Smile } from 'lucide-reac
 import { Toggle } from "@/components/ui/toggle";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import useNotesStore from '@/Stores/NotesStore.jsx';
 
-function CommentInput({ onSubmit }) {
+function CommentInput() {
 	const [comment, setComment] = useState('');
 	const [inputRef, setInputRef] = useState(null);
+	
+	const selectedNote = useNotesStore(state => state.selectedNote);
+	const addComment = useNotesStore(state => state.addComment);
 	
 	const handleFormat = (type, value) => {
 		if (!inputRef) return;
@@ -54,10 +58,10 @@ function CommentInput({ onSubmit }) {
 	
 	const handleSubmit = (e) => {
 		e.preventDefault();
-		if (comment.trim()) {
-			onSubmit(comment);
-			setComment('');
-		}
+		if (!selectedNote || !comment.trim()) return;
+		
+		addComment(selectedNote.id, comment);
+		setComment('');
 	};
 	
 	return (
@@ -128,11 +132,14 @@ function CommentInput({ onSubmit }) {
 					onChange={(e) => setComment(e.target.value)}
 					placeholder="Напишите комментарий..."
 					className="flex-1"
+					disabled={!selectedNote}
 				/>
 				<Button type="button" variant="ghost" size="icon">
 					<Smile className="h-4 w-4" />
 				</Button>
-				<Button type="submit">Отправить</Button>
+				<Button type="submit" disabled={!selectedNote || !comment.trim()}>
+					Отправить
+				</Button>
 			</div>
 		</form>
 	);

@@ -4,6 +4,7 @@
 .text-small { font-size: 0.875rem; }
 .text-normal { font-size: 1rem; }
 .text-large { font-size: 1.25rem; }
+
 #editor {
 	height: calc(100% - 42px);
 	background: white;

@@ -14,8 +14,13 @@ import {
 	Type,
 	Palette
 } from 'lucide-react';
+import useNotesStore from '@/Stores/NotesStore.jsx';
 
-function FormatToolbar({ onFormat }) {
+function FormatToolbar() {
+	const selectedNote = useNotesStore(state => state.selectedNote);
+	const updateNoteFormatting = useNotesStore(state => state.updateNoteFormatting);
+	const currentFormatting = useNotesStore(state => state.getCurrentFormatting());
+	
 	const colors = [
 		'#000000', '#e60000', '#ff9900', '#ffff00',
 		'#008a00', '#0066cc', '#9933ff', '#ffffff'
@@ -27,36 +32,62 @@ function FormatToolbar({ onFormat }) {
 		{ label: 'Большой', value: 'large' }
 	];
 	
+	const handleFormat = (type, value) => {
+		if (!selectedNote) return;
+		
+		if (value === undefined) {
+			// Для toggle-кнопок (bold, italic, underline, strike)
+			value = !currentFormatting[type];
+		}
+		
+		updateNoteFormatting(selectedNote.id, type, value);
+	};
+	
+	// Определяем, какая иконка выравнивания должна отображаться
+	const AlignIcon = {
+		'left': AlignLeft,
+		'center': AlignCenter,
+		'right': AlignRight
+	}[currentFormatting.align] || AlignLeft;
+	
 	return (
 		<div className="flex items-center gap-1 p-1 border rounded-md bg-background">
 			<Toggle
 				size="sm"
-				onClick={() => onFormat('bold')}
+				pressed={currentFormatting.bold}
+				onClick={() => handleFormat('bold')}
 				aria-label="Toggle bold"
+				disabled={!selectedNote}
 			>
 				<Bold className="h-4 w-4" />
 			</Toggle>
 			
 			<Toggle
 				size="sm"
-				onClick={() => onFormat('italic')}
+				pressed={currentFormatting.italic}
+				onClick={() => handleFormat('italic')}
 				aria-label="Toggle italic"
+				disabled={!selectedNote}
 			>
 				<Italic className="h-4 w-4" />
 			</Toggle>
 			
 			<Toggle
 				size="sm"
-				onClick={() => onFormat('underline')}
+				pressed={currentFormatting.underline}
+				onClick={() => handleFormat('underline')}
 				aria-label="Toggle underline"
+				disabled={!selectedNote}
 			>
 				<Underline className="h-4 w-4" />
 			</Toggle>
 			
 			<Toggle
 				size="sm"
-				onClick={() => onFormat('strike')}
+				pressed={currentFormatting.strike}
+				onClick={() => handleFormat('strike')}
 				aria-label="Toggle strikethrough"
+				disabled={!selectedNote}
 			>
 				<Strikethrough className="h-4 w-4" />
 			</Toggle>
@@ -65,8 +96,8 @@ function FormatToolbar({ onFormat }) {
 			
 			<Popover>
 				<PopoverTrigger asChild>
-					<Button variant="ghost" size="sm" className="px-2">
-						<AlignLeft className="h-4 w-4" />
+					<Button variant="ghost" size="sm" className="px-2" disabled={!selectedNote}>
+						<AlignIcon className="h-4 w-4" />
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent className="w-40 p-2">
@@ -74,7 +105,7 @@ function FormatToolbar({ onFormat }) {
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={() => onFormat('align', 'left')}
+							onClick={() => handleFormat('align', 'left')}
 							className="justify-start"
 						>
 							<AlignLeft className="h-4 w-4 mr-2" />
@@ -83,7 +114,7 @@ function FormatToolbar({ onFormat }) {
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={() => onFormat('align', 'center')}
+							onClick={() => handleFormat('align', 'center')}
 							className="justify-start"
 						>
 							<AlignCenter className="h-4 w-4 mr-2" />
@@ -92,7 +123,7 @@ function FormatToolbar({ onFormat }) {
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={() => onFormat('align', 'right')}
+							onClick={() => handleFormat('align', 'right')}
 							className="justify-start"
 						>
 							<AlignRight className="h-4 w-4 mr-2" />
@@ -104,7 +135,7 @@ function FormatToolbar({ onFormat }) {
 			
 			<Popover>
 				<PopoverTrigger asChild>
-					<Button variant="ghost" size="sm" className="px-2">
+					<Button variant="ghost" size="sm" className="px-2" disabled={!selectedNote}>
 						<Type className="h-4 w-4" />
 					</Button>
 				</PopoverTrigger>
@@ -115,7 +146,7 @@ function FormatToolbar({ onFormat }) {
 								key={size.value}
 								variant="ghost"
 								size="sm"
-								onClick={() => onFormat('size', size.value)}
+								onClick={() => handleFormat('size', size.value)}
 								className="justify-start"
 							>
 								{size.label}
@@ -127,7 +158,7 @@ function FormatToolbar({ onFormat }) {
 			
 			<Popover>
 				<PopoverTrigger asChild>
-					<Button variant="ghost" size="sm" className="px-2">
+					<Button variant="ghost" size="sm" className="px-2" disabled={!selectedNote}>
 						<Palette className="h-4 w-4" />
 					</Button>
 				</PopoverTrigger>
@@ -136,9 +167,13 @@ function FormatToolbar({ onFormat }) {
 						{colors.map((color) => (
 							<button
 								key={color}
-								onClick={() => onFormat('color', color)}
+								onClick={() => handleFormat('color', color)}
 								className="w-6 h-6 rounded-md border"
-								style={{ backgroundColor: color }}
+								style={{
+									backgroundColor: color,
+									outline: color === currentFormatting.color ? '2px solid #0066cc' : 'none',
+									outlineOffset: '2px'
+								}}
 							/>
 						))}
 					</div>

@@ -3,14 +3,21 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Folder, Trash2, Edit } from 'lucide-react'
 import { useState } from 'react'
 import { Input } from "@/components/ui/input"
+import useNotesStore from '@/Stores/NotesStore.jsx'
 
-function FolderList({ folders, selectedFolder, onSelectFolder, onDeleteFolder, onRenameFolder }) {
+function FolderList() {
 	const [editingFolderId, setEditingFolderId] = useState(null)
 	const [editingFolderName, setEditingFolderName] = useState('')
 	
+	const folders = useNotesStore(state => state.folders)
+	const selectedFolder = useNotesStore(state => state.selectedFolder)
+	const setSelectedFolder = useNotesStore(state => state.setSelectedFolder)
+	const deleteFolder = useNotesStore(state => state.deleteFolder)
+	const renameFolder = useNotesStore(state => state.renameFolder)
+	
 	const handleRename = (folderId) => {
 		if (editingFolderName.trim()) {
-			onRenameFolder(folderId, editingFolderName.trim())
+			renameFolder(folderId, editingFolderName.trim())
 			setEditingFolderId(null)
 			setEditingFolderName('')
 		}
@@ -21,7 +28,7 @@ function FolderList({ folders, selectedFolder, onSelectFolder, onDeleteFolder, o
 			<Button
 				variant={selectedFolder === null ? "secondary" : "ghost"}
 				className="w-full justify-start mb-1"
-				onClick={() => onSelectFolder(null)}
+				onClick={() => setSelectedFolder(null)}
 			>
 				<Folder className="mr-2 h-4 w-4" />
 				All Notes
@@ -36,6 +43,7 @@ function FolderList({ folders, selectedFolder, onSelectFolder, onDeleteFolder, o
 								onBlur={() => handleRename(folder.id)}
 								onKeyPress={(e) => e.key === 'Enter' && handleRename(folder.id)}
 								className="mr-1"
+								autoFocus
 							/>
 							<Button size="icon" onClick={() => handleRename(folder.id)}>
 								<Edit className="h-4 w-4" />
@@ -46,7 +54,7 @@ function FolderList({ folders, selectedFolder, onSelectFolder, onDeleteFolder, o
 							<Button
 								variant={selectedFolder === folder.id ? "secondary" : "ghost"}
 								className="w-full justify-start mr-1"
-								onClick={() => onSelectFolder(folder.id)}
+								onClick={() => setSelectedFolder(folder.id)}
 							>
 								<Folder className="mr-2 h-4 w-4" />
 								{folder.name}
@@ -64,7 +72,7 @@ function FolderList({ folders, selectedFolder, onSelectFolder, onDeleteFolder, o
 							<Button
 								size="icon"
 								variant="ghost"
-								onClick={() => onDeleteFolder(folder.id)}
+								onClick={() => deleteFolder(folder.id)}
 							>
 								<Trash2 className="h-4 w-4" />
 							</Button>
@@ -77,4 +85,3 @@ function FolderList({ folders, selectedFolder, onSelectFolder, onDeleteFolder, o
 }
 
 export default FolderList
-
