@@ -6,11 +6,14 @@ import {
   Routes,
   Navigate,
 } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import KanbanBoard from "./components/KanbanBoard/KanbanBoard.jsx";
 import "./App.css";
 import SideBar from "./components/SideBar/SideBar.jsx";
 import SideTimer from "./components/SideTimer/SideTimer.jsx";
 import NotesPage from "./components/Notes/Notes.jsx";
+import PageWrapper from "./App/PageWrapper.jsx";
+import FocusPage from "./components/Focus/FocusPage.jsx";
 
 const App = () => {
   return (
@@ -20,12 +23,47 @@ const App = () => {
           <SideBar />
           <main className="flex-grow p-4">
             <SidebarTrigger />
-            <Routes>
-              <Route path="/" element={<Navigate to="/kanban" />} />
-              <Route path="/kanban" element={<KanbanBoard />} />
-              <Route path="/timer" element={<SideTimer />} />
-              <Route path="/notes" element={<NotesPage />} />
-            </Routes>
+            <AnimatePresence mode="wait">
+              <Routes>
+                <Route
+                  path="/"
+                  element={<Navigate to="/kanban" />}
+                />
+                <Route
+                  path="/kanban"
+                  element={
+                    <PageWrapper>
+                      <KanbanBoard />
+                    </PageWrapper>
+                  }
+                />
+                <Route
+                  path="/timer"
+                  element={
+                    <PageWrapper>
+                      <SideTimer />
+                    </PageWrapper>
+                  }
+                />
+                <Route
+                  path="/notes"
+                  element={
+                    <PageWrapper>
+                      <NotesPage />
+                    </PageWrapper>
+                  }
+                />
+                {/* Новый маршрут для страницы Focus */}
+                <Route
+                  path="/focus"
+                  element={
+                    <PageWrapper>
+                      <FocusPage />
+                    </PageWrapper>
+                  }
+                />
+              </Routes>
+            </AnimatePresence>
           </main>
         </SidebarProvider>
       </div>
