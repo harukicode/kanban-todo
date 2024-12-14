@@ -1,214 +1,237 @@
-import useColumnsStore from '@/Stores/ColumnsStore.jsx'
-import useProjectStore from '@/Stores/ProjectsStore.jsx'
-import React, { useState, useEffect } from 'react'
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Plus, ChevronLeft, ChevronRight, MoreVertical, Clock, CalendarIcon, Filter, Target, Download, SortAsc, SortDesc } from 'lucide-react'
-import { format, parseISO, startOfDay, endOfDay, addSeconds, differenceInSeconds, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay } from "date-fns"
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, BarChart, PieChart } from 'recharts'
-import useTaskStore from "@/stores/TaskStore"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import FullTimer from './FullTimer'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import useColumnsStore from '@/Stores/ColumnsStore';
+import useProjectStore from '@/Stores/ProjectsStore';
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Plus, ChevronLeft, ChevronRight, MoreVertical, Clock, CalendarIcon, Filter, Target, Download, SortAsc, SortDesc } from 'lucide-react';
+import { format, parseISO, startOfDay, endOfDay, addSeconds, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay } from "date-fns";
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, BarChart } from 'recharts';
+import useTaskStore from "@/stores/TaskStore";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import FullTimer from './FullTimer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTimer } from '@/lib/timerLib';
 
 export default function SideTimer() {
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [isTracking, setIsTracking] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [timelineData, setTimelineData] = useState([])
-  const [showFullTimer, setShowFullTimer] = useState(false)
-  const [periodType, setPeriodType] = useState("day")
-  const [customDateRange, setCustomDateRange] = useState({ from: null, to: null })
-  const [sortBy, setSortBy] = useState("startTime")
-  const [sortOrder, setSortOrder] = useState("desc")
-  const [filterTask, setFilterTask] = useState("")
-  const [groupBy, setGroupBy] = useState("none")
-  const [selectedProject, setSelectedProject] = useState("all")
+  // Состояния из timerLib
+  const {
+    timeLogs,
+    getFilteredLogs,
+    updateTimeLog,
+    deleteTimeLog,
+  } = useTimer();
   
-  const timeLogs = useTaskStore((state) => state.timeLogs)
-  const tasks = useTaskStore((state) => state.tasks)
-  const updateTimeLog = useTaskStore((state) => state.updateTimeLog)
-  const deleteTimeLog = useTaskStore((state) => state.deleteTimeLog)
-  const projects = useProjectStore((state) => state.projects)
-  const columns = useColumnsStore((state) => state.columns)
+  const formatDuration = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours} h ${minutes.toString().padStart(2, '0')} min ${remainingSeconds.toString().padStart(2, '0')} sec`;
+    } else if (minutes > 0) {
+      return `${minutes} min ${remainingSeconds.toString().padStart(2, '0')} sec`;
+    } else {
+      return `${remainingSeconds} sec`;
+    }
+  };
+  
+  
+  // Локальные состояния
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [timelineData, setTimelineData] = useState([]);
+  const [showFullTimer, setShowFullTimer] = useState(false);
+  const [periodType, setPeriodType] = useState("day");
+  const [customDateRange, setCustomDateRange] = useState({ from: null, to: null });
+  const [sortBy, setSortBy] = useState("startTime");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [filterTask, setFilterTask] = useState("");
+  const [groupBy, setGroupBy] = useState("none");
+  const [selectedProject, setSelectedProject] = useState("all");
+  
+  // Store состояния
+  const tasks = useTaskStore((state) => state.tasks);
+  const projects = useProjectStore((state) => state.projects);
+  const columns = useColumnsStore((state) => state.columns);
   
   const getPeriodDates = () => {
     switch (periodType) {
       case "day":
-        return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) }
+        return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) };
       case "week":
-        return { start: startOfWeek(selectedDate), end: endOfWeek(selectedDate) }
+        return { start: startOfWeek(selectedDate), end: endOfWeek(selectedDate) };
       case "month":
-        return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) }
+        return { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
       case "custom":
-        return { start: customDateRange.from, end: customDateRange.to }
+        return { start: customDateRange.from, end: customDateRange.to };
       default:
-        return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) }
+        return { start: startOfDay(selectedDate), end: endOfDay(selectedDate) };
     }
-  }
+  };
   
   const generateTimelineData = () => {
-    const { start, end } = getPeriodDates()
-    const data = []
+    const { start, end } = getPeriodDates();
+    const filteredLogs = getFilteredLogs({
+      startDate: start,
+      endDate: end
+    });
     
     if (periodType === "day") {
-      for (let hour = 0; hour < 24; hour++) {
-        const hourStart = new Date(selectedDate)
-        hourStart.setHours(hour, 0, 0, 0)
-        const hourEnd = new Date(selectedDate)
-        hourEnd.setHours(hour, 59, 59, 999)
+      return Array.from({ length: 24 }, (_, hour) => {
+        const hourStart = new Date(selectedDate);
+        hourStart.setHours(hour, 0, 0, 0);
+        const hourEnd = new Date(selectedDate);
+        hourEnd.setHours(hour, 59, 59, 999);
         
-        const hourLogs = timeLogs.filter((log) => {
-          const logStart = new Date(log.startTime)
-          return logStart >= hourStart && logStart <= hourEnd
-        })
+        const hourLogs = filteredLogs.filter(log => {
+          const logStart = new Date(log.startTime);
+          return logStart >= hourStart && logStart <= hourEnd;
+        });
         
-        const value = hourLogs.reduce((total, log) => total + (log.timeSpent || 0), 0)
-        
-        data.push({
+        return {
           date: format(hourStart, "HH:mm"),
-          value: value / 60
-        })
-      }
+          value: hourLogs.reduce((total, log) => total + (log.timeSpent || 0), 0) / 60
+        };
+      });
     } else {
-      let currentDate = new Date(start)
+      let currentDate = new Date(start);
+      const data = [];
       while (currentDate <= end) {
-        const dayLogs = timeLogs.filter((log) => {
-          const logStart = new Date(log.startTime)
-          return isSameDay(logStart, currentDate)
-        })
-        
-        const value = dayLogs.reduce((total, log) => total + (log.timeSpent || 0), 0)
+        const dayLogs = filteredLogs.filter(log =>
+          isSameDay(new Date(log.startTime), currentDate)
+        );
         
         data.push({
           date: format(currentDate, "MMM dd"),
-          value: value / 60
-        })
+          value: dayLogs.reduce((total, log) => total + (log.timeSpent || 0), 0) / 60
+        });
         
-        currentDate = addDays(currentDate, 1)
+        currentDate = addDays(currentDate, 1);
       }
+      return data;
     }
-    
-    return data
-  }
+  };
   
   useEffect(() => {
-    setTimelineData(generateTimelineData())
-  }, [timeLogs, selectedDate, periodType, customDateRange])
+    setTimelineData(generateTimelineData());
+  }, [timeLogs, selectedDate, periodType, customDateRange]);
   
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 60000)
-    return () => clearInterval(timer)
-  }, [])
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
   
   const formatTimeRange = (start, end) => {
-    return `${format(new Date(start), "HH:mm")} - ${format(new Date(end), "HH:mm")}`
-  }
+    return `${format(new Date(start), "HH:mm")} - ${format(new Date(end), "HH:mm")}`;
+  };
   
   const calculateTotalTime = () => {
-    const { start, end } = getPeriodDates()
-    return timeLogs
-      .filter(log => new Date(log.startTime) >= start && new Date(log.endTime) <= end)
-      .reduce((total, log) => total + (log.timeSpent || 0), 0)
-  }
+    const { start, end } = getPeriodDates();
+    return getFilteredLogs({ startDate: start, endDate: end })
+      .reduce((total, log) => total + (log.timeSpent || 0), 0);
+  };
   
-  const formatDuration = (seconds) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const remainingSeconds = seconds % 60
-    
-    if (hours > 0) {
-      return `${hours} h ${minutes.toString().padStart(2, '0')} min ${remainingSeconds.toString().padStart(2, '0')} sec`
-    } else if (minutes > 0) {
-      return `${minutes} min ${remainingSeconds.toString().padStart(2, '0')} sec`
-    } else {
-      return `${remainingSeconds} sec`
-    }
-  }
   const getProjectForTask = (taskId) => {
-    const task = tasks.find(t => t.id === taskId)
-    if (!task) return null
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return null;
     
-    const column = columns.find(c => c.id === task.columnId)
-    if (!column) return null
+    const column = columns.find(c => c.id === task.columnId);
+    if (!column) return null;
     
-    return projects.find(p => p.id === column.projectId) || null
-  }
+    return projects.find(p => p.id === column.projectId) || null;
+  };
   
-  const filteredAndSortedLogs = timeLogs
-    .filter(log => {
-      const { start, end } = getPeriodDates()
-      const logDate = new Date(log.startTime)
-      const project = getProjectForTask(log.taskId)
-      return logDate >= start && logDate <= end &&
-        log.taskName.toLowerCase().includes(filterTask.toLowerCase()) &&
-        (selectedProject === "all" || (project && project.id === selectedProject))
-    })
-    .sort((a, b) => {
-      if (sortBy === "startTime") {
-        return sortOrder === "asc"
-          ? new Date(a.startTime) - new Date(b.startTime)
-          : new Date(b.startTime) - new Date(a.startTime)
-      } else if (sortBy === "duration") {
-        return sortOrder === "asc"
-          ? a.timeSpent - b.timeSpent
-          : b.timeSpent - a.timeSpent
-      } else if (sortBy === "taskName") {
-        return sortOrder === "asc"
-          ? a.taskName.localeCompare(b.taskName)
-          : b.taskName.localeCompare(a.taskName)
-      } else if (sortBy === "project") {
-        const projectA = getProjectForTask(a.taskId)
-        const projectB = getProjectForTask(b.taskId)
-        const nameA = projectA ? projectA.name : ""
-        const nameB = projectB ? projectB.name : ""
-        return sortOrder === "asc"
-          ? nameA.localeCompare(nameB)
-          : nameB.localeCompare(nameA)
-      }
-    })
+  const filteredAndSortedLogs = React.useMemo(() => {
+    return getFilteredLogs()
+      .filter(log => {
+        const { start, end } = getPeriodDates();
+        const logDate = new Date(log.startTime);
+        const project = getProjectForTask(log.taskId);
+        
+        // Добавляем проверку на существование taskName
+        const taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
+        
+        return logDate >= start && logDate <= end &&
+          taskName.toLowerCase().includes(filterTask.toLowerCase()) &&
+          (selectedProject === "all" || (project && project.id === selectedProject));
+      })
+      .sort((a, b) => {
+        if (sortBy === "startTime") {
+          return sortOrder === "asc"
+            ? new Date(a.startTime) - new Date(b.startTime)
+            : new Date(b.startTime) - new Date(a.startTime);
+        } else if (sortBy === "duration") {
+          return sortOrder === "asc"
+            ? a.timeSpent - b.timeSpent
+            : b.timeSpent - a.timeSpent;
+        } else if (sortBy === "taskName") {
+          const nameA = a.taskName || tasks.find(t => t.id === a.taskId)?.title || "";
+          const nameB = b.taskName || tasks.find(t => t.id === b.taskId)?.title || "";
+          return sortOrder === "asc"
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+        } else if (sortBy === "project") {
+          const projectA = getProjectForTask(a.taskId);
+          const projectB = getProjectForTask(b.taskId);
+          const nameA = projectA ? projectA.name : "";
+          const nameB = projectB ? projectB.name : "";
+          return sortOrder === "asc"
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+        }
+      });
+  }, [getFilteredLogs, getPeriodDates, filterTask, selectedProject, sortBy, sortOrder, tasks]);
   
   const handleUpdateTimeLog = (logId, newTimeSpent) => {
-    const log = timeLogs.find(log => log.logId === logId)
-    if (log) {
-      const newEndTime = addSeconds(new Date(log.startTime), newTimeSpent)
-      updateTimeLog(logId, {
-        timeSpent: newTimeSpent,
-        endTime: newEndTime.toISOString()
-      });
-    }
+    // Обновляем в timerLib
+    updateTimeLog(logId, {
+      timeSpent: newTimeSpent,
+      endTime: new Date(new Date().getTime() + (newTimeSpent * 1000)).toISOString()
+    });
+    
+    // Обновляем в TaskStore
+    const taskStore = useTaskStore.getState();
+    taskStore.updateTimeLog(logId, {
+      timeSpent: newTimeSpent,
+      endTime: new Date(new Date().getTime() + (newTimeSpent * 1000)).toISOString()
+    });
   };
   
   const handleDeleteTimeLog = (logId) => {
+    // Удаляем из timerLib
     deleteTimeLog(logId);
+    
+    // Удаляем из TaskStore
+    const taskStore = useTaskStore.getState();
+    taskStore.deleteTimeLog(logId);
   };
   
   const handlePeriodChange = (newPeriod) => {
-    setPeriodType(newPeriod)
+    setPeriodType(newPeriod);
     if (newPeriod === "custom") {
-      setCustomDateRange({ from: selectedDate, to: selectedDate })
+      setCustomDateRange({ from: selectedDate, to: selectedDate });
     }
-  }
+  };
   
   const handleDateChange = (direction) => {
     setSelectedDate(prevDate => {
       switch (periodType) {
         case "day":
-          return direction === "next" ? addDays(prevDate, 1) : addDays(prevDate, -1)
+          return direction === "next" ? addDays(prevDate, 1) : addDays(prevDate, -1);
         case "week":
-          return direction === "next" ? addDays(prevDate, 7) : addDays(prevDate, -7)
+          return direction === "next" ? addDays(prevDate, 7) : addDays(prevDate, -7);
         case "month":
-          return direction === "next" ? addDays(prevDate, 30) : addDays(prevDate, -30)
+          return direction === "next" ? addDays(prevDate, 30) : addDays(prevDate, -30);
         default:
-          return prevDate
+          return prevDate;
       }
-    })
-  }
+    });
+  };
   
   const groupedLogs = React.useMemo(() => {
     if (groupBy === "none") return { "All Tasks": filteredAndSortedLogs };
@@ -221,7 +244,6 @@ export default function SideTimer() {
       return acc;
     }, {});
   }, [filteredAndSortedLogs, groupBy, getProjectForTask]);
-  
   
   const exportData = () => {
     const csvContent = "data:text/csv;charset=utf-8,"
@@ -237,7 +259,6 @@ export default function SideTimer() {
     link.click();
     document.body.removeChild(link);
   };
-  
  
   return (
     <div className="w-full max-w-8xl mx-auto p-4 font-sans">
@@ -428,14 +449,16 @@ export default function SideTimer() {
                   <h3 className="font-semibold text-lg mt-4 mb-2">{group}</h3>
                 )}
                 {logs.map((log) => {
-                  const project = getProjectForTask(log.taskId)
+                  const project = getProjectForTask(log.taskId);
+                  const taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
+                  
                   return (
                     <div
                       key={log.logId}
                       className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 rounded-lg group"
                     >
                       <div className="flex-1">
-                        <div className="font-medium text-sm">{log.taskName}</div>
+                        <div className="font-medium text-sm">{taskName}</div>
                         <div className="text-xs text-gray-500">
                           {project ? project.name : "No Project"}
                         </div>
@@ -503,7 +526,7 @@ export default function SideTimer() {
                                     const hours = Math.floor(log.timeSpent / 3600)
                                     const minutes = Math.floor((log.timeSpent % 3600) / 60)
                                     const seconds = parseInt(e.target.value) || 0
-                                    updateTimeLog(log.logId, {
+                                    handleUpdateTimeLog(log.logId, {
                                       timeSpent: hours * 3600 + minutes * 60 + seconds,
                                       endTime: new Date(new Date(log.startTime).getTime() + (hours * 3600 + minutes * 60 + seconds) * 1000).toISOString()
                                     })
@@ -513,7 +536,7 @@ export default function SideTimer() {
                             </div>
                             <Button
                               variant="destructive"
-                              onClick={() => deleteTimeLog(log.logId)}
+                              onClick={() => handleDeleteTimeLog(log.logId)}
                             >
                               Delete Log
                             </Button>

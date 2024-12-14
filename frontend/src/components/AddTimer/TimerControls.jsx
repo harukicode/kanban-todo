@@ -1,7 +1,6 @@
-// TimerControls.jsx
 import React from "react";
-import { Button } from "@/components/ui/button.jsx";
-import { PlayCircle, PauseCircle } from "lucide-react"; // Удаляем RotateCcw
+import { Button } from "@/components/ui/button";
+import { PlayCircle, PauseCircle } from "lucide-react";
 
 const TimerControls = ({ isRunning, onStartStop, disabled }) => (
   <div className="flex justify-center space-x-2 mb-4">

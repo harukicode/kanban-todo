@@ -38,16 +38,15 @@ export default function Task({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showTaskSubtasks, setShowTaskSubtasks] = useState(showSubtasks);
 
-  
-  const handleClick = (e) =>{
-    e.stopPropagation();  
-    if (isTaskFindActive){
-      setSelectedTaskId(task.id);
-    }
-    else{
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (isTaskFindActive) {
+      setSelectedTaskId(task.id);  // Сначала устанавливаем ID задачи
+    } else {
       setIsModalOpen(true);
     }
-  }
+  };
   
   useEffect(() => {
     setShowTaskSubtasks(showSubtasks);
