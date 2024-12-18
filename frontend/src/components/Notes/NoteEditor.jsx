@@ -1,5 +1,5 @@
 import { Comments } from '@/components/Notes/Comments.jsx'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -24,22 +24,38 @@ function NoteEditor({ noteId }) {
 		folders
 	} = useNotesStore()
 	
-	const note = useNotesStore(state => state.getNoteById(noteId))
-	const [newTag, setNewTag] = useState('')
-// Удалим useState для editedNote
-	const [editor, setEditor] = useState(null);
+	const note = useNotesStore(state => getNoteById(noteId))
+	const [editor, setEditor] = useState(null)
 	const fileInputRef = useRef(null)
 	const editorRef = useRef(null)
-
-// Изменяем начальное состояние editedNote
-	const [editedNote, setEditedNote] = useState(note || { title: '', content: '', tags: [], attachments: [] });
-
-// Инициализация Quill
+	const [editedNote, setEditedNote] = useState(note || { title: '', content: '', tags: [], attachments: [] })
+	const [newTag, setNewTag] = useState('')
+	const [isEditorReady, setIsEditorReady] = useState(false)
+	
+	const saveContent = useCallback((content) => {
+		if (!editedNote?.id) return
+		
+		const updatedNote = {
+			...editedNote,
+			content: content,
+			updatedAt: new Date().toISOString()
+		}
+		updateNote(updatedNote)
+		setEditedNote(updatedNote)
+	}, [editedNote?.id, updateNote])
+	
+	// Инициализируем редактор при монтировании
 	useEffect(() => {
+		let quillInstance = null
+		
 		const initQuill = async () => {
 			try {
-				const Quill = (await import('quill')).default;
-				const quill = new Quill(editorRef.current, {
+				if (!editorRef.current || editor) return
+				
+				editorRef.current.innerHTML = ''
+				const Quill = (await import('quill')).default
+				
+				quillInstance = new Quill(editorRef.current, {
 					theme: 'snow',
 					modules: {
 						toolbar: [
@@ -52,107 +68,69 @@ function NoteEditor({ noteId }) {
 						]
 					},
 					placeholder: 'Start writing...'
-				});
+				})
 				
-				if (note?.content) {
-					quill.root.innerHTML = note.content;
-				}
-				
-				// Обработчик изменений
-				quill.on('text-change', () => {
-					const content = quill.root.innerHTML;
-					const updatedNote = {
-						...note,
-						content: content
-					};
-					updateNote(updatedNote);
-				});
-				
-				setEditor(quill);
+				setEditor(quillInstance)
+				setIsEditorReady(true)
 			} catch (error) {
-				console.error('Failed to load Quill:', error);
+				console.error('Failed to load Quill:', error)
 			}
-		};
-		
-		if (editorRef.current && !editor) {
-			initQuill();
 		}
+		
+		initQuill()
 		
 		return () => {
-			if (editor) {
-				editor.off('text-change');
+			if (quillInstance) {
+				quillInstance.off('text-change')
 			}
-		};
-	}, [noteId]); // Зависимость от noteId для переинициализации при смене заметки
-
-// Обновляем эффект для синхронизации контента
-	useEffect(() => {
-		if (note && editor) {
-			// Проверяем, действительно ли контент изменился
-			if (note.content !== editor.root.innerHTML) {
-				editor.root.innerHTML = note.content || '';
-			}
-			setEditedNote(note);
 		}
-	}, [note, noteId]);
-
-// Добавляем функцию debounce в начало файла
-	function debounce(func, wait) {
-		let timeout;
-		return function executedFunction(...args) {
-			const later = () => {
-				clearTimeout(timeout);
-				func(...args);
-			};
-			clearTimeout(timeout);
-			timeout = setTimeout(later, wait);
-		};
+	}, [])
+	
+	// Обновляем содержимое редактора при смене заметки
+	useEffect(() => {
+		if (!note) return
+		
+		setEditedNote(note)
+		
+		if (editor && isEditorReady) {
+			const content = note.content || ''
+			if (editor.root.innerHTML !== content) {
+				editor.root.innerHTML = content
+			}
+		}
+	}, [noteId, note, editor, isEditorReady])
+	
+	// Устанавливаем обработчик изменений после инициализации
+	useEffect(() => {
+		if (!editor || !isEditorReady) return
+		
+		let timeout
+		const handleTextChange = () => {
+			if (timeout) clearTimeout(timeout)
+			timeout = setTimeout(() => {
+				const content = editor.root.innerHTML
+				saveContent(content)
+			}, 1000)
+		}
+		
+		editor.on('text-change', handleTextChange)
+		
+		return () => {
+			if (timeout) clearTimeout(timeout)
+			editor.off('text-change', handleTextChange)
+		}
+	}, [editor, isEditorReady, saveContent])
+	
+	const handleTitleChange = (e) => {
+		const title = e.target.value
+		const updatedNote = { ...editedNote, title }
+		updateNote(updatedNote)
+		setEditedNote(updatedNote)
 	}
 	
-	// Добавляем сохранение при unmount
-	useEffect(() => {
-		return () => {
-			if (editedNote && editor) {
-				const content = editor.root.innerHTML;
-				if (content !== editedNote.content) {
-					const updatedNote = {
-						...editedNote,
-						content,
-						updatedAt: new Date().toISOString()
-					};
-					updateNote(updatedNote);
-				}
-			}
-		};
-	}, [editedNote, editor]);
-	
-	useEffect(() => {
-		if (editor && note) {
-			const currentContent = editor.root.innerHTML;
-			if (note.content !== currentContent) {
-				editor.root.innerHTML = note.content || '';
-			}
-		}
-	}, [note, editor]);
-	
-	
-// Обновляем handleTitleChange
-	const handleTitleChange = (e) => {
-		const title = e.target.value;
-		const updatedNote = { ...note, title };
-		updateNote(updatedNote);
-	};
-	
-	const handleTogglePin = () => {
-		if (editedNote) {
-			togglePinNote(editedNote.id);
-			setEditedNote(prev => ({ ...prev, isPinned: !prev.isPinned }));
-		}
-	};
-	
 	const handleAddTag = () => {
-		if (newTag && editedNote && !editedNote.tags.includes(newTag)) {
-			addTagToNote(editedNote.id, newTag);
+		if (newTag.trim() && editedNote && !editedNote.tags.includes(newTag.trim())) {
+			addTagToNote(editedNote.id, newTag.trim());
 			setNewTag('');
 		}
 	};
@@ -163,8 +141,14 @@ function NoteEditor({ noteId }) {
 		}
 	};
 	
+	const handleTogglePin = () => {
+		if (editedNote) {
+			togglePinNote(editedNote.id);
+		}
+	};
+	
 	const handleFileAttachment = (e) => {
-		const file = e.target.files[0];
+		const file = e.target.files?.[0];
 		if (file && editedNote) {
 			attachFileToNote(editedNote.id, file);
 		}
@@ -192,192 +176,188 @@ function NoteEditor({ noteId }) {
 		return <div className="flex-1 flex items-center justify-center">Note not found</div>;
 	}
 	
-	
 	return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleTogglePin}
-            className="hover:bg-accent"
-          >
-            <Pin
-              className={`h-4 w-4 ${editedNote.isPinned ? "text-yellow-500" : ""}`}
-            />
-          </Button>
-          <Separator orientation="vertical" className="h-4" />
-          <Button variant="ghost" size="sm">
-            Today
-          </Button>
-        </div>
-
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Note Actions</SheetTitle>
-            </SheetHeader>
-            <div className="grid gap-2 py-4">
-              <Button
-                variant="ghost"
-                className="justify-start"
-                onClick={handleTogglePin}
-              >
-                <Pin className="mr-2 h-4 w-4" />
-                {editedNote.isPinned ? "Unpin" : "Pin"}
-              </Button>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" className="justify-start">
-                    <Tags className="mr-2 h-4 w-4" /> Tags
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Manage Tags</DialogTitle>
-                  </DialogHeader>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                      placeholder="New tag"
-                      className="flex-1"
-                    />
-                    <Button onClick={handleAddTag}>Add</Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {editedNote.tags &&
-                      editedNote.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="px-2 py-1"
-                        >
-                          {tag}
-                          <button
-                            className="ml-2 text-xs hover:text-destructive"
-                            onClick={() => handleRemoveTag(tag)}
-                          >
-                            ×
-                          </button>
-                        </Badge>
-                      ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <Button
-                variant="ghost"
-                className="justify-start"
-                onClick={() => fileInputRef.current.click()}
-              >
-                <Paperclip className="mr-2 h-4 w-4" /> Attach File
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                onChange={handleFileAttachment}
-              />
-
-              <Separator />
-
-              <Button variant="ghost" className="justify-start">
-                <Template className="mr-2 h-4 w-4" /> Save as Template
-              </Button>
-
-              <Button
-                variant="ghost"
-                className="justify-start"
-                onClick={handleDuplicateNote}
-              >
-                <Copy className="mr-2 h-4 w-4" /> Duplicate
-              </Button>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" className="justify-start">
-                    <Folder className="mr-2 h-4 w-4" /> Move to Folder
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Select Folder</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-2 py-4">
-                    {folders.map((folder) => (
-                      <DialogClose asChild key={folder.id}>
-                        <Button
-                          variant="ghost"
-                          className="justify-start"
-                          onClick={() => handleMoveToFolder(folder.id)}
-                        >
-                          <Folder className="mr-2 h-4 w-4" /> {folder.name}
-                        </Button>
-                      </DialogClose>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <Button variant="ghost" className="justify-start">
-                <Printer className="mr-2 h-4 w-4" /> Print
-              </Button>
-
-              <Separator />
-
-              <Button
-                variant="ghost"
-                className="justify-start text-destructive hover:text-destructive"
-                onClick={handleDeleteNote}
-              >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-	    
-	    <div className="flex-1 p-4 flex flex-col overflow-hidden">
-		    <Input
-			    name="title"
-			    value={editedNote.title}
-			    onChange={handleTitleChange}
-			    className="text-xl font-bold mb-4 border-none bg-transparent focus-visible:ring-0"
-			    placeholder="Note title"
-		    />
-		    <div className="flex-1 overflow-auto">
-			    <div
-				    ref={editorRef}
-				    className="h-full min-h-[200px]"
-				    style={{ backgroundColor: 'transparent' }}
-			    />
-		    </div>
-	    </div>
-	    
-	    {editedNote.attachments && editedNote.attachments.length > 0 && (
-		    <div className="p-4 border-t">
-			    <h3 className="font-medium mb-2">Attachments:</h3>
-			    <ul className="list-disc pl-5">
-				    {editedNote.attachments.map((file, index) => (
-					    <li key={index} className="text-sm text-muted-foreground">
-						    {file.name}
-					    </li>
-				    ))}
-			    </ul>
-		    </div>
-	    )}
-	    
-	    <Comments noteId={editedNote.id} />
-    </div>
-  );
+		<div className="flex-1 flex flex-col h-full">
+			<div className="flex items-center justify-between p-4 border-b">
+				<div className="flex items-center gap-2">
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={handleTogglePin}
+						className="hover:bg-accent"
+					>
+						<Pin className={`h-4 w-4 ${editedNote.isPinned ? "text-yellow-500" : ""}`} />
+					</Button>
+					<Separator orientation="vertical" className="h-4" />
+					<Button variant="ghost" size="sm">
+						Today
+					</Button>
+				</div>
+				
+				<Sheet>
+					<SheetTrigger asChild>
+						<Button variant="ghost" size="icon">
+							<MoreVertical className="h-4 w-4" />
+						</Button>
+					</SheetTrigger>
+					<SheetContent>
+						<SheetHeader>
+							<SheetTitle>Note Actions</SheetTitle>
+						</SheetHeader>
+						<div className="grid gap-2 py-4">
+							<Button
+								variant="ghost"
+								className="justify-start"
+								onClick={handleTogglePin}
+							>
+								<Pin className="mr-2 h-4 w-4" />
+								{editedNote.isPinned ? "Unpin" : "Pin"}
+							</Button>
+							
+							<Dialog>
+								<DialogTrigger asChild>
+									<Button variant="ghost" className="justify-start">
+										<Tags className="mr-2 h-4 w-4" /> Tags
+									</Button>
+								</DialogTrigger>
+								<DialogContent>
+									<DialogHeader>
+										<DialogTitle>Manage Tags</DialogTitle>
+									</DialogHeader>
+									<div className="flex items-center space-x-2">
+										<Input
+											value={newTag}
+											onChange={(e) => setNewTag(e.target.value)}
+											placeholder="New tag"
+											className="flex-1"
+										/>
+										<Button onClick={handleAddTag}>Add</Button>
+									</div>
+									<div className="flex flex-wrap gap-2 mt-4">
+										{editedNote.tags?.map((tag) => (
+											<Badge
+												key={tag}
+												variant="secondary"
+												className="px-2 py-1"
+											>
+												{tag}
+												<button
+													className="ml-2 text-xs hover:text-destructive"
+													onClick={() => handleRemoveTag(tag)}
+												>
+													×
+												</button>
+											</Badge>
+										))}
+									</div>
+								</DialogContent>
+							</Dialog>
+							
+							<Button
+								variant="ghost"
+								className="justify-start"
+								onClick={() => fileInputRef.current?.click()}
+							>
+								<Paperclip className="mr-2 h-4 w-4" /> Attach File
+							</Button>
+							<input
+								type="file"
+								ref={fileInputRef}
+								style={{ display: "none" }}
+								onChange={handleFileAttachment}
+							/>
+							
+							<Separator />
+							
+							<Button variant="ghost" className="justify-start">
+								<Template className="mr-2 h-4 w-4" /> Save as Template
+							</Button>
+							
+							<Button
+								variant="ghost"
+								className="justify-start"
+								onClick={handleDuplicateNote}
+							>
+								<Copy className="mr-2 h-4 w-4" /> Duplicate
+							</Button>
+							
+							<Dialog>
+								<DialogTrigger asChild>
+									<Button variant="ghost" className="justify-start">
+										<Folder className="mr-2 h-4 w-4" /> Move to Folder
+									</Button>
+								</DialogTrigger>
+								<DialogContent>
+									<DialogHeader>
+										<DialogTitle>Select Folder</DialogTitle>
+									</DialogHeader>
+									<div className="grid gap-2 py-4">
+										{folders.map((folder) => (
+											<DialogClose asChild key={folder.id}>
+												<Button
+													variant="ghost"
+													className="justify-start"
+													onClick={() => handleMoveToFolder(folder.id)}
+												>
+													<Folder className="mr-2 h-4 w-4" /> {folder.name}
+												</Button>
+											</DialogClose>
+										))}
+									</div>
+								</DialogContent>
+							</Dialog>
+							
+							<Button variant="ghost" className="justify-start">
+								<Printer className="mr-2 h-4 w-4" /> Print
+							</Button>
+							
+							<Separator />
+							
+							<Button
+								variant="ghost"
+								className="justify-start text-destructive hover:text-destructive"
+								onClick={handleDeleteNote}
+							>
+								<Trash2 className="mr-2 h-4 w-4" /> Delete
+							</Button>
+						</div>
+					</SheetContent>
+				</Sheet>
+			</div>
+			
+			<div className="flex-1 p-4 flex flex-col overflow-hidden">
+				<Input
+					name="title"
+					value={editedNote.title}
+					onChange={handleTitleChange}
+					className="text-xl font-bold mb-4 border-none bg-transparent focus-visible:ring-0"
+					placeholder="Note title"
+				/>
+				<div className="flex-1 overflow-auto">
+					<div
+						ref={editorRef}
+						className="h-full min-h-[200px] quill-editor"
+						style={{ backgroundColor: 'transparent' }}
+					/>
+				</div>
+			</div>
+			
+			{editedNote.attachments && editedNote.attachments.length > 0 && (
+				<div className="p-4 border-t">
+					<h3 className="font-medium mb-2">Attachments:</h3>
+					<ul className="list-disc pl-5">
+						{editedNote.attachments.map((file, index) => (
+							<li key={index} className="text-sm text-muted-foreground">
+								{file.name}
+							</li>
+						))}
+					</ul>
+				</div>
+			)}
+			
+			<Comments noteId={editedNote.id} />
+		</div>
+	);
 }
 
 export default NoteEditor;
