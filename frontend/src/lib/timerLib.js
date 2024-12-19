@@ -57,13 +57,17 @@ export const useTimerStore = create(
 					const logEntry = {
 						logId: Date.now().toString(),
 						taskId: selectedTaskId,
-						taskName: task?.title || "Unknown Task", // Добавляем название задачи
+						taskName: task?.title || "Unknown Task",
 						startTime: now.toISOString(),
 						endTime: now.toISOString(),
 						timeSpent: 0,
 						mode: state.mode,
 						currentMode: state.currentMode
 					};
+					
+					// Добавляем лог в TaskStore
+					const taskStore = useTaskStore.getState();
+					taskStore.addTimeLog(logEntry);
 					
 					set((state) => ({
 						isRunning: true,
@@ -83,17 +87,22 @@ export const useTimerStore = create(
 						(endTime.getTime() - startTime.getTime()) / 1000
 					);
 					
+					const updatedLog = {
+						endTime: endTime.toISOString(),
+						timeSpent: timeSpent,
+					};
+					
+					// Обновляем лог в TaskStore
+					const taskStore = useTaskStore.getState();
+					taskStore.updateTimeLog(state.currentLogId, updatedLog);
+					
 					set((state) => ({
 						isRunning: false,
 						startTime: null,
 						time: timeSpent,
 						timeLogs: state.timeLogs.map((log) =>
 							log.logId === state.currentLogId
-								? {
-									...log,
-									endTime: endTime.toISOString(),
-									timeSpent: timeSpent,
-								}
+								? { ...log, ...updatedLog }
 								: log
 						),
 						currentLogId: null,
@@ -194,21 +203,17 @@ export const useTimerStore = create(
 			},
 			
 			updateTimeLog: (logId, updatedData) => {
-				const taskStore = useTaskStore.getState();
-				set((state) => ({
-					timeLogs: state.timeLogs.map((log) =>
+				set(state => ({
+					timeLogs: state.timeLogs.map(log =>
 						log.logId === logId ? { ...log, ...updatedData } : log
 					),
 				}));
-				taskStore.updateTimeLog(logId, updatedData);
 			},
 			
 			deleteTimeLog: (logId) => {
-				const taskStore = useTaskStore.getState();
-				set((state) => ({
-					timeLogs: state.timeLogs.filter((log) => log.logId !== logId),
+				set(state => ({
+					timeLogs: state.timeLogs.filter(log => log.logId !== logId),
 				}));
-				taskStore.deleteTimeLog(logId);
 			},
 			
 			getFilteredLogs: (filters = {}) => {
@@ -384,17 +389,12 @@ export const useTimer = () => {
 		startTimer: handleStartTimer,
 		stopTimer: handleStopTimer,
 		setMode: handleSetMode,
-		resetTimer: () => {
-			store.resetTimer();
-			if (store.mode === 'pomodoro') {
-				setTime(getCurrentPomodoroTime());
-			} else {
-				setTime(0);
-			}
-		},
+		resetTimer: store.resetTimer,
 		setSelectedTask: store.setSelectedTask,
 		updatePomodoroSettings: store.updatePomodoroSettings,
 		getFilteredLogs: store.getFilteredLogs,
+		updateTimeLog: store.updateTimeLog,
+		deleteTimeLog: store.deleteTimeLog, // Добавляем этот метод
 		getTaskStats: store.getTaskStats,
 		getDailyStats: store.getDailyStats,
 	};

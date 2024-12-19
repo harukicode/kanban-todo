@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import FullTimer from './FullTimer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTimer } from '@/lib/timerLib';
+import { useTimer, useTimerStore } from '@/lib/timerLib';
 
 export default function SideTimer() {
   // Состояния из timerLib
@@ -187,29 +187,48 @@ export default function SideTimer() {
       });
   }, [getFilteredLogs, getPeriodDates, filterTask, selectedProject, sortBy, sortOrder, tasks]);
   
-  const handleUpdateTimeLog = (logId, newTimeSpent) => {
-    // Обновляем в timerLib
-    updateTimeLog(logId, {
-      timeSpent: newTimeSpent,
-      endTime: new Date(new Date().getTime() + (newTimeSpent * 1000)).toISOString()
-    });
+  const handleUpdateTimeLog = (logId, updatedData) => {
+    const log = timeLogs.find(l => l.logId === logId);
+    if (!log) return;
     
-    // Обновляем в TaskStore
-    const taskStore = useTaskStore.getState();
-    taskStore.updateTimeLog(logId, {
-      timeSpent: newTimeSpent,
-      endTime: new Date(new Date().getTime() + (newTimeSpent * 1000)).toISOString()
-    });
+    try {
+      const startTime = new Date(log.startTime);
+      if (isNaN(startTime.getTime())) {
+        throw new Error('Invalid start time');
+      }
+      
+      const newTimeSpent = updatedData.timeSpent;
+      const endTime = new Date(startTime.getTime() + (newTimeSpent * 1000));
+      
+      const updateData = {
+        ...updatedData,
+        endTime: endTime.toISOString()
+      };
+      
+      // Обновляем в timerLib
+      updateTimeLog(logId, updateData);
+      
+      // Обновляем в TaskStore
+      const taskStore = useTaskStore.getState();
+      taskStore.updateTimeLog(logId, updateData);
+    } catch (error) {
+      console.error('Error updating time log:', error);
+    }
   };
   
   const handleDeleteTimeLog = (logId) => {
-    // Удаляем из timerLib
-    deleteTimeLog(logId);
-    
-    // Удаляем из TaskStore
-    const taskStore = useTaskStore.getState();
-    taskStore.deleteTimeLog(logId);
+    try {
+      // Используем deleteTimeLog из хука useTimer
+      deleteTimeLog(logId);
+      
+      // И обновляем TaskStore
+      const taskStore = useTaskStore.getState();
+      taskStore.deleteTimeLog(logId);
+    } catch (error) {
+      console.error('Error deleting time log:', error);
+    }
   };
+  
   
   const handlePeriodChange = (newPeriod) => {
     setPeriodType(newPeriod);
@@ -491,13 +510,14 @@ export default function SideTimer() {
                                   max="23"
                                   defaultValue={Math.floor(log.timeSpent / 3600)}
                                   onChange={(e) => {
-                                    const hours = parseInt(e.target.value) || 0
-                                    const minutes = Math.floor((log.timeSpent % 3600) / 60)
-                                    const seconds = log.timeSpent % 60
-                                    updateTimeLog(log.logId, {
-                                      timeSpent: hours * 3600 + minutes * 60 + seconds,
-                                      endTime: new Date(new Date(log.startTime).getTime() + (hours * 3600 + minutes * 60 + seconds) * 1000).toISOString()
-                                    })
+                                    const hours = parseInt(e.target.value) || 0;
+                                    const minutes = Math.floor((log.timeSpent % 3600) / 60);
+                                    const seconds = log.timeSpent % 60;
+                                    const newTimeSpent = hours * 3600 + minutes * 60 + seconds;
+                                    
+                                    handleUpdateTimeLog(log.logId, {
+                                      timeSpent: newTimeSpent
+                                    });
                                   }}
                                 />
                                 <Input
