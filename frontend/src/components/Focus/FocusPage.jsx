@@ -56,7 +56,9 @@ const FocusPage = () => {
 									...task,
 									timeSpent: (task.timeSpent || 0) + 1,
 									sessions: task.sessions.map((session, index) =>
-										index === task.sessions.length - 1 ? session + 1 : session
+										index === task.sessions.length - 1
+											? (typeof session === 'number' ? session + 1 : { ...session, duration: session.duration + 1 })
+											: session
 									)
 								}
 								: task
@@ -90,7 +92,12 @@ const FocusPage = () => {
 	
 	const addTask = () => {
 		if (newTask.trim()) {
-			setTasks([...tasks, { id: Date.now(), text: newTask, timeSpent: 0, sessions: [] }]);
+			setTasks([...tasks, {
+				id: Date.now(),
+				text: newTask,
+				timeSpent: 0,
+				sessions: []
+			}]);
 			setNewTask('');
 		}
 	};
@@ -120,10 +127,20 @@ const FocusPage = () => {
 	
 	const toggleTimer = () => {
 		if (!isRunning && activeTask) {
+			const currentTime = new Date();
 			setTasks(prevTasks =>
 				prevTasks.map(task =>
 					task.id === activeTask.id
-						? { ...task, sessions: [...task.sessions, 0] }
+						? {
+							...task,
+							sessions: [...task.sessions, {
+								id: Date.now(),
+								duration: 0,
+								startTime: currentTime,
+								mode: timerMode,
+								status: timerMode === 'pomodoro' ? pomodoroState.currentSession : null
+							}]
+						}
 						: task
 				)
 			);
@@ -136,8 +153,6 @@ const FocusPage = () => {
 		setIsRunning(false);
 		setPomodoroState({ currentSession: 'work', sessionsCompleted: 0 });
 	};
-	
-
 	
 	const switchTimerMode = () => {
 		setTimerMode(prevMode => {
@@ -197,8 +212,7 @@ const FocusPage = () => {
 									)}
 									<div>
 										<Button variant="ghost" size="icon" onClick={() => startEditing(task)}><Edit size={16} /></Button>
-										<Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)}><Trash2
-											size={16} /></Button>
+										<Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)}><Trash2 size={16} /></Button>
 										<Button variant="ghost" size="icon" onClick={() => setActiveTask(task)}><Clock size={16} /></Button>
 									</div>
 								</div>
@@ -221,6 +235,7 @@ const FocusPage = () => {
 								<TabsTrigger value="logs">Logs</TabsTrigger>
 								<TabsTrigger value="settings">Settings</TabsTrigger>
 							</TabsList>
+							
 							<TabsContent value="timer" className="flex flex-col items-center space-y-4">
 								<div className="text-5xl font-mono tracking-wider">{formatTime(time)}</div>
 								<div className="flex gap-2">
@@ -236,7 +251,7 @@ const FocusPage = () => {
 											</>
 										) : (
 											<>
-												<PlayCircle className="mr-1 h-4 w-4" /> {/* уменьшены иконки */}
+												<PlayCircle className="mr-1 h-4 w-4" />
 												Start
 											</>
 										)}
@@ -257,28 +272,56 @@ const FocusPage = () => {
 									</div>
 								)}
 							</TabsContent>
+							
 							<TabsContent value="logs">
 								<ScrollArea className="h-[200px]">
-									{tasks.map(task => (
-										<div key={task.id} className="mb-4 p-4 bg-white rounded-lg shadow-sm">
-											<h3 className="text-lg font-medium text-gray-900">{task.text}</h3>
-											<p className="text-sm text-gray-600 mt-1">Total time: {formatTime(task.timeSpent || 0)}</p>
-											<div className="mt-2">
-												<p className="text-sm font-medium text-gray-700 mb-2">Sessions:</p>
-												<div className="grid grid-cols-3 gap-2">
-													{task.sessions.map((session, index) => (
+									<div className="space-y-1">
+										{tasks.flatMap(task =>
+											task.sessions.map((session, index) => {
+												// Проверяем, является ли session числом или объектом
+												const isLegacySession = typeof session === 'number';
+												const sessionTime = isLegacySession ?
+													new Date(Date.now() - (tasks.length - index) * 30 * 60000) :
+													new Date(session.startTime);
+												const duration = isLegacySession ? session : session.duration;
+												
+												return {
+													element: (
 														<div
-															key={index}
-															className="bg-gray-50 rounded-md p-2 border border-gray-100"
+															key={`${task.id}-${index}`}
+															className="flex items-center justify-between p-3 hover:bg-gray-50 border-b"
 														>
-															<p className="text-xs font-medium text-gray-600 mb-1">Session {index + 1}</p>
-															<p className="text-sm font-mono text-gray-900">{formatTime(session)}</p>
+															<div className="flex-1">
+																<div className="font-medium">{task.text}</div>
+																<div className="text-sm text-gray-500">
+																	{sessionTime.toLocaleDateString()} {sessionTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+																</div>
+															</div>
+															<div className="flex items-center gap-4">
+																<div className="text-sm font-medium">
+																	{formatTime(duration)}
+																</div>
+																<div className="text-sm text-gray-500">
+																	{(isLegacySession ? timerMode === 'pomodoro' : session.mode === 'pomodoro') ?
+																		`Pomodoro - ${isLegacySession ? 'work' : session.status}` :
+																		'Stopwatch'}
+																</div>
+															</div>
 														</div>
-													))}
-												</div>
+													),
+													timestamp: sessionTime.getTime()
+												};
+											})
+										)
+											.sort((a, b) => b.timestamp - a.timestamp)
+											.map(item => item.element)}
+										
+										{tasks.length === 0 && (
+											<div className="text-center py-8 text-gray-500">
+												No logs yet
 											</div>
-										</div>
-									))}
+										)}
+									</div>
 								</ScrollArea>
 							</TabsContent>
 							
@@ -319,8 +362,7 @@ const FocusPage = () => {
 										
 										<div className="bg-white rounded-lg shadow-sm p-4">
 											<div>
-												<label className="block text-sm font-medium text-gray-700 mb-1">Long Break Duration
-													(minutes)</label>
+												<label className="block text-sm font-medium text-gray-700 mb-1">Long Break Duration (minutes)</label>
 												<Input
 													type="number"
 													value={pomodoroSettings.longBreakDuration}
@@ -336,8 +378,7 @@ const FocusPage = () => {
 										
 										<div className="bg-white rounded-lg shadow-sm p-4">
 											<div>
-												<label className="block text-sm font-medium text-gray-700 mb-1">Long Break Interval
-													(sessions)</label>
+												<label className="block text-sm font-medium text-gray-700 mb-1">Long Break Interval (sessions)</label>
 												<Input
 													type="number"
 													value={pomodoroSettings.longBreakInterval}
@@ -359,12 +400,17 @@ const FocusPage = () => {
 			</div>
 			
 			<Card className="mt-4 shadow-md h-[calc(50vh-2rem)]">
-				<MindMap/>
+				<MindMap onAddToTaskList={(taskText) => {
+					setTasks(prevTasks => [...prevTasks, {
+						id: Date.now(),
+						text: taskText,
+						timeSpent: 0,
+						sessions: []
+					}]);
+				}}/>
 			</Card>
-			
-			</div>
+		</div>
 	);
 };
-			
-			export default FocusPage;
 
+export default FocusPage;

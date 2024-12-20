@@ -3,28 +3,39 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { X } from 'lucide-react';
 
-const TaskBubble = ({ task, initialPosition, onRemove }) => {
+const TaskBubble = ({ task, initialPosition, onRemove, color, onTaskClick }) => {
+	const handleClick = (e) => {
+		e.stopPropagation();
+		if (onTaskClick) {
+			onTaskClick(task);
+		}
+	};
+	
 	return (
 		<motion.div
-			initial={{ opacity: 0, scale: 0.8 }}
-			animate={{ opacity: 1, scale: 1 }}
-			exit={{ opacity: 0, scale: 0.8 }}
+			initial={{ scale: 0 }}
+			animate={{ scale: 1 }}
+			exit={{ scale: 0 }}
 			transition={{
 				type: "spring",
-				duration: 0.5,
-				bounce: 0.3
+				stiffness: 500,
+				damping: 25,
+				mass: 1
 			}}
 			style={{
 				position: 'absolute',
 				left: initialPosition.x,
 				top: initialPosition.y,
 				transform: 'translate(-50%, -50%)',
-				willChange: 'transform'
+				willChange: 'transform',
+				transformOrigin: 'center center',
+				backgroundColor: color || 'white'
 			}}
-			className="group inline-flex items-center justify-center gap-1 rounded-full bg-white shadow-[0_4px_8px_-3px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_10px_-4px_rgba(0,0,0,0.15)] px-3 py-1.5 transition-all duration-200"
+			className="group inline-flex items-center justify-center gap-2 rounded-full shadow-[0_4px_12px_-3px_rgba(0,0,0,0.15)] hover:shadow-[0_8px_16px_-6px_rgba(0,0,0,0.2)] px-4 py-2.5 border border-gray-100/50 backdrop-blur-sm transition-shadow duration-300 cursor-pointer"
+			onClick={handleClick}
 		>
       <span
-	      className="text-sm font-medium text-gray-800 whitespace-nowrap"
+	      className="text-[15px] font-medium text-gray-700 whitespace-nowrap tracking-tight"
 	      title={task}
       >
         {task}
@@ -32,17 +43,16 @@ const TaskBubble = ({ task, initialPosition, onRemove }) => {
 			<Button
 				variant="ghost"
 				size="sm"
-				className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-full hover:bg-red-100 hover:text-red-600 ml-1 flex-shrink-0"
+				className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-full hover:bg-red-50 hover:text-red-500 text-gray-400 flex-shrink-0"
 				onClick={(e) => {
 					e.stopPropagation();
 					onRemove();
 				}}
 			>
-				<X className="h-3 w-3" />
+				<X className="h-4 w-4" />
 			</Button>
 		</motion.div>
 	);
 };
 
 export default TaskBubble;
-
