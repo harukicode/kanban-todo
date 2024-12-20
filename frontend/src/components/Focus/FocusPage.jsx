@@ -1,3 +1,4 @@
+import MindMap from '@/components/Focus/MindMap.jsx'
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -196,7 +197,8 @@ const FocusPage = () => {
 									)}
 									<div>
 										<Button variant="ghost" size="icon" onClick={() => startEditing(task)}><Edit size={16} /></Button>
-										<Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)}><Trash2 size={16} /></Button>
+										<Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)}><Trash2
+											size={16} /></Button>
 										<Button variant="ghost" size="icon" onClick={() => setActiveTask(task)}><Clock size={16} /></Button>
 									</div>
 								</div>
@@ -289,7 +291,10 @@ const FocusPage = () => {
 												<Input
 													type="number"
 													value={pomodoroSettings.workDuration}
-													onChange={(e) => setPomodoroSettings(prev => ({ ...prev, workDuration: parseInt(e.target.value) }))}
+													onChange={(e) => setPomodoroSettings(prev => ({
+														...prev,
+														workDuration: parseInt(e.target.value)
+													}))}
 													min="1"
 													max="60"
 												/>
@@ -302,7 +307,10 @@ const FocusPage = () => {
 												<Input
 													type="number"
 													value={pomodoroSettings.breakDuration}
-													onChange={(e) => setPomodoroSettings(prev => ({ ...prev, breakDuration: parseInt(e.target.value) }))}
+													onChange={(e) => setPomodoroSettings(prev => ({
+														...prev,
+														breakDuration: parseInt(e.target.value)
+													}))}
 													min="1"
 													max="30"
 												/>
@@ -311,11 +319,15 @@ const FocusPage = () => {
 										
 										<div className="bg-white rounded-lg shadow-sm p-4">
 											<div>
-												<label className="block text-sm font-medium text-gray-700 mb-1">Long Break Duration (minutes)</label>
+												<label className="block text-sm font-medium text-gray-700 mb-1">Long Break Duration
+													(minutes)</label>
 												<Input
 													type="number"
 													value={pomodoroSettings.longBreakDuration}
-													onChange={(e) => setPomodoroSettings(prev => ({ ...prev, longBreakDuration: parseInt(e.target.value) }))}
+													onChange={(e) => setPomodoroSettings(prev => ({
+														...prev,
+														longBreakDuration: parseInt(e.target.value)
+													}))}
 													min="1"
 													max="60"
 												/>
@@ -324,11 +336,15 @@ const FocusPage = () => {
 										
 										<div className="bg-white rounded-lg shadow-sm p-4">
 											<div>
-												<label className="block text-sm font-medium text-gray-700 mb-1">Long Break Interval (sessions)</label>
+												<label className="block text-sm font-medium text-gray-700 mb-1">Long Break Interval
+													(sessions)</label>
 												<Input
 													type="number"
 													value={pomodoroSettings.longBreakInterval}
-													onChange={(e) => setPomodoroSettings(prev => ({ ...prev, longBreakInterval: parseInt(e.target.value) }))}
+													onChange={(e) => setPomodoroSettings(prev => ({
+														...prev,
+														longBreakInterval: parseInt(e.target.value)
+													}))}
 													min="1"
 													max="10"
 												/>
@@ -343,21 +359,12 @@ const FocusPage = () => {
 			</div>
 			
 			<Card className="mt-4 shadow-md h-[calc(50vh-2rem)]">
-				<CardHeader>
-					<CardTitle>Mind Map / Task Suggestions</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<ScrollArea className="h-[calc(60vh-8rem)]">
-						<p className="text-center text-gray-600">
-							mapa myśli/tasków - jakby propozycje wyboru
-						</p>
-						{/* Here you can add the actual mind map or task suggestions implementation */}
-					</ScrollArea>
-				</CardContent>
+				<MindMap/>
 			</Card>
-		</div>
+			
+			</div>
 	);
 };
-
-export default FocusPage;
+			
+			export default FocusPage;
 
