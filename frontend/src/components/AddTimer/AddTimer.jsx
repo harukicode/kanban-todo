@@ -40,7 +40,13 @@ export default function AddTimer() {
     if (isRunning) {
       stopTimer();
     } else if (selectedTaskId) {
-      startTimer();
+      // Находим задачу и запускаем таймер с правильными параметрами
+      const task = tasks.find((task) => task.id === selectedTaskId);
+      startTimer({
+        source: 'timer',
+        taskId: selectedTaskId,
+        taskName: task?.title
+      });
     }
   };
   

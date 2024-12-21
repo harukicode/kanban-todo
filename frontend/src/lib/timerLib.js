@@ -1,13 +1,9 @@
-// timerLib.js
+import useFocusTaskStore from '@/Stores/FocusTaskStore.jsx'
 import useTaskStore from '@/Stores/TaskStore.jsx'
 import React from 'react'
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { format } from "date-fns";
 
-/**
- * Форматирование времени в формат HH:MM:SS
- */
 export const formatTime = (timeInSeconds) => {
 	const hours = Math.floor(timeInSeconds / 3600);
 	const minutes = Math.floor((timeInSeconds % 3600) / 60);
@@ -17,63 +13,68 @@ export const formatTime = (timeInSeconds) => {
 		.padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 };
 
-/**
- * Основное хранилище таймера
- */
 export const useTimerStore = create(
 	persist(
 		(set, get) => ({
-			// Состояние таймера
 			isRunning: false,
 			time: 0,
-			mode: "stopwatch", // 'stopwatch' | 'pomodoro'
+			mode: "stopwatch",
 			startTime: null,
 			currentLogId: null,
 			selectedTaskId: null,
+			currentSource: null, // Добавляем отслеживание текущего источника
 			
-			// Настройки Pomodoro
 			pomodoroSettings: {
 				workTime: 25,
 				shortBreakTime: 5,
 				longBreakTime: 15,
 				longBreakInterval: 4,
 			},
-			currentMode: "work", // 'work' | 'shortBreak' | 'longBreak'
+			currentMode: "work",
 			currentInterval: 1,
 			
-			// Логи времени
 			timeLogs: [],
 			
 			// Действия с таймером
 			// В useTimerStore
-			startTimer: () => {
+// timerLib.js
+			startTimer: (options = { source: 'timer' }) => {
 				const now = new Date();
 				const state = get();
-				const selectedTaskId = state.selectedTaskId;
+				const selectedTaskId = options.taskId || state.selectedTaskId;
 				
 				if (selectedTaskId) {
-					const task = useTaskStore.getState().tasks.find(t => t.id === selectedTaskId);
+					// Определяем название задачи в зависимости от источника
+					let taskName;
+					if (options.source === 'focus') {
+						const focusTaskStore = useFocusTaskStore.getState();
+						const focusTask = focusTaskStore.getFocusTaskById(selectedTaskId);
+						taskName = focusTask ? focusTask.text : "Unknown Task";
+					} else {
+						const taskStore = useTaskStore.getState();
+						const task = taskStore.tasks.find(t => t.id === selectedTaskId);
+						taskName = task ? task.title : "Unknown Task";
+					}
 					
 					const logEntry = {
 						logId: Date.now().toString(),
 						taskId: selectedTaskId,
-						taskName: task?.title || "Unknown Task",
+						taskName: taskName,
 						startTime: now.toISOString(),
 						endTime: now.toISOString(),
 						timeSpent: 0,
 						mode: state.mode,
-						currentMode: state.currentMode
+						currentMode: state.currentMode,
+						source: options.source
 					};
 					
-					// Добавляем лог в TaskStore
-					const taskStore = useTaskStore.getState();
-					taskStore.addTimeLog(logEntry);
-					
-					set((state) => ({
+					set(state => ({
 						isRunning: true,
 						startTime: now.toISOString(),
 						currentLogId: logEntry.logId,
 						timeLogs: [...state.timeLogs, logEntry],
+						selectedTaskId: selectedTaskId,
+						currentSource: options.source
 					}));
 				}
 			},
@@ -89,38 +90,35 @@ export const useTimerStore = create(
 					
 					const updatedLog = {
 						endTime: endTime.toISOString(),
-						timeSpent: timeSpent,
+						timeSpent: timeSpent
 					};
 					
-					// Обновляем лог в TaskStore
-					const taskStore = useTaskStore.getState();
-					taskStore.updateTimeLog(state.currentLogId, updatedLog);
+					// Обновляем задачу в соответствующем сторе
+					if (state.currentSource === 'focus') {
+						const focusTaskStore = useFocusTaskStore.getState();
+						const task = focusTaskStore.getFocusTaskById(state.selectedTaskId);
+						if (task) {
+							focusTaskStore.updateFocusTask(state.selectedTaskId, {
+								...task,
+								timeSpent: (task.timeSpent || 0) + timeSpent
+							});
+						}
+					}
 					
-					set((state) => ({
+					// Обновляем лог
+					set(state => ({
 						isRunning: false,
 						startTime: null,
-						time: timeSpent,
+						time: 0,
 						timeLogs: state.timeLogs.map((log) =>
 							log.logId === state.currentLogId
 								? { ...log, ...updatedLog }
 								: log
 						),
 						currentLogId: null,
+						currentSource: null
 					}));
 				}
-			},
-			
-			resetTimer: () => {
-				const state = get();
-				set((state) => ({
-					time: 0,
-					isRunning: false,
-					startTime: null,
-					currentLogId: null,
-					timeLogs: state.timeLogs.filter(
-						(log) => log.logId !== state.currentLogId
-					),
-				}));
 			},
 			
 			// Управление режимами
@@ -219,18 +217,30 @@ export const useTimerStore = create(
 			getFilteredLogs: (filters = {}) => {
 				const state = get();
 				return state.timeLogs.filter((log) => {
+					// Базовые фильтры
 					if (filters.taskId && log.taskId !== filters.taskId) return false;
-					if (
-						filters.startDate &&
-						new Date(log.startTime) < new Date(filters.startDate)
-					)
-						return false;
-					if (
-						filters.endDate &&
-						new Date(log.endTime) > new Date(filters.endDate)
-					)
-						return false;
+					if (filters.startDate && new Date(log.startTime) < new Date(filters.startDate)) return false;
+					if (filters.endDate && new Date(log.endTime) > new Date(filters.endDate)) return false;
 					if (filters.mode && log.mode !== filters.mode) return false;
+					if (filters.source && log.source !== filters.source) return false;
+					
+					// Обновляем имя задачи, если оно отсутствует
+					if (!log.taskName || log.taskName === "Unknown Task") {
+						if (log.source === 'focus') {
+							const focusTaskStore = useFocusTaskStore.getState();
+							const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
+							if (focusTask) {
+								log.taskName = focusTask.text;
+							}
+						} else {
+							const taskStore = useTaskStore.getState();
+							const task = taskStore.tasks.find(t => t.id === log.taskId);
+							if (task) {
+								log.taskName = task.title;
+							}
+						}
+					}
+					
 					return true;
 				});
 			},
@@ -348,12 +358,13 @@ export const useTimer = () => {
 		};
 	}, [store.isRunning, store.mode, getCurrentPomodoroTime]);
 	
-	const handleStartTimer = () => {
+	const handleStartTimer = (options) => {
+		console.log('handleStartTimer called with options:', options);
 		// Устанавливаем начальное время для pomodoro при старте
 		if (store.mode === 'pomodoro' && !store.isRunning) {
 			setTime(getCurrentPomodoroTime());
 		}
-		store.startTimer();
+		store.startTimer(options);
 	};
 	
 	const handleStopTimer = () => {

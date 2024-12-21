@@ -1,4 +1,6 @@
 import MindMap from '@/components/Focus/MindMap.jsx'
+import { useTimer, useTimerStore } from '@/lib/timerLib.js'
+import useFocusTaskStore from '@/Stores/FocusTaskStore.jsx'
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +9,28 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Edit, Trash2, Clock, PlayCircle, PauseCircle } from 'lucide-react';
+import { format } from "date-fns";
 
 const FocusPage = () => {
 	const navigate = useNavigate();
+	const {
+		focusTasks,
+		addFocusTask,
+		deleteFocusTask,
+		updateFocusTask,
+	} = useFocusTaskStore();
+	
+	const {
+		startTimer,
+		stopTimer,
+		setSelectedTask,
+		getFilteredLogs
+	} = useTimer();
+	
 	const [timerMode, setTimerMode] = useState(() => {
 		return localStorage.getItem('timerMode') || 'normal';
 	});
-	const [tasks, setTasks] = useState([]);
+	
 	const [newTask, setNewTask] = useState('');
 	const [editingTask, setEditingTask] = useState(null);
 	const [time, setTime] = useState(() => {
@@ -33,6 +50,12 @@ const FocusPage = () => {
 	});
 	
 	useEffect(() => {
+		if (activeTask) {
+			setSelectedTask(activeTask.id);
+		}
+	}, [activeTask, setSelectedTask]);
+	
+	useEffect(() => {
 		let interval;
 		if (isRunning) {
 			interval = setInterval(() => {
@@ -49,26 +72,20 @@ const FocusPage = () => {
 					});
 				}
 				if (activeTask) {
-					setTasks(prevTasks =>
-						prevTasks.map(task =>
-							task.id === activeTask.id
-								? {
-									...task,
-									timeSpent: (task.timeSpent || 0) + 1,
-									sessions: task.sessions.map((session, index) =>
-										index === task.sessions.length - 1
-											? (typeof session === 'number' ? session + 1 : { ...session, duration: session.duration + 1 })
-											: session
-									)
-								}
-								: task
+					updateFocusTask(activeTask.id, {
+						...activeTask,
+						timeSpent: (activeTask.timeSpent || 0) + 1,
+						sessions: activeTask.sessions.map((session, index) =>
+							index === activeTask.sessions.length - 1
+								? (typeof session === 'number' ? session + 1 : { ...session, duration: session.duration + 1 })
+								: session
 						)
-					);
+					});
 				}
 			}, 1000);
 		}
 		return () => clearInterval(interval);
-	}, [isRunning, timerMode, activeTask, pomodoroSettings, pomodoroState]);
+	}, [isRunning, timerMode, activeTask, updateFocusTask]);
 	
 	const handlePomodoroStateChange = () => {
 		setPomodoroState(prevState => {
@@ -92,18 +109,17 @@ const FocusPage = () => {
 	
 	const addTask = () => {
 		if (newTask.trim()) {
-			setTasks([...tasks, {
-				id: Date.now(),
+			addFocusTask({
 				text: newTask,
 				timeSpent: 0,
 				sessions: []
-			}]);
+			});
 			setNewTask('');
 		}
 	};
 	
 	const deleteTask = (id) => {
-		setTasks(tasks.filter(task => task.id !== id));
+		deleteFocusTask(id);
 		if (activeTask && activeTask.id === id) {
 			setActiveTask(null);
 		}
@@ -114,8 +130,10 @@ const FocusPage = () => {
 	};
 	
 	const saveEdit = () => {
-		setTasks(tasks.map(task => task.id === editingTask.id ? editingTask : task));
-		setEditingTask(null);
+		if (editingTask) {
+			updateFocusTask(editingTask.id, editingTask);
+			setEditingTask(null);
+		}
 	};
 	
 	const formatTime = (seconds) => {
@@ -125,27 +143,38 @@ const FocusPage = () => {
 		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 	};
 	
+	useEffect(() => {
+		if (activeTask) {
+			setSelectedTask(activeTask.id);  // Используем функцию из хука useTimer
+		}
+	}, [activeTask, setSelectedTask]);
+	
 	const toggleTimer = () => {
 		if (!isRunning && activeTask) {
-			const currentTime = new Date();
-			setTasks(prevTasks =>
-				prevTasks.map(task =>
-					task.id === activeTask.id
-						? {
-							...task,
-							sessions: [...task.sessions, {
-								id: Date.now(),
-								duration: 0,
-								startTime: currentTime,
-								mode: timerMode,
-								status: timerMode === 'pomodoro' ? pomodoroState.currentSession : null
-							}]
-						}
-						: task
-				)
-			);
+			console.log('Starting timer for active task:', activeTask);
+			
+			// Сначала устанавливаем активную задачу
+			setSelectedTask(activeTask.id);
+			
+			// Запускаем таймер с правильными опциями
+			startTimer({
+				source: 'focus',
+				taskId: activeTask.id,
+				taskName: activeTask.text
+			});
+			
+			console.log('Timer started with options:', {
+				source: 'focus',
+				taskId: activeTask.id,
+				taskName: activeTask.text
+			});
+			
+			setIsRunning(true);
+		} else {
+			console.log('Stopping timer');
+			stopTimer();
+			setIsRunning(false);
 		}
-		setIsRunning(!isRunning);
 	};
 	
 	const resetTimer = () => {
@@ -195,7 +224,7 @@ const FocusPage = () => {
 							<Button onClick={addTask}><Plus size={20} /></Button>
 						</div>
 						<ScrollArea className="h-[calc(40vh-12rem)]">
-							{tasks.map(task => (
+							{focusTasks.map(task => (
 								<div key={task.id} className="flex items-center justify-between mb-2 p-2 bg-gray-100 rounded">
 									{editingTask && editingTask.id === task.id ? (
 										<Input
@@ -276,51 +305,67 @@ const FocusPage = () => {
 							<TabsContent value="logs">
 								<ScrollArea className="h-[200px]">
 									<div className="space-y-1">
-										{tasks.flatMap(task =>
-											task.sessions.map((session, index) => {
-												// Проверяем, является ли session числом или объектом
-												const isLegacySession = typeof session === 'number';
-												const sessionTime = isLegacySession ?
-													new Date(Date.now() - (tasks.length - index) * 30 * 60000) :
-													new Date(session.startTime);
-												const duration = isLegacySession ? session : session.duration;
-												
+										{(() => {
+											// Получаем все логи для отладки
+											const allLogs = getFilteredLogs();
+											console.log('All logs:', allLogs);
+											
+											// Получаем только логи focus mode
+											const focusLogs = allLogs.filter(log => log.source === 'focus');
+											console.log('Focus logs:', focusLogs);
+											
+											// Добавляем актуальные названия задач
+											const logsWithNames = focusLogs.map(log => {
+												const focusTask = focusTasks.find(task => task.id === log.taskId);
+												console.log('Found task for log:', log.taskId, focusTask);
 												return {
-													element: (
-														<div
-															key={`${task.id}-${index}`}
-															className="flex items-center justify-between p-3 hover:bg-gray-50 border-b"
-														>
-															<div className="flex-1">
-																<div className="font-medium">{task.text}</div>
-																<div className="text-sm text-gray-500">
-																	{sessionTime.toLocaleDateString()} {sessionTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-																</div>
+													...log,
+													taskName: focusTask ? focusTask.text : log.taskName
+												};
+											}).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+											
+											console.log('Final logs to display:', logsWithNames);
+											
+											if (logsWithNames.length === 0) {
+												return (
+													<div className="text-center py-8 text-gray-500">
+														No logs yet
+													</div>
+												);
+											}
+											
+											return logsWithNames.map(log => (
+												<div
+													key={log.logId}
+													className="flex items-center justify-between p-3 hover:bg-gray-50 border-b"
+												>
+													<div className="flex-1">
+														<div className="font-medium">{log.taskName}</div>
+														<div className="text-sm text-gray-500">
+															{format(new Date(log.startTime), "MMM dd, yyyy HH:mm")} -
+															{format(new Date(log.endTime), "HH:mm")}
+														</div>
+													</div>
+													<div className="flex items-center gap-4">
+														<div className="flex flex-col items-end">
+															<div className="text-sm font-medium">
+																{formatTime(log.timeSpent)}
 															</div>
-															<div className="flex items-center gap-4">
-																<div className="text-sm font-medium">
-																	{formatTime(duration)}
-																</div>
-																<div className="text-sm text-gray-500">
-																	{(isLegacySession ? timerMode === 'pomodoro' : session.mode === 'pomodoro') ?
-																		`Pomodoro - ${isLegacySession ? 'work' : session.status}` :
-																		'Stopwatch'}
-																</div>
+															<div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    {log.mode === "pomodoro"
+	                    ? `Pomodoro - ${log.currentMode}`
+	                    : "Stopwatch"}
+                  </span>
+																<span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                    Focus Mode
+                  </span>
 															</div>
 														</div>
-													),
-													timestamp: sessionTime.getTime()
-												};
-											})
-										)
-											.sort((a, b) => b.timestamp - a.timestamp)
-											.map(item => item.element)}
-										
-										{tasks.length === 0 && (
-											<div className="text-center py-8 text-gray-500">
-												No logs yet
-											</div>
-										)}
+													</div>
+												</div>
+											));
+										})()}
 									</div>
 								</ScrollArea>
 							</TabsContent>
@@ -401,12 +446,11 @@ const FocusPage = () => {
 			
 			<Card className="mt-4 shadow-md h-[calc(50vh-2rem)]">
 				<MindMap onAddToTaskList={(taskText) => {
-					setTasks(prevTasks => [...prevTasks, {
-						id: Date.now(),
+					addFocusTask({
 						text: taskText,
 						timeSpent: 0,
 						sessions: []
-					}]);
+					});
 				}}/>
 			</Card>
 		</div>

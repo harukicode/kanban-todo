@@ -1,4 +1,5 @@
-// TimerFooter.jsx
+import useFocusTaskStore from '@/Stores/FocusTaskStore.jsx'
+import useTaskStore from '@/Stores/TaskStore.jsx'
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -6,62 +7,166 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { List, Settings } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { List, Settings, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTimer } from "@/lib/timerLib";
+import { useTimer, formatTime } from "@/lib/timerLib";
 import { format } from "date-fns";
 
-// Вынесем функцию форматирования времени
-const formatTime = (timeInSeconds) => {
-  const hours = Math.floor(timeInSeconds / 3600);
-  const minutes = Math.floor((timeInSeconds % 3600) / 60);
-  const seconds = timeInSeconds % 60;
-  return `${hours.toString().padStart(2, "0")}:${minutes
-    .toString()
-    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-};
-
 const LogDialog = ({ isOpen, onOpenChange }) => {
-  const { getFilteredLogs } = useTimer();
-  const logs = getFilteredLogs();
+  const { getFilteredLogs, deleteTimeLog } = useTimer();
+  const [logToDelete, setLogToDelete] = useState(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState("all");
+  
+  // Получаем логи и фильтруем их в зависимости от выбранного фильтра
+  const logs = getFilteredLogs()
+    .filter(log => sourceFilter === "all" || log.source === sourceFilter)
+    .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+  
+  const handleDeleteClick = (log) => {
+    setLogToDelete(log);
+    setIsDeleteAlertOpen(true);
+  };
+  
+  const handleConfirmDelete = () => {
+    if (logToDelete) {
+      deleteTimeLog(logToDelete.logId);
+    }
+    setIsDeleteAlertOpen(false);
+    setLogToDelete(null);
+  };
   
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Timer Log</DialogTitle>
-        </DialogHeader>
-        <div className="max-h-[400px] overflow-y-auto">
-          {logs.map((log) => (
-            <div
-              key={log.logId}
-              className="mb-4 p-4 bg-gray-50 rounded-lg"
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="font-semibold">{log.taskName}</div>
-                  <div className="text-sm text-gray-500">
-                    {format(new Date(log.startTime), 'MMM dd, yyyy HH:mm')} -
-                    {format(new Date(log.endTime), 'HH:mm')}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium">
-                    {formatTime(log.timeSpent)}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {log.mode === 'pomodoro' ? `Pomodoro - ${log.currentMode}` : 'Stopwatch'}
-                  </div>
-                </div>
-              </div>
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Timer Log</DialogTitle>
+            <div className="flex gap-2 mt-2">
+              <Button
+                variant={sourceFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSourceFilter("all")}
+              >
+                All Logs
+              </Button>
+              <Button
+                variant={sourceFilter === "timer" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSourceFilter("timer")}
+              >
+                Timer Logs
+              </Button>
+              <Button
+                variant={sourceFilter === "focus" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSourceFilter("focus")}
+              >
+                Focus Mode Logs
+              </Button>
             </div>
-          ))}
-        </div>
-      </DialogContent>
-    </Dialog>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto">
+            {logs.map((log) => {
+              // Получаем название задачи в зависимости от источника
+              let taskName = log.taskName;
+              if (log.source === 'focus') {
+                const focusTaskStore = useFocusTaskStore.getState();
+                const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
+                if (focusTask) {
+                  taskName = focusTask.text;
+                }
+              } else {
+                const taskStore = useTaskStore.getState();
+                const task = taskStore.tasks.find(t => t.id === log.taskId);
+                if (task) {
+                  taskName = task.title;
+                }
+              }
+              
+              return (
+                <div
+                  key={log.logId}
+                  className="mb-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-semibold">{taskName}</div>
+                      <div className="text-sm text-gray-500">
+                        {format(new Date(log.startTime), 'MMM dd, yyyy HH:mm')} -
+                        {format(new Date(log.endTime), 'HH:mm')}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="font-medium">
+                          {formatTime(log.timeSpent)}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {log.mode === 'pomodoro' ? `Pomodoro - ${log.currentMode}` : 'Stopwatch'}
+                        </div>
+                        {log.source === 'focus' && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full mt-1">
+                            Focus Mode
+                          </span>
+                        )}
+                      </div>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(log)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {logs.length === 0 && (
+              <div className="text-center text-gray-500 py-4">
+                No logs found
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the time log
+              {logToDelete && ` for task "${logToDelete.taskName}"`}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

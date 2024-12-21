@@ -1,4 +1,5 @@
 import useColumnsStore from '@/Stores/ColumnsStore';
+import useFocusTaskStore from '@/Stores/FocusTaskStore.jsx'
 import useProjectStore from '@/Stores/ProjectsStore';
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -153,8 +154,16 @@ export default function SideTimer() {
         const logDate = new Date(log.startTime);
         const project = getProjectForTask(log.taskId);
         
-        // Добавляем проверку на существование taskName
-        const taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
+        let taskName;
+        if (log.source === 'focus') {
+          // Получаем название задачи из FocusTaskStore
+          const focusTaskStore = useFocusTaskStore.getState();
+          const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
+          taskName = focusTask ? focusTask.text : log.taskName;
+        } else {
+          // Получаем название задачи из TaskStore
+          taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
+        }
         
         return logDate >= start && logDate <= end &&
           taskName.toLowerCase().includes(filterTask.toLowerCase()) &&
@@ -170,8 +179,24 @@ export default function SideTimer() {
             ? a.timeSpent - b.timeSpent
             : b.timeSpent - a.timeSpent;
         } else if (sortBy === "taskName") {
-          const nameA = a.taskName || tasks.find(t => t.id === a.taskId)?.title || "";
-          const nameB = b.taskName || tasks.find(t => t.id === b.taskId)?.title || "";
+          let nameA, nameB;
+          
+          if (a.source === 'focus') {
+            const focusTaskStore = useFocusTaskStore.getState();
+            const focusTaskA = focusTaskStore.getFocusTaskById(a.taskId);
+            nameA = focusTaskA ? focusTaskA.text : a.taskName;
+          } else {
+            nameA = a.taskName || tasks.find(t => t.id === a.taskId)?.title || "";
+          }
+          
+          if (b.source === 'focus') {
+            const focusTaskStore = useFocusTaskStore.getState();
+            const focusTaskB = focusTaskStore.getFocusTaskById(b.taskId);
+            nameB = focusTaskB ? focusTaskB.text : b.taskName;
+          } else {
+            nameB = b.taskName || tasks.find(t => t.id === b.taskId)?.title || "";
+          }
+          
           return sortOrder === "asc"
             ? nameA.localeCompare(nameB)
             : nameB.localeCompare(nameA);
@@ -185,7 +210,7 @@ export default function SideTimer() {
             : nameB.localeCompare(nameA);
         }
       });
-  }, [getFilteredLogs, getPeriodDates, filterTask, selectedProject, sortBy, sortOrder, tasks]);
+  }, [timeLogs, selectedDate, periodType, customDateRange, sortBy, sortOrder, filterTask, selectedProject]);
   
   const handleUpdateTimeLog = (logId, updatedData) => {
     const log = timeLogs.find(l => l.logId === logId);
@@ -457,10 +482,13 @@ export default function SideTimer() {
           </>
         )}
       </Card>
-      
+
       <div className="flex gap-4">
         {/* Left side: Time log list */}
-        <Card className="flex-1 p-4 mb-6 border shadow-sm overflow-y-auto" style={{maxHeight: "calc(100vh - 400px)"}}>
+        <Card
+          className="flex-1 p-4 mb-6 border shadow-sm overflow-y-auto"
+          style={{ maxHeight: "calc(100vh - 400px)" }}
+        >
           <div className="space-y-1">
             {Object.entries(groupedLogs).map(([group, logs]) => (
               <div key={group}>
@@ -469,7 +497,16 @@ export default function SideTimer() {
                 )}
                 {logs.map((log) => {
                   const project = getProjectForTask(log.taskId);
-                  const taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
+                  
+                  // Определяем название задачи в зависимости от источника
+                  let taskName;
+                  if (log.source === 'focus') {
+                    const focusTaskStore = useFocusTaskStore.getState();
+                    const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
+                    taskName = focusTask ? focusTask.text : log.taskName;
+                  } else {
+                    taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
+                  }
                   
                   return (
                     <div
@@ -485,8 +522,22 @@ export default function SideTimer() {
                       <div className="text-sm text-gray-500">
                         {formatTimeRange(log.startTime, log.endTime)}
                       </div>
-                      <div className="text-sm font-medium">
-                        {formatDuration(log.timeSpent)}
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="text-sm font-medium">
+                          {formatDuration(log.timeSpent)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            {log.mode === "pomodoro"
+                              ? `Pomodoro - ${log.currentMode}`
+                              : "Stopwatch"}
+                          </span>
+                          {log.source === "focus" && (
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                              Focus Mode
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -501,22 +552,29 @@ export default function SideTimer() {
                         <PopoverContent className="w-56">
                           <div className="grid gap-4">
                             <div className="space-y-2">
-                              <h4 className="font-medium leading-none">Edit Time</h4>
+                              <h4 className="font-medium leading-none">
+                                Edit Time
+                              </h4>
                               <div className="flex gap-2">
                                 <Input
                                   type="number"
                                   placeholder="Hours"
                                   min="0"
                                   max="23"
-                                  defaultValue={Math.floor(log.timeSpent / 3600)}
+                                  defaultValue={Math.floor(
+                                    log.timeSpent / 3600,
+                                  )}
                                   onChange={(e) => {
                                     const hours = parseInt(e.target.value) || 0;
-                                    const minutes = Math.floor((log.timeSpent % 3600) / 60);
+                                    const minutes = Math.floor(
+                                      (log.timeSpent % 3600) / 60,
+                                    );
                                     const seconds = log.timeSpent % 60;
-                                    const newTimeSpent = hours * 3600 + minutes * 60 + seconds;
-                                    
+                                    const newTimeSpent =
+                                      hours * 3600 + minutes * 60 + seconds;
+
                                     handleUpdateTimeLog(log.logId, {
-                                      timeSpent: newTimeSpent
+                                      timeSpent: newTimeSpent,
                                     });
                                   }}
                                 />
@@ -525,15 +583,27 @@ export default function SideTimer() {
                                   placeholder="Minutes"
                                   min="0"
                                   max="59"
-                                  defaultValue={Math.floor((log.timeSpent % 3600) / 60)}
+                                  defaultValue={Math.floor(
+                                    (log.timeSpent % 3600) / 60,
+                                  )}
                                   onChange={(e) => {
-                                    const hours = Math.floor(log.timeSpent / 3600)
-                                    const minutes = parseInt(e.target.value) || 0
-                                    const seconds = log.timeSpent % 60
+                                    const hours = Math.floor(
+                                      log.timeSpent / 3600,
+                                    );
+                                    const minutes =
+                                      parseInt(e.target.value) || 0;
+                                    const seconds = log.timeSpent % 60;
                                     updateTimeLog(log.logId, {
-                                      timeSpent: hours * 3600 + minutes * 60 + seconds,
-                                      endTime: new Date(new Date(log.startTime).getTime() + (hours * 3600 + minutes * 60 + seconds) * 1000).toISOString()
-                                    })
+                                      timeSpent:
+                                        hours * 3600 + minutes * 60 + seconds,
+                                      endTime: new Date(
+                                        new Date(log.startTime).getTime() +
+                                          (hours * 3600 +
+                                            minutes * 60 +
+                                            seconds) *
+                                            1000,
+                                      ).toISOString(),
+                                    });
                                   }}
                                 />
                                 <Input
@@ -543,13 +613,25 @@ export default function SideTimer() {
                                   max="59"
                                   defaultValue={log.timeSpent % 60}
                                   onChange={(e) => {
-                                    const hours = Math.floor(log.timeSpent / 3600)
-                                    const minutes = Math.floor((log.timeSpent % 3600) / 60)
-                                    const seconds = parseInt(e.target.value) || 0
+                                    const hours = Math.floor(
+                                      log.timeSpent / 3600,
+                                    );
+                                    const minutes = Math.floor(
+                                      (log.timeSpent % 3600) / 60,
+                                    );
+                                    const seconds =
+                                      parseInt(e.target.value) || 0;
                                     handleUpdateTimeLog(log.logId, {
-                                      timeSpent: hours * 3600 + minutes * 60 + seconds,
-                                      endTime: new Date(new Date(log.startTime).getTime() + (hours * 3600 + minutes * 60 + seconds) * 1000).toISOString()
-                                    })
+                                      timeSpent:
+                                        hours * 3600 + minutes * 60 + seconds,
+                                      endTime: new Date(
+                                        new Date(log.startTime).getTime() +
+                                          (hours * 3600 +
+                                            minutes * 60 +
+                                            seconds) *
+                                            1000,
+                                      ).toISOString(),
+                                    });
                                   }}
                                 />
                               </div>
@@ -564,13 +646,13 @@ export default function SideTimer() {
                         </PopoverContent>
                       </Popover>
                     </div>
-                  )
+                  );
                 })}
               </div>
             ))}
           </div>
         </Card>
-        
+
         {/* Right side: Functions menu */}
         <Card className="w-1/3 p-4 mb-6 border shadow-sm">
           <Tabs defaultValue="sort" className="w-full">
@@ -614,7 +696,9 @@ export default function SideTimer() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Filter by task name:</label>
+                  <label className="text-sm font-medium">
+                    Filter by task name:
+                  </label>
                   <Input
                     type="text"
                     placeholder="Enter task name"
@@ -637,14 +721,19 @@ export default function SideTimer() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Filter by project:</label>
-                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                  <label className="text-sm font-medium">
+                    Filter by project:
+                  </label>
+                  <Select
+                    value={selectedProject}
+                    onValueChange={setSelectedProject}
+                  >
                     <SelectTrigger className="w-full mt-1">
                       <SelectValue placeholder="Select project" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Projects</SelectItem>
-                      {projects.map(project => (
+                      {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}
                         </SelectItem>
@@ -656,7 +745,7 @@ export default function SideTimer() {
             </TabsContent>
             <TabsContent value="analyze">
               <div className="space-y-4">
-                <Button className="w-full" >
+                <Button className="w-full">
                   <BarChart className="w-4 h-4 mr-2" />
                   Analyze Productivity
                 </Button>
@@ -669,7 +758,7 @@ export default function SideTimer() {
           </Tabs>
         </Card>
       </div>
-      
+
       <div className="flex items-center gap-2 mb-4">
         <Button variant="outline" className="h-8 px-3 text-sm font-normal">
           Add time entry
@@ -679,5 +768,5 @@ export default function SideTimer() {
         </Button>
       </div>
     </div>
-  )
+  );
 }
