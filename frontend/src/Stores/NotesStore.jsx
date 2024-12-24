@@ -43,7 +43,6 @@ const useNotesStore = create(
 						updatedAt: new Date().toISOString(),
 						folderId: get().selectedFolder,
 						formatting: { ...initialFormatting },
-						attachments: [],
 						comments: []
 					}
 					set(state => ({
@@ -74,10 +73,16 @@ const useNotesStore = create(
 				},
 				
 				deleteNote: (noteId) => {
-					set(state => ({
-						notes: state.notes.filter(note => note.id !== noteId),
-						selectedNote: state.selectedNote?.id === noteId ? null : state.selectedNote
-					}))
+					console.log('NotesStore deleteNote called with id:', noteId);
+					set(state => {
+						console.log('Current notes:', state.notes);
+						const filteredNotes = state.notes.filter(note => note.id !== noteId);
+						console.log('Filtered notes:', filteredNotes);
+						return {
+							notes: filteredNotes,
+							selectedNote: state.selectedNote?.id === noteId ? null : state.selectedNote
+						};
+					});
 				},
 				
 				// Note formatting
@@ -272,20 +277,6 @@ const useNotesStore = create(
 								? {
 									...note,
 									folderId,
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						)
-					}))
-				},
-				
-				attachFileToNote: (noteId, file) => {
-					set(state => ({
-						notes: state.notes.map(note =>
-							note.id === noteId
-								? {
-									...note,
-									attachments: [...note.attachments, file],
 									updatedAt: new Date().toISOString()
 								}
 								: note

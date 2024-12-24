@@ -4,8 +4,19 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Pin, Tags, Paperclip, LayoutTemplateIcon as Template, Copy, Printer, Trash2, MoreVertical, Folder } from 'lucide-react'
+import { Pin, Tags, Copy, Printer, Trash2, MoreVertical, Folder } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import useNotesStore from '@/Stores/NotesStore.jsx'
 import "quill/dist/quill.snow.css"
@@ -20,13 +31,11 @@ function NoteEditor({ noteId }) {
 		removeTagFromNote,
 		duplicateNote,
 		moveNoteToFolder,
-		attachFileToNote,
 		folders
 	} = useNotesStore()
 	
 	const note = useNotesStore(state => getNoteById(noteId))
 	const [editor, setEditor] = useState(null)
-	const fileInputRef = useRef(null)
 	const editorRef = useRef(null)
 	const [editedNote, setEditedNote] = useState(note || { title: '', content: '', tags: [], attachments: [] })
 	const [newTag, setNewTag] = useState('')
@@ -55,6 +64,26 @@ function NoteEditor({ noteId }) {
 				editorRef.current.innerHTML = ''
 				const Quill = (await import('quill')).default
 				
+				// Добавляем обработчик для drop событий
+				editorRef.current.addEventListener('dragover', (e) => {
+					e.preventDefault();
+				});
+				
+				editorRef.current.addEventListener('drop', async (e) => {
+					e.preventDefault();
+					const files = Array.from(e.dataTransfer.files);
+					const imageFiles = files.filter(file => file.type.startsWith('image/'));
+					
+					for (const file of imageFiles) {
+						const reader = new FileReader();
+						reader.onload = () => {
+							const range = quillInstance.getSelection(true);
+							quillInstance.insertEmbed(range.index, 'image', reader.result);
+						};
+						reader.readAsDataURL(file);
+					}
+				});
+				
 				quillInstance = new Quill(editorRef.current, {
 					theme: 'snow',
 					modules: {
@@ -64,11 +93,33 @@ function NoteEditor({ noteId }) {
 							[{ 'color': [] }, { 'background': [] }],
 							[{ 'align': [] }],
 							[{ 'list': 'ordered'}, { 'list': 'bullet' }],
+							['image'], // Добавляем кнопку для загрузки изображений
 							['clean']
 						]
 					},
 					placeholder: 'Start writing...'
-				})
+				});
+				
+				// Добавляем обработчик клика по кнопке загрузки изображения
+				const toolbar = quillInstance.getModule('toolbar');
+				toolbar.addHandler('image', () => {
+					const input = document.createElement('input');
+					input.setAttribute('type', 'file');
+					input.setAttribute('accept', 'image/*');
+					input.click();
+					
+					input.onchange = () => {
+						const file = input.files[0];
+						if (file) {
+							const reader = new FileReader();
+							reader.onload = () => {
+								const range = quillInstance.getSelection(true);
+								quillInstance.insertEmbed(range.index, 'image', reader.result);
+							};
+							reader.readAsDataURL(file);
+						}
+					};
+				});
 				
 				setEditor(quillInstance)
 				setIsEditorReady(true)
@@ -147,13 +198,7 @@ function NoteEditor({ noteId }) {
 		}
 	};
 	
-	const handleFileAttachment = (e) => {
-		const file = e.target.files?.[0];
-		if (file && editedNote) {
-			attachFileToNote(editedNote.id, file);
-		}
-	};
-	
+
 	const handleDuplicateNote = () => {
 		if (editedNote) {
 			duplicateNote(editedNote.id);
@@ -167,8 +212,14 @@ function NoteEditor({ noteId }) {
 	};
 	
 	const handleDeleteNote = () => {
-		if (editedNote && window.confirm('Are you sure you want to delete this note?')) {
-			deleteNote(editedNote.id);
+		console.log('Delete clicked for note:', editedNote.id);
+		if (editedNote) {
+			const confirmed = window.confirm('Are you sure you want to delete this note?');
+			console.log('Confirmed:', confirmed);
+			if (confirmed) {
+				console.log('Calling deleteNote with id:', editedNote.id);
+				deleteNote(editedNote.id);
+			}
 		}
 	};
 	
@@ -253,25 +304,9 @@ function NoteEditor({ noteId }) {
 								</DialogContent>
 							</Dialog>
 							
-							<Button
-								variant="ghost"
-								className="justify-start"
-								onClick={() => fileInputRef.current?.click()}
-							>
-								<Paperclip className="mr-2 h-4 w-4" /> Attach File
-							</Button>
-							<input
-								type="file"
-								ref={fileInputRef}
-								style={{ display: "none" }}
-								onChange={handleFileAttachment}
-							/>
 							
 							<Separator />
-							
-							<Button variant="ghost" className="justify-start">
-								<Template className="mr-2 h-4 w-4" /> Save as Template
-							</Button>
+
 							
 							<Button
 								variant="ghost"
@@ -313,13 +348,30 @@ function NoteEditor({ noteId }) {
 							
 							<Separator />
 							
-							<Button
-								variant="ghost"
-								className="justify-start text-destructive hover:text-destructive"
-								onClick={handleDeleteNote}
-							>
-								<Trash2 className="mr-2 h-4 w-4" /> Delete
-							</Button>
+							<AlertDialog>
+								<AlertDialogTrigger asChild>
+									<Button
+										variant="ghost"
+										className="justify-start text-destructive hover:text-destructive"
+									>
+										<Trash2 className="mr-2 h-4 w-4" /> Delete
+									</Button>
+								</AlertDialogTrigger>
+								<AlertDialogContent>
+									<AlertDialogHeader>
+										<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+										<AlertDialogDescription>
+											This action cannot be undone. This will permanently delete the note.
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+									<AlertDialogFooter>
+										<AlertDialogCancel>Cancel</AlertDialogCancel>
+										<AlertDialogAction onClick={() => deleteNote(editedNote.id)}>
+											Delete
+										</AlertDialogAction>
+									</AlertDialogFooter>
+								</AlertDialogContent>
+							</AlertDialog>
 						</div>
 					</SheetContent>
 				</Sheet>
@@ -341,19 +393,6 @@ function NoteEditor({ noteId }) {
 					/>
 				</div>
 			</div>
-			
-			{editedNote.attachments && editedNote.attachments.length > 0 && (
-				<div className="p-4 border-t">
-					<h3 className="font-medium mb-2">Attachments:</h3>
-					<ul className="list-disc pl-5">
-						{editedNote.attachments.map((file, index) => (
-							<li key={index} className="text-sm text-muted-foreground">
-								{file.name}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
 			
 			<Comments noteId={editedNote.id} />
 		</div>
