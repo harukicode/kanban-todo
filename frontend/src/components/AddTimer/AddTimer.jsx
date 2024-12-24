@@ -1,4 +1,5 @@
 // AddTimer.jsx
+import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
 import React, { useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock } from "lucide-react";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import TimerDisplay from "./TimerDisplay";
 import TimerControls from "./TimerControls";
 import TimerFooter from "./TimerFooter";
-import { useTimer } from "@/lib/timerLib";
+import { useTimer, useTimerStore } from '@/lib/timerLib'
 import useTaskStore from "@/stores/TaskStore";
 
 export default function AddTimer() {
@@ -25,7 +26,8 @@ export default function AddTimer() {
   const startFind = useTaskStore((state) => state.startFind);
   const isTaskFindActive = useTaskStore((state) => state.isTaskFindActive);
   const selectedTaskId = useTaskStore((state) => state.selectedTaskId);
-  
+  const showShortTimeAlert = useTimerStore((state) => state.showShortTimeAlert);
+  const setShowShortTimeAlert = useTimerStore((state) => state.setShowShortTimeAlert);
   // Находим выбранную задачу
   const selectedTask = tasks.find((task) => task.id === selectedTaskId);
   
@@ -98,6 +100,10 @@ export default function AddTimer() {
           isPomodoroMode={mode === "pomodoro"}
         />
       </CardFooter>
+      <ShortTimeAlert
+        isVisible={showShortTimeAlert}
+        onClose={() => setShowShortTimeAlert(false)}
+      />
     </Card>
   );
 }

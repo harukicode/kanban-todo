@@ -16,13 +16,16 @@ export const formatTime = (timeInSeconds) => {
 export const useTimerStore = create(
 	persist(
 		(set, get) => ({
+			showShortTimeAlert: false,  // Add this
+			setShowShortTimeAlert: (show) => set({ showShortTimeAlert: show }), // Add this
 			isRunning: false,
 			time: 0,
 			mode: "stopwatch",
 			startTime: null,
 			currentLogId: null,
 			selectedTaskId: null,
-			currentSource: null, // Добавляем отслеживание текущего источника
+			currentSource: null,
+			// Добавляем отслеживание текущего источника
 			
 			pomodoroSettings: {
 				workTime: 25,
@@ -87,6 +90,20 @@ export const useTimerStore = create(
 					const timeSpent = Math.floor(
 						(endTime.getTime() - startTime.getTime()) / 1000
 					);
+					
+					if (timeSpent < 10) {
+						set({
+							showShortTimeAlert: true,
+							isRunning: false,
+							startTime: null,
+							time: 0,
+							currentLogId: null,
+							currentSource: null,
+							// Удаляем незавершенный лог
+							timeLogs: state.timeLogs.filter(log => log.logId !== state.currentLogId)
+						});
+						return;
+					}
 					
 					const updatedLog = {
 						endTime: endTime.toISOString(),
@@ -408,5 +425,7 @@ export const useTimer = () => {
 		deleteTimeLog: store.deleteTimeLog, // Добавляем этот метод
 		getTaskStats: store.getTaskStats,
 		getDailyStats: store.getDailyStats,
+		showShortTimeAlert: store.showShortTimeAlert,
+		setShowShortTimeAlert: store.setShowShortTimeAlert,
 	};
 };

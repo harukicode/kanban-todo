@@ -1,3 +1,4 @@
+import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar.jsx";
 import React from "react";
 import {
@@ -65,7 +66,10 @@ const App = () => {
               </Routes>
             </AnimatePresence>
           </main>
+          <ShortTimeAlert />
+        
         </SidebarProvider>
+        
       </div>
     </Router>
   );

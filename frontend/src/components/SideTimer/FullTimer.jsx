@@ -1,4 +1,5 @@
 // FullTimer.jsx
+import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -6,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Pause, RotateCcw } from 'lucide-react';
 import { GiTomato } from "react-icons/gi";
-import { useTimer } from "@/lib/timerLib";
+import { useTimer, useTimerStore } from '@/lib/timerLib'
 import useTaskStore from "@/stores/TaskStore";
 
 export default function FullTimer({ onClose }) {
@@ -27,7 +28,8 @@ export default function FullTimer({ onClose }) {
 	
 	// Получаем задачи из TaskStore
 	const tasks = useTaskStore((state) => state.tasks);
-	
+	const showShortTimeAlert = useTimerStore((state) => state.showShortTimeAlert);
+	const setShowShortTimeAlert = useTimerStore((state) => state.setShowShortTimeAlert);
 	// Находим выбранную задачу
 	const selectedTask = tasks.find(task => task.id === selectedTaskId);
 	
@@ -148,6 +150,11 @@ export default function FullTimer({ onClose }) {
 					</div>
 				)}
 			</div>
+			
+			<ShortTimeAlert
+				isVisible={showShortTimeAlert}
+				onClose={() => setShowShortTimeAlert(false)}
+			/>
 		</>
 	);
 }
