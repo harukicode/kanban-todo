@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import TaskBubble from './TaskBubble';
 
-const MAX_TASKS = 12;
+const MAX_TASKS = 44;
 const MAX_TASK_LENGTH = 20;
 
 const COLORS = [
@@ -17,67 +17,26 @@ const COLORS = [
 	{ name: 'Light Pink', value: '#FFB6C1', hover: '#E5A3AD' }
 ];
 
-const GRID_POSITIONS = [
-	{ id: 1, x: 15, y: 15 },    // Левый верхний
-	{ id: 2, x: 65, y: 45 },    // Середина справа
-	{ id: 3, x: 35, y: 25 },    // Верхняя часть слева
-	{ id: 4, x: 82, y: 75 },    // Правый нижний
-	{ id: 5, x: 25, y: 60 },    // Нижняя часть слева
-	{ id: 6, x: 55, y: 20 },    // Верхняя часть центр
-	{ id: 7, x: 12, y: 83 },    // Самый нижний слева
-	{ id: 8, x: 79, y: 30 },    // Верхняя часть справа
-	{ id: 9, x: 40, y: 80 },    // Нижняя часть
-	{ id: 10, x: 6, y: 55 },   // Правый верхний
-	{ id: 11, x: 20, y: 40 },   // Левая часть центр
-	{ id: 12, x: 56, y: 65 },   // Правая часть низ
-];
-
 export default function MindMap({ onAddToTaskList }) {
 	const [tasks, setTasks] = useState([]);
 	const [newTask, setNewTask] = useState('');
 	const [selectedColor, setSelectedColor] = useState(COLORS[0]);
-	const [occupiedPositions, setOccupiedPositions] = useState(new Set());
-	
-	const getRandomAvailablePosition = () => {
-		const availablePositions = GRID_POSITIONS.filter(pos => !occupiedPositions.has(pos.id));
-		if (availablePositions.length === 0) return null;
-		
-		const randomIndex = Math.floor(Math.random() * availablePositions.length);
-		return availablePositions[randomIndex];
-	};
 	
 	const handleAddTask = () => {
 		if (!newTask.trim() || tasks.length >= MAX_TASKS) return;
 		
-		const position = getRandomAvailablePosition();
-		if (!position) return;
-		
 		const newTaskObj = {
 			id: Date.now().toString(),
 			text: newTask.trim().slice(0, MAX_TASK_LENGTH),
-			position: {
-				x: `${position.x}%`,
-				y: `${position.y}%`
-			},
-			gridPositionId: position.id,
 			color: selectedColor.value,
 			hoverColor: selectedColor.hover
 		};
 		
 		setTasks(prevTasks => [...prevTasks, newTaskObj]);
-		setOccupiedPositions(prev => new Set([...prev, position.id]));
 		setNewTask('');
 	};
 	
 	const handleRemoveTask = (taskId) => {
-		const taskToRemove = tasks.find(task => task.id === taskId);
-		if (taskToRemove) {
-			setOccupiedPositions(prev => {
-				const newSet = new Set(prev);
-				newSet.delete(taskToRemove.gridPositionId);
-				return newSet;
-			});
-		}
 		setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
 	};
 	
@@ -139,22 +98,23 @@ export default function MindMap({ onAddToTaskList }) {
 				</div>
 			</CardHeader>
 			
-			<CardContent className="relative flex-1 p-4">
-				<AnimatePresence initial={false}>
-					{tasks.map((task) => (
-						<TaskBubble
-							key={task.id}
-							task={task.text}
-							initialPosition={task.position}
-							onRemove={() => handleRemoveTask(task.id)}
-							color={task.color}
-							onTaskClick={handleTaskClick}
-						/>
-					))}
-				</AnimatePresence>
+			<CardContent className="flex-1 p-4 overflow-auto">
+				<div className="flex flex-wrap gap-4">
+					<AnimatePresence initial={false}>
+						{tasks.map((task) => (
+							<TaskBubble
+								key={task.id}
+								task={task.text}
+								color={task.color}
+								onRemove={() => handleRemoveTask(task.id)}
+								onTaskClick={handleTaskClick}
+							/>
+						))}
+					</AnimatePresence>
+				</div>
 				
 				{tasks.length === 0 && (
-					<div className="absolute inset-0 flex items-center justify-center text-gray-400">
+					<div className="h-full flex items-center justify-center text-gray-400">
 						Add tasks to start building your mind map
 					</div>
 				)}
