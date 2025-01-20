@@ -13,6 +13,7 @@ import {
   Calendar as CalendarIcon,
   MessageCircle,
   Plus,
+  FileText,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
@@ -22,6 +23,7 @@ export function AddButton({
                             description,
                             onDueDateChange,
                             onDescriptionChange,
+                            onNoteCreate,
                           }) {
   const [isMainPopoverOpen, setIsMainPopoverOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -39,28 +41,10 @@ export function AddButton({
     setIsMainPopoverOpen(false);
   };
   
-  const handleDescriptionClick = (e) => {
+  // Обработчик для предотвращения рекурсии фокуса
+  const handleOpenAutoFocus = (e) => {
+    // Предотвращаем автофокус для всех поповеров
     e.preventDefault();
-    e.stopPropagation();
-    onDescriptionChange();
-    setIsMainPopoverOpen(false);
-  };
-  
-  const handleMainButtonClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsMainPopoverOpen(true);
-  };
-  
-  const handleCalendarButtonClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsCalendarOpen((prev) => !prev);
-  };
-  
-  const handlePopoverContentClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
   };
   
   return (
@@ -73,17 +57,21 @@ export function AddButton({
         <Button
           variant="outline"
           size="sm"
-          onClick={handleMainButtonClick}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsMainPopoverOpen(true);
+          }}
         >
           <Plus size={16} className="mr-2" /> Add
         </Button>
       </PopoverTrigger>
+      
       <PopoverContent
         className="w-[200px] p-2"
         sideOffset={5}
-        onClick={handlePopoverContentClick}
-        onPointerDownOutside={(e) => {
-          e.preventDefault();
+        onOpenAutoFocus={handleOpenAutoFocus} // Добавляем обработчик
+        onInteractOutside={(e) => {
           if (!isCalendarOpen) {
             setIsMainPopoverOpen(false);
           }
@@ -93,7 +81,23 @@ export function AddButton({
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={handleDescriptionClick}
+            onClick={() => {
+              setIsMainPopoverOpen(false);
+              onNoteCreate && onNoteCreate();
+            }}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Create Note
+          </Button>
+          
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={(e) => {
+              e.preventDefault();
+              onDescriptionChange();
+              setIsMainPopoverOpen(false);
+            }}
           >
             <AlignLeft className="mr-2 h-4 w-4" />
             Description
@@ -108,7 +112,11 @@ export function AddButton({
               <Button
                 variant="ghost"
                 className="w-full justify-start"
-                onClick={handleCalendarButtonClick}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsCalendarOpen(true);
+                }}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {selectedDate
@@ -116,17 +124,18 @@ export function AddButton({
                   : "Due date"}
               </Button>
             </PopoverTrigger>
+            
             <PopoverContent
               className="w-auto p-0"
               align="start"
               side="right"
-              onClick={handlePopoverContentClick}
+              onOpenAutoFocus={handleOpenAutoFocus} // Добавляем обработчик
             >
               <Calendar
                 mode="single"
                 selected={selectedDate ? parseISO(selectedDate) : undefined}
                 onSelect={handleDateSelect}
-                initialFocus
+                disabled={false}
               />
             </PopoverContent>
           </Popover>
@@ -136,7 +145,6 @@ export function AddButton({
             className="w-full justify-start"
             onClick={(e) => {
               e.preventDefault();
-              e.stopPropagation();
               setIsMainPopoverOpen(false);
             }}
           >

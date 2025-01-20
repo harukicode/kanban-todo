@@ -1,4 +1,5 @@
 import { CommentCard } from "@/components/Task/TaskModal/TaskComments.jsx"
+import { TaskNoteModal } from '@/components/Task/TaskNoteModal.jsx'
 import React, { useRef, useEffect, useState } from "react"
 import {
   Dialog,
@@ -37,6 +38,8 @@ export default function TaskModal({
   const [isTimerOpen, setIsTimerOpen] = useState(false)
   const [timerPosition, setTimerPosition] = useState({ top: 0, left: 0 })
   const [isEditingDescription, setIsEditingDescription] = useState(false)
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  
   // Get subtask statistics
   const { total, completed } = getSubtaskStats(task.id)
   
@@ -111,6 +114,9 @@ export default function TaskModal({
     setEditedTask({ ...editedTask, description: newDescription })
     setIsEditingDescription(false)
   }
+  const handleNoteCreate = () => {
+    setIsNoteModalOpen(true);
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -197,6 +203,7 @@ export default function TaskModal({
                 comments={task.comments}
                 onDueDateChange={handleDueDateChange}
                 onDescriptionChange={handleDescriptionChange}
+                onNoteCreate={handleNoteCreate}
               />
               <MoveTaskDropdown task={editedTask} onClose={handleClose} />
               <Button
@@ -228,6 +235,13 @@ export default function TaskModal({
             </div>
           </div>
         </DialogFooter>
+        
+        <TaskNoteModal
+          isOpen={isNoteModalOpen}
+          onClose={() => setIsNoteModalOpen(false)}
+          task={task}
+        />
+        
         
         {/* Timer overlay */}
         {isTimerOpen && (

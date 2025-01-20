@@ -10,25 +10,113 @@ const initialFormatting = {
 	align: 'left',
 	size: 'normal',
 	color: '#000000'
-}
+};
+
+const TASK_NOTES_ROOT = {
+	id: 'task-notes-root',
+	name: 'Task Notes',
+	createdAt: new Date().toISOString(),
+	isTaskNotesRoot: true,
+};
 
 const initialState = {
 	notes: [],
-	folders: [],
+	folders: [TASK_NOTES_ROOT],
 	selectedNote: null,
 	selectedFolder: null,
 	searchTerm: '',
 	isLoading: false,
 	error: null
-}
+};
 
 const useNotesStore = create(
 	devtools(
 		persist(
 			(set, get) => ({
+				// Добавим в initialState
 				...initialState,
+				taskNotesRootFolder: null, // Корневая папка для всех заметок задач
 				
-				// Notes actions
+				// Добавляем новые функции
+				initTaskNotesFolder: () => {
+					const store = get();
+					let rootFolder = store.folders.find(f => f.isTaskNotesRoot);
+					
+					if (!rootFolder) {
+						rootFolder = TASK_NOTES_ROOT;
+						set(state => ({
+							folders: [...state.folders, rootFolder]
+						}));
+					}
+					
+					return rootFolder;
+				},
+				
+				createTaskFolder: (task) => {
+					const store = get();
+					const rootFolder = store.folders.find(f => f.isTaskNotesRoot) || store.initTaskNotesFolder();
+					
+					// Проверяем существование папки для задачи
+					let taskFolder = store.folders.find(f => f.taskId === task.id);
+					
+					if (!taskFolder) {
+						// Укорачиваем название задачи до 20 символов
+						const truncatedTitle = task.title.length > 20
+							? task.title.substring(0, 20) + '...'
+							: task.title;
+						
+						taskFolder = {
+							id: `task-folder-${Date.now()}`,
+							name: `Task: ${truncatedTitle}`, // Используем более короткий префикс
+							fullName: `Notes for: ${task.title}`, // Сохраняем полное название для тултипа
+							createdAt: new Date().toISOString(),
+							parentId: rootFolder.id,
+							taskId: task.id,
+							isTaskFolder: true // Оставляем флаг, но разрешаем редактирование
+						};
+						
+						set(state => ({
+							folders: [...state.folders, taskFolder]
+						}));
+					}
+					
+					return taskFolder;
+				},
+				
+				createTaskNote: (task, initialContent = '') => {
+					const store = get();
+					const taskFolder = store.createTaskFolder(task);
+					
+					const newNote = {
+						id: Date.now(),
+						title: `Note: ${task.title}`,
+						content: initialContent,
+						tags: ['task-note'],
+						isPinned: false,
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+						folderId: taskFolder.id,
+						taskId: task.id,
+						formatting: { ...initialFormatting },
+						comments: []
+					};
+					
+					set(state => ({
+						notes: [...state.notes, newNote],
+						selectedNote: newNote,
+						selectedFolder: taskFolder.id
+					}));
+					
+					return newNote;
+				},
+				
+				
+				// Дополнительно: получение всех заметок для конкретной задачи
+				getTaskNotes: (taskId) => {
+					return get().notes.filter(note => note.taskId === taskId);
+				},
+				
+				// Базовые операции с заметками
 				setNotes: (notes) => set({ notes }),
 				setSelectedNote: (note) => set({ selectedNote: note }),
 				
@@ -44,12 +132,12 @@ const useNotesStore = create(
 						folderId: get().selectedFolder,
 						formatting: { ...initialFormatting },
 						comments: []
-					}
+					};
 					set(state => ({
 						notes: [...state.notes, newNote],
 						selectedNote: newNote
-					}))
-					return newNote
+					}));
+					return newNote;
 				},
 				
 				updateNote: (updatedNote) => {
@@ -103,40 +191,53 @@ const useNotesStore = create(
 					}))
 				},
 				
-				// Folders actions
+				// Управление папками
 				setFolders: (folders) => set({ folders }),
 				setSelectedFolder: (folderId) => set({ selectedFolder: folderId }),
 				
-				addFolder: (name) => {
+				addFolder: (name, parentId = null) => {
 					const newFolder = {
-						id: Date.now(),
+						id: Date.now().toString(),
 						name,
+						parentId,
 						createdAt: new Date().toISOString()
-					}
+					};
 					set(state => ({
 						folders: [...state.folders, newFolder]
-					}))
-					return newFolder
+					}));
+					return newFolder;
 				},
 				
 				deleteFolder: (folderId) => {
+					const store = get();
+					const folderToDelete = store.folders.find(f => f.id === folderId);
+					
+					// Защита от удаления системных папок
+					if (folderToDelete?.isTaskNotesRoot) return;
+					
 					set(state => ({
 						folders: state.folders.filter(folder => folder.id !== folderId),
 						notes: state.notes.map(note =>
 							note.folderId === folderId ? { ...note, folderId: null } : note
 						),
 						selectedFolder: state.selectedFolder === folderId ? null : state.selectedFolder
-					}))
+					}));
 				},
 				
 				renameFolder: (folderId, newName) => {
+					const store = get();
+					const folderToRename = store.folders.find(f => f.id === folderId);
+					
+					// Защита от переименования системных папок
+					if (folderToRename?.isTaskNotesRoot) return;
+					
 					set(state => ({
 						folders: state.folders.map(folder =>
 							folder.id === folderId
 								? { ...folder, name: newName, updatedAt: new Date().toISOString() }
 								: folder
 						)
-					}))
+					}));
 				},
 				
 				// Tags actions
@@ -294,23 +395,26 @@ const useNotesStore = create(
 				// Loading state
 				setLoading: (isLoading) => set({ isLoading }),
 				
-				// Selectors
+				// Модифицируем getFilteredNotes для поддержки иерархии папок
 				getFilteredNotes: () => {
 					const state = get();
 					return state.notes
-						.filter(note =>
-							(state.selectedFolder ? note.folderId === state.selectedFolder : true) &&
-							(state.searchTerm
+						.filter(note => {
+							const folderMatch = state.selectedFolder
+								? note.folderId === state.selectedFolder
+								: true;
+							
+							const searchMatch = state.searchTerm
 								? note.title.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
 								note.content.toLowerCase().includes(state.searchTerm.toLowerCase())
-								: true)
-						)
+								: true;
+							
+							return folderMatch && searchMatch;
+						})
 						.sort((a, b) => {
-							// Сначала сортируем по закрепленности
 							if (a.isPinned !== b.isPinned) {
 								return a.isPinned ? -1 : 1;
 							}
-							// Если статус закрепления одинаковый, сортируем по дате обновления
 							return new Date(b.updatedAt) - new Date(a.updatedAt);
 						});
 				},
