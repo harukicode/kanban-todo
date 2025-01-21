@@ -120,7 +120,11 @@ export default function TaskModal({
   
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[750px] bg-white p-0 flex flex-col max-h-[90vh]">
+      <DialogContent
+        className="sm:max-w-[750px] bg-white p-0 flex flex-col max-h-[90vh]"
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerMove={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}>
         {/* Modal content */}
         <div
           className="p-6 pb-3 flex-grow overflow-y-auto scrollbar-hide"

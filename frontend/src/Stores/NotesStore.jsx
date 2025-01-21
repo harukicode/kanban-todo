@@ -83,13 +83,13 @@ const useNotesStore = create(
 					return taskFolder;
 				},
 				
-				createTaskNote: (task, initialContent = '') => {
+				createTaskNote: (task, initialContent = '', title = null) => {
 					const store = get();
 					const taskFolder = store.createTaskFolder(task);
 					
 					const newNote = {
 						id: Date.now(),
-						title: `Note: ${task.title}`,
+						title: title || `Note for: ${task.title}`,
 						content: initialContent,
 						tags: ['task-note'],
 						isPinned: false,
