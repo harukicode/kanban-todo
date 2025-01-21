@@ -10,7 +10,7 @@ const COLORS = [
 	{ name: "Light Pink", value: "#FFB6C1", hover: "#E5A3AD" },
 ]
 
-const MAX_TASKS = 44
+const MAX_TASKS = 45
 const MAX_TASK_LENGTH = 20
 
 export const useMindMapStore = create(
