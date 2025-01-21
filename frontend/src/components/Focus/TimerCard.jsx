@@ -13,7 +13,6 @@ const TimerCard = ({
 	                   time,
 	                   isRunning,
 	                   toggleTimer,
-	                   resetTimer,
 	                   activeTask,
 	                   formatTime,
 	                   logs,
@@ -45,7 +44,7 @@ const TimerCard = ({
 							<div className="text-4xl font-mono tracking-wider">
 								{formatTime(time)}
 							</div>
-							<div className="flex gap-2">
+							<div>
 								<Button
 									onClick={toggleTimer}
 									variant={isRunning ? "destructive" : "default"}
@@ -63,9 +62,6 @@ const TimerCard = ({
 											Start
 										</>
 									)}
-								</Button>
-								<Button variant="outline" onClick={resetTimer} className="w-24">
-									Reset
 								</Button>
 							</div>
 							{activeTask && (

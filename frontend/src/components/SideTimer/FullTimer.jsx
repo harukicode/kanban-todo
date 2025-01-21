@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import { GiTomato } from "react-icons/gi";
-import { useTimer, useTimerStore } from '@/lib/timerLib'
+import { useTimer, useTimerStore } from '@/lib/timerLib';
 import useTaskStore from "@/stores/TaskStore";
 
 export default function FullTimer({ onClose }) {
@@ -18,7 +18,6 @@ export default function FullTimer({ onClose }) {
 		setMode,
 		startTimer,
 		stopTimer,
-		resetTimer,
 		selectedTaskId,
 		setSelectedTask,
 		pomodoroSettings,
@@ -89,7 +88,7 @@ export default function FullTimer({ onClose }) {
 					)}
 				</div>
 				
-				<div className="flex flex-col space-y-2">
+				<div className="flex flex-col">
 					<Button
 						onClick={handleTimerAction}
 						variant={isRunning ? "destructive" : "default"}
@@ -102,17 +101,7 @@ export default function FullTimer({ onClose }) {
 						) : (
 							<Play className="w-4 h-4 mr-1" />
 						)}
-						{isRunning ? "Pause" : "Start"}
-					</Button>
-					
-					<Button
-						onClick={resetTimer}
-						variant="outline"
-						size="sm"
-						className="w-20"
-					>
-						<RotateCcw className="w-4 h-4 mr-1" />
-						Reset
+						{isRunning ? "Stop" : "Start"}
 					</Button>
 				</div>
 			</div>
