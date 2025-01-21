@@ -8,99 +8,45 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Plus, Edit, Trash2, Clock, PlayCircle, PauseCircle } from "lucide-react"
-import { format } from "date-fns"
+import { ArrowLeft, Plus, Edit, Trash2, Clock } from "lucide-react"
 
 const FocusPage = () => {
-	const navigate = useNavigate()
-	const { focusTasks, addFocusTask, deleteFocusTask, updateFocusTask } = useFocusTaskStore()
+	const navigate = useNavigate();
+	const {
+		focusTasks,
+		addFocusTask,
+		deleteFocusTask,
+		updateFocusTask,
+	} = useFocusTaskStore();
 	
-	const { startTimer, stopTimer, setSelectedTask, getFilteredLogs } = useTimer()
+	const {
+		time,
+		isRunning,
+		mode,
+		setMode,
+		startTimer,
+		stopTimer,
+		resetTimer,
+		setSelectedTask,
+		getFilteredLogs,
+		pomodoroSettings,
+		updatePomodoroSettings,
+		formattedTime
+	} = useTimer();
 	
-	const [timerMode, setTimerMode] = useState(() => {
-		return localStorage.getItem("timerMode") || "normal"
-	})
-	const showShortTimeAlert = useTimerStore((state) => state.showShortTimeAlert)
-	const setShowShortTimeAlert = useTimerStore((state) => state.setShowShortTimeAlert)
-	const [newTask, setNewTask] = useState("")
-	const [editingTask, setEditingTask] = useState(null)
-	const [time, setTime] = useState(() => {
-		return timerMode === "normal" ? 0 : 25 * 60
-	})
-	const [isRunning, setIsRunning] = useState(false)
-	const [activeTask, setActiveTask] = useState(null)
-	const [pomodoroSettings, setPomodoroSettings] = useState({
-		workDuration: 25,
-		breakDuration: 5,
-		longBreakDuration: 15,
-		longBreakInterval: 4,
-	})
-	const [pomodoroState, setPomodoroState] = useState({
-		currentSession: "work",
-		sessionsCompleted: 0,
-	})
+	const showShortTimeAlert = useTimerStore((state) => state.showShortTimeAlert);
+	const setShowShortTimeAlert = useTimerStore((state) => state.setShowShortTimeAlert);
+	
+	const [newTask, setNewTask] = useState("");
+	const [editingTask, setEditingTask] = useState(null);
+	const [activeTask, setActiveTask] = useState(null);
 	
 	useEffect(() => {
 		if (activeTask) {
-			setSelectedTask(activeTask.id)
+			setSelectedTask(activeTask.id);
 		}
-	}, [activeTask, setSelectedTask])
-	
-	useEffect(() => {
-		let interval
-		if (isRunning) {
-			interval = setInterval(() => {
-				if (timerMode === "normal") {
-					setTime((prevTime) => prevTime + 1)
-				} else {
-					setTime((prevTime) => {
-						if (prevTime > 0) {
-							return prevTime - 1
-						} else {
-							handlePomodoroStateChange()
-							return 0
-						}
-					})
-				}
-				if (activeTask) {
-					updateFocusTask(activeTask.id, {
-						...activeTask,
-						timeSpent: (activeTask.timeSpent || 0) + 1,
-						sessions: activeTask.sessions.map((session, index) =>
-							index === activeTask.sessions.length - 1
-								? typeof session === "number"
-									? session + 1
-									: { ...session, duration: session.duration + 1 }
-								: session,
-						),
-					})
-				}
-			}, 1000)
-		}
-		return () => clearInterval(interval)
-	}, [isRunning, timerMode, activeTask, updateFocusTask])
-	
-	const handlePomodoroStateChange = () => {
-		setPomodoroState((prevState) => {
-			const newState = { ...prevState }
-			if (prevState.currentSession === "work") {
-				newState.sessionsCompleted += 1
-				if (newState.sessionsCompleted % pomodoroSettings.longBreakInterval === 0) {
-					newState.currentSession = "longBreak"
-					setTime(pomodoroSettings.longBreakDuration * 60)
-				} else {
-					newState.currentSession = "break"
-					setTime(pomodoroSettings.breakDuration * 60)
-				}
-			} else {
-				newState.currentSession = "work"
-				setTime(pomodoroSettings.workDuration * 60)
-			}
-			return newState
-		})
-	}
+	}, [activeTask, setSelectedTask]);
 	
 	const addTask = () => {
 		if (newTask.trim()) {
@@ -108,85 +54,54 @@ const FocusPage = () => {
 				text: newTask,
 				timeSpent: 0,
 				sessions: [],
-			})
-			setNewTask("")
+			});
+			setNewTask("");
 		}
-	}
+	};
 	
 	const deleteTask = (id) => {
-		deleteFocusTask(id)
+		deleteFocusTask(id);
 		if (activeTask && activeTask.id === id) {
-			setActiveTask(null)
+			setActiveTask(null);
 		}
-	}
+	};
 	
 	const startEditing = (task) => {
-		setEditingTask({ ...task })
-	}
+		setEditingTask({ ...task });
+	};
 	
 	const saveEdit = () => {
 		if (editingTask) {
-			updateFocusTask(editingTask.id, editingTask)
-			setEditingTask(null)
+			updateFocusTask(editingTask.id, editingTask);
+			setEditingTask(null);
 		}
-	}
+	};
 	
-	const formatTime = (seconds) => {
-		const hours = Math.floor(seconds / 3600)
-		const minutes = Math.floor((seconds % 3600) / 60)
-		const secs = seconds % 60
-		return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-	}
-	
-	useEffect(() => {
-		if (activeTask) {
-			setSelectedTask(activeTask.id) // Используем функцию из хука useTimer
-		}
-	}, [activeTask, setSelectedTask])
+	const formatTimeDisplay = (seconds) => {
+		const hours = Math.floor(seconds / 3600);
+		const minutes = Math.floor((seconds % 3600) / 60);
+		const secs = seconds % 60;
+		return `${hours.toString().padStart(2, "0")}:${minutes
+			.toString()
+			.padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+	};
 	
 	const toggleTimer = () => {
 		if (!isRunning && activeTask) {
-			console.log("Starting timer for active task:", activeTask)
-			
-			// Сначала устанавливаем активную задачу
-			setSelectedTask(activeTask.id)
-			
-			// Запускаем таймер с правильными опциями
 			startTimer({
 				source: "focus",
 				taskId: activeTask.id,
 				taskName: activeTask.text,
-			})
-			
-			console.log("Timer started with options:", {
-				source: "focus",
-				taskId: activeTask.id,
-				taskName: activeTask.text,
-			})
-			
-			setIsRunning(true)
+			});
 		} else {
-			console.log("Stopping timer")
-			stopTimer()
-			setIsRunning(false)
+			stopTimer();
 		}
-	}
-	
-	const resetTimer = () => {
-		setTime(timerMode === "normal" ? 0 : pomodoroSettings.workDuration * 60)
-		setIsRunning(false)
-		setPomodoroState({ currentSession: "work", sessionsCompleted: 0 })
-	}
+	};
 	
 	const switchTimerMode = () => {
-		setTimerMode((prevMode) => {
-			const newMode = prevMode === "normal" ? "pomodoro" : "normal"
-			setTime(newMode === "normal" ? 0 : pomodoroSettings.workDuration * 60)
-			setIsRunning(false)
-			setPomodoroState({ currentSession: "work", sessionsCompleted: 0 })
-			return newMode
-		})
-	}
+		setMode(mode === "normal" ? "pomodoro" : "normal");
+		resetTimer();
+	};
 	
 	return (
 		<div className="min-h-screen flex flex-col bg-gray-50 p-4">
@@ -203,9 +118,7 @@ const FocusPage = () => {
 			</div>
 			
 			<div className="flex gap-4 h-[calc(100vh-8rem)]">
-				{/* Left Column - Tasks and Timer */}
 				<div className="w-[500px] flex flex-col gap-4 min-h-0">
-					{/* Tasks Card */}
 					<Card className="shadow-md flex-1 flex flex-col overflow-hidden h-[calc(100%-200px)]">
 						<CardHeader className="border-b py-3">
 							<CardTitle className="text-lg">Tasks</CardTitle>
@@ -226,28 +139,47 @@ const FocusPage = () => {
 							<ScrollArea className="flex-1 h-[calc(100%-4rem)] -mx-4">
 								<div className="space-y-2 px-4 pb-4">
 									{focusTasks.map((task) => (
-										<div key={task.id} className="flex items-center justify-between p-2 bg-gray-100 rounded">
+										<div
+											key={task.id}
+											className="flex items-center justify-between p-2 bg-gray-100 rounded"
+										>
 											{editingTask && editingTask.id === task.id ? (
 												<Input
 													value={editingTask.text}
-													onChange={(e) => setEditingTask({ ...editingTask, text: e.target.value })}
+													onChange={(e) =>
+														setEditingTask({ ...editingTask, text: e.target.value })
+													}
 													onBlur={saveEdit}
 													autoFocus
 												/>
 											) : (
 												<div className="flex flex-col">
 													<span>{task.text}</span>
-													<span className="text-sm text-gray-500">Time spent: {formatTime(task.timeSpent || 0)}</span>
+													<span className="text-sm text-gray-500">
+                            Time spent: {formatTimeDisplay(task.timeSpent || 0)}
+                          </span>
 												</div>
 											)}
 											<div>
-												<Button variant="ghost" size="icon" onClick={() => startEditing(task)}>
+												<Button
+													variant="ghost"
+													size="icon"
+													onClick={() => startEditing(task)}
+												>
 													<Edit size={16} />
 												</Button>
-												<Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)}>
+												<Button
+													variant="ghost"
+													size="icon"
+													onClick={() => deleteTask(task.id)}
+												>
 													<Trash2 size={16} />
 												</Button>
-												<Button variant="ghost" size="icon" onClick={() => setActiveTask(task)}>
+												<Button
+													variant="ghost"
+													size="icon"
+													onClick={() => setActiveTask(task)}
+												>
 													<Clock size={16} />
 												</Button>
 											</div>
@@ -258,24 +190,22 @@ const FocusPage = () => {
 						</CardContent>
 					</Card>
 					
-					{/* Timer Card */}
 					<TimerCard
-						timerMode={timerMode}
+						timerMode={mode}
 						switchTimerMode={switchTimerMode}
 						time={time}
 						isRunning={isRunning}
 						toggleTimer={toggleTimer}
 						resetTimer={resetTimer}
 						activeTask={activeTask}
-						formatTime={formatTime}
+						formatTime={formatTimeDisplay}
 						logs={getFilteredLogs().filter((log) => log.source === "focus")}
 						focusTasks={focusTasks}
 						pomodoroSettings={pomodoroSettings}
-						setPomodoroSettings={setPomodoroSettings}
+						setPomodoroSettings={updatePomodoroSettings}
 					/>
 				</div>
 				
-				{/* Right Column - Mind Map */}
 				<Card className="flex-1 shadow-md">
 					<MindMap
 						onAddToTaskList={(taskText) => {
@@ -283,17 +213,18 @@ const FocusPage = () => {
 								text: taskText,
 								timeSpent: 0,
 								sessions: [],
-							})
+							});
 						}}
 					/>
 				</Card>
 			</div>
 			
-			{/* Alert */}
-			<ShortTimeAlert isVisible={showShortTimeAlert} onClose={() => setShowShortTimeAlert(false)} />
+			<ShortTimeAlert
+				isVisible={showShortTimeAlert}
+				onClose={() => setShowShortTimeAlert(false)}
+			/>
 		</div>
-	)
-}
+	);
+};
 
-export default FocusPage
-
+export default FocusPage;

@@ -87,9 +87,27 @@ export const useTimerStore = create(
 				if (state.startTime && state.selectedTaskId) {
 					const endTime = new Date();
 					const startTime = new Date(state.startTime);
-					const timeSpent = Math.floor(
-						(endTime.getTime() - startTime.getTime()) / 1000
-					);
+					let timeSpent;
+					
+					// Для режима pomodoro используем точное время сессии
+					if (state.mode === 'pomodoro') {
+						switch (state.currentMode) {
+							case 'work':
+								timeSpent = state.pomodoroSettings.workTime * 60;
+								break;
+							case 'shortBreak':
+								timeSpent = state.pomodoroSettings.shortBreakTime * 60;
+								break;
+							case 'longBreak':
+								timeSpent = state.pomodoroSettings.longBreakTime * 60;
+								break;
+							default:
+								timeSpent = state.pomodoroSettings.workTime * 60;
+						}
+					} else {
+						// Для обычного режима вычисляем реальное затраченное время
+						timeSpent = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+					}
 					
 					if (timeSpent < 10) {
 						set({
@@ -99,15 +117,14 @@ export const useTimerStore = create(
 							time: 0,
 							currentLogId: null,
 							currentSource: null,
-							// Удаляем незавершенный лог
 							timeLogs: state.timeLogs.filter(log => log.logId !== state.currentLogId)
 						});
 						return;
 					}
 					
 					const updatedLog = {
-						endTime: endTime.toISOString(),
-						timeSpent: timeSpent
+						endTime: new Date(startTime.getTime() + (timeSpent * 1000)).toISOString(),
+						timeSpent
 					};
 					
 					// Обновляем задачу в соответствующем сторе
