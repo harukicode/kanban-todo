@@ -32,7 +32,8 @@ const FocusPage = () => {
 		getFilteredLogs,
 		pomodoroSettings,
 		updatePomodoroSettings,
-		formattedTime
+		formattedTime,
+		resetPomodoro,
 	} = useTimer();
 	
 	const showShortTimeAlert = useTimerStore((state) => state.showShortTimeAlert);
@@ -41,6 +42,8 @@ const FocusPage = () => {
 	const [newTask, setNewTask] = useState("");
 	const [editingTask, setEditingTask] = useState(null);
 	const [activeTask, setActiveTask] = useState(null);
+	
+	
 	
 	useEffect(() => {
 		if (activeTask) {
@@ -100,7 +103,6 @@ const FocusPage = () => {
 	
 	const switchTimerMode = () => {
 		setMode(mode === "normal" ? "pomodoro" : "normal");
-		resetTimer();
 	};
 	
 	return (
@@ -196,7 +198,7 @@ const FocusPage = () => {
 						time={time}
 						isRunning={isRunning}
 						toggleTimer={toggleTimer}
-						resetTimer={resetTimer}
+						resetPomodoro={resetPomodoro}
 						activeTask={activeTask}
 						formatTime={formatTimeDisplay}
 						logs={getFilteredLogs().filter((log) => log.source === "focus")}

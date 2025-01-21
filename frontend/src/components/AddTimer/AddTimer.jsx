@@ -20,6 +20,7 @@ export default function AddTimer() {
     startTimer,
     stopTimer,
     setSelectedTask,
+    resetPomodoro,
   } = useTimer();
   
   const tasks = useTaskStore((state) => state.tasks);
@@ -61,6 +62,10 @@ export default function AddTimer() {
     startFind();
   };
   
+  const handleResetPomodoro = () => {
+    resetPomodoro();
+  };
+  
   return (
     <Card className="w-80 bg-white shadow-lg rounded-lg overflow-hidden">
       <CardHeader className="bg-gray-100 border-b border-gray-200">
@@ -91,7 +96,10 @@ export default function AddTimer() {
         <TimerControls
           isRunning={isRunning}
           onStartStop={handleTimerAction}
+          onReset={handleResetPomodoro}
           disabled={!selectedTaskId}
+          showReset={true}
+          isPomodoroMode={mode === "pomodoro"}
         />
       </CardContent>
       

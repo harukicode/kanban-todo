@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlayCircle, PauseCircle } from 'lucide-react';
+import { PlayCircle, PauseCircle, RotateCcw } from 'lucide-react';
 import { format } from "date-fns";
 
 const TimerCard = ({
+	resetPomodoro,
 	                   timerMode,
 	                   switchTimerMode,
 	                   time,
@@ -44,7 +45,7 @@ const TimerCard = ({
 							<div className="text-4xl font-mono tracking-wider">
 								{formatTime(time)}
 							</div>
-							<div>
+							<div className="flex space-x-2">
 								<Button
 									onClick={toggleTimer}
 									variant={isRunning ? "destructive" : "default"}
@@ -63,6 +64,16 @@ const TimerCard = ({
 										</>
 									)}
 								</Button>
+								{timerMode === "pomodoro" && (
+									<Button
+										onClick={resetPomodoro}
+										variant="outline"
+										className="w-24"
+									>
+										<RotateCcw className="mr-2 h-4 w-4" />
+										Reset
+									</Button>
+								)}
 							</div>
 							{activeTask && (
 								<div className="w-full p-3 bg-secondary/20 rounded-lg border border-secondary/30">

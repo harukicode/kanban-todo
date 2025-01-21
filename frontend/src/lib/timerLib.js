@@ -38,6 +38,16 @@ export const useTimerStore = create(
 			
 			timeLogs: [],
 			
+			
+			resetPomodoro: () => {
+				set({
+					currentMode: "work",
+					currentInterval: 1,
+					isRunning: false,
+					time: get().pomodoroSettings.workTime * 60
+				});
+			},
+			
 			getCurrentPomodoroTime: () => {
 				const state = get();
 				if (state.mode !== 'pomodoro') return 0;
@@ -460,6 +470,13 @@ export const useTimer = () => {
 		}
 	};
 	
+	const handleResetPomodoro = () => {
+		store.resetPomodoro();
+		if (store.mode === 'pomodoro') {
+			handleTimeUpdate(store.pomodoroSettings.workTime * 60);
+		}
+	};
+	
 	return {
 		time,
 		isRunning: store.isRunning,
@@ -474,6 +491,7 @@ export const useTimer = () => {
 		stopTimer: handleStopTimer,
 		setMode: handleSetMode,
 		resetTimer: store.resetTimer,
+		resetPomodoro: handleResetPomodoro,
 		setSelectedTask: store.setSelectedTask,
 		updatePomodoroSettings: store.updatePomodoroSettings,
 		getFilteredLogs: store.getFilteredLogs,

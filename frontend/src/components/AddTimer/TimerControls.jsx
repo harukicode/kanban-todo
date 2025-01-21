@@ -1,8 +1,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, PauseCircle } from "lucide-react";
+import { PlayCircle, PauseCircle, RotateCcw } from "lucide-react";
 
-const TimerControls = ({ isRunning, onStartStop, disabled }) => (
+const TimerControls = ({ isRunning, onStartStop, onReset, disabled, showReset, isPomodoroMode }) => (
   <div className="flex justify-center space-x-2 mb-4">
     <Button
       variant={isRunning ? "destructive" : "default"}
@@ -17,6 +17,17 @@ const TimerControls = ({ isRunning, onStartStop, disabled }) => (
       )}
       {isRunning ? "Stop" : "Start"}
     </Button>
+    {showReset && isPomodoroMode && (
+      <Button
+        variant="outline"
+        onClick={onReset}
+        className="w-24"
+        title="Reset Pomodoro"
+      >
+        <RotateCcw className="mr-2 h-4 w-4" />
+        Reset
+      </Button>
+    )}
   </div>
 );
 

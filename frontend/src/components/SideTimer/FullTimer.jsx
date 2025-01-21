@@ -1,11 +1,10 @@
-// FullTimer.jsx
 import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, RotateCcw } from 'lucide-react';
 import { GiTomato } from "react-icons/gi";
 import { useTimer, useTimerStore } from '@/lib/timerLib';
 import useTaskStore from "@/stores/TaskStore";
@@ -22,17 +21,15 @@ export default function FullTimer({ onClose }) {
 		setSelectedTask,
 		pomodoroSettings,
 		updatePomodoroSettings,
-		formattedTime
+		formattedTime,
+		resetPomodoro
 	} = useTimer();
 	
-	// Получаем задачи из TaskStore
 	const tasks = useTaskStore((state) => state.tasks);
 	const showShortTimeAlert = useTimerStore((state) => state.showShortTimeAlert);
 	const setShowShortTimeAlert = useTimerStore((state) => state.setShowShortTimeAlert);
-	// Находим выбранную задачу
 	const selectedTask = tasks.find(task => task.id === selectedTaskId);
 	
-	// Обработчики
 	const handleTimerAction = () => {
 		if (isRunning) {
 			stopTimer();
@@ -54,6 +51,12 @@ export default function FullTimer({ onClose }) {
 	
 	const handleTaskSelect = (taskId) => {
 		setSelectedTask(taskId);
+	};
+	
+	const handleResetPomodoro = () => {
+		if (mode === 'pomodoro') {
+			resetPomodoro();
+		}
 	};
 	
 	return (
@@ -88,7 +91,7 @@ export default function FullTimer({ onClose }) {
 					)}
 				</div>
 				
-				<div className="flex flex-col">
+				<div className="flex gap-2">
 					<Button
 						onClick={handleTimerAction}
 						variant={isRunning ? "destructive" : "default"}
@@ -103,6 +106,18 @@ export default function FullTimer({ onClose }) {
 						)}
 						{isRunning ? "Stop" : "Start"}
 					</Button>
+					
+					{mode === 'pomodoro' && (
+						<Button
+							onClick={handleResetPomodoro}
+							variant="outline"
+							size="sm"
+							className="w-20"
+						>
+							<RotateCcw className="w-4 h-4 mr-1" />
+							Reset
+						</Button>
+					)}
 				</div>
 			</div>
 			
