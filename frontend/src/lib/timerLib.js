@@ -54,6 +54,25 @@ export const useTimerStore = create(
 				}
 			},
 			
+			
+			getLastSessionTime: () => {
+				const state = get();
+				if (state.mode !== 'pomodoro') return state.time;
+				
+				// Получаем время последней сессии на основе текущего режима
+				switch (state.currentMode) {
+					case 'work':
+						return state.pomodoroSettings.workTime * 60;
+					case 'shortBreak':
+						return state.pomodoroSettings.shortBreakTime * 60;
+					case 'longBreak':
+						return state.pomodoroSettings.longBreakTime * 60;
+					default:
+						return state.pomodoroSettings.workTime * 60;
+				}
+			},
+			
+			
 			// Действия с таймером
 			// В useTimerStore
 // timerLib.js
@@ -101,15 +120,38 @@ export const useTimerStore = create(
 			stopTimer: () => {
 				const state = get();
 				if (state.startTime && state.selectedTaskId) {
-					const endTime = new Date();
-					const startTime = new Date(state.startTime);
+					// Вычисляем время сессии на основе режима
+					let timeSpent;
 					
-					// Теперь используем функцию из store
-					const timeSpent = state.mode === 'pomodoro'
-						? state.getCurrentPomodoroTime() - state.time
-						: state.time;
+					if (state.mode === 'pomodoro') {
+						// Для помодоро всегда используем полное время сессии при автоматическом завершении
+						switch (state.currentMode) {
+							case 'work':
+								timeSpent = state.pomodoroSettings.workTime * 60;
+								break;
+							case 'shortBreak':
+								timeSpent = state.pomodoroSettings.shortBreakTime * 60;
+								break;
+							case 'longBreak':
+								timeSpent = state.pomodoroSettings.longBreakTime * 60;
+								break;
+							default:
+								timeSpent = state.pomodoroSettings.workTime * 60;
+						}
+						
+						// Если таймер был остановлен вручную, вычисляем фактическое время
+						if (state.time > 1) {
+							const fullTime = timeSpent;
+							timeSpent = fullTime - state.time;
+						}
+					} else {
+						// Для обычного секундомера используем накопленное время
+						timeSpent = state.time;
+					}
 					
-					if (timeSpent < 10) {
+					// Проверяем минимальное время только для ручной остановки в режиме секундомера
+					// или если это не автоматическое завершение помодоро
+					if ((state.mode !== 'pomodoro' || state.time > 1) && timeSpent < 10) {
 						set({
 							showShortTimeAlert: true,
 							isRunning: false,
@@ -123,8 +165,8 @@ export const useTimerStore = create(
 					}
 					
 					const updatedLog = {
-						endTime: endTime.toISOString(),
-						timeSpent
+						endTime: new Date().toISOString(),
+						timeSpent: timeSpent
 					};
 					
 					// Обновляем задачу в соответствующем сторе
@@ -343,6 +385,13 @@ export const useTimer = () => {
 		return store.getCurrentPomodoroTime();
 	}, [store]);
 	
+	const handleTimeUpdate = (newTime) => {
+		setTime(newTime);
+		// Обновляем store только при изменении времени таймера
+		if (store.isRunning) {
+			store.updateTime(newTime);
+		}
+	};
 	React.useEffect(() => {
 		if (!store.isRunning) {
 			if (store.mode === 'pomodoro') {
@@ -358,17 +407,15 @@ export const useTimer = () => {
 		let interval = null;
 		if (store.isRunning) {
 			interval = setInterval(() => {
-				setTime((prevTime) => {
+				handleTimeUpdate((prevTime) => {
 					if (store.mode === 'pomodoro') {
-						// Обратный отсчет для pomodoro
 						if (prevTime <= 1) {
 							store.stopTimer();
 							store.handlePomodoroComplete();
-							return getCurrentPomodoroTime();
+							return store.getCurrentPomodoroTime();
 						}
 						return prevTime - 1;
 					} else {
-						// Прямой отсчет для обычного таймера
 						return prevTime + 1;
 					}
 				});
@@ -380,25 +427,26 @@ export const useTimer = () => {
 				clearInterval(interval);
 			}
 		};
-	}, [store.isRunning, store.mode, getCurrentPomodoroTime]);
+	}, [store.isRunning, store.mode]);
 	
 	const handleStartTimer = (options) => {
-		// При старте таймера ВСЕГДА устанавливаем полное время для помодоро
 		if (store.mode === 'pomodoro') {
-			setTime(getCurrentPomodoroTime());
+			const initialTime = getCurrentPomodoroTime();
+			handleTimeUpdate(initialTime);
 		} else {
-			setTime(0);
+			handleTimeUpdate(0);
 		}
 		store.startTimer(options);
 	};
 	
 	const handleStopTimer = () => {
+		// Обновляем время в store перед остановкой
+		store.updateTime(time);
 		store.stopTimer();
-		// При остановке возвращаем полное время
 		if (store.mode === 'pomodoro') {
-			setTime(getCurrentPomodoroTime());
+			handleTimeUpdate(getCurrentPomodoroTime());
 		} else {
-			setTime(0);
+			handleTimeUpdate(0);
 		}
 	};
 	
