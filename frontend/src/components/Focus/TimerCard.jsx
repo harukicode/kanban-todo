@@ -130,10 +130,10 @@ const TimerCard = ({
 									</label>
 									<Input
 										type="number"
-										value={pomodoroSettings.workDuration}
+										value={pomodoroSettings.workTime}
 										onChange={(e) => setPomodoroSettings(prev => ({
 											...prev,
-											workDuration: parseInt(e.target.value)
+											workTime: parseInt(e.target.value)
 										}))}
 										min="1"
 										max="60"
@@ -146,10 +146,10 @@ const TimerCard = ({
 									</label>
 									<Input
 										type="number"
-										value={pomodoroSettings.breakDuration}
+										value={pomodoroSettings.shortBreakTime}
 										onChange={(e) => setPomodoroSettings(prev => ({
 											...prev,
-											breakDuration: parseInt(e.target.value)
+											shortBreakTime: parseInt(e.target.value)
 										}))}
 										min="1"
 										max="30"
@@ -162,10 +162,10 @@ const TimerCard = ({
 									</label>
 									<Input
 										type="number"
-										value={pomodoroSettings.longBreakDuration}
+										value={pomodoroSettings.longBreakTime}
 										onChange={(e) => setPomodoroSettings(prev => ({
 											...prev,
-											longBreakDuration: parseInt(e.target.value)
+											longBreakTime: parseInt(e.target.value)
 										}))}
 										min="1"
 										max="60"
