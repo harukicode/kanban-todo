@@ -8,7 +8,7 @@ import { PlayCircle, PauseCircle, RotateCcw } from 'lucide-react';
 import { format } from "date-fns";
 
 const TimerCard = ({
-	resetPomodoro,
+	                   resetPomodoro,
 	                   timerMode,
 	                   switchTimerMode,
 	                   time,
@@ -19,7 +19,7 @@ const TimerCard = ({
 	                   logs,
 	                   focusTasks,
 	                   pomodoroSettings,
-	                   setPomodoroSettings,
+	                   updatePomodoroSettings,
                    }) => {
 	return (
 		<Card className="shadow-md flex flex-col h-[calc(100%-400px-1rem)]">
@@ -131,10 +131,10 @@ const TimerCard = ({
 									<Input
 										type="number"
 										value={pomodoroSettings.workTime}
-										onChange={(e) => setPomodoroSettings(prev => ({
-											...prev,
+										onChange={(e) => updatePomodoroSettings({
+											...pomodoroSettings,
 											workTime: parseInt(e.target.value)
-										}))}
+										})}
 										min="1"
 										max="60"
 									/>
@@ -147,10 +147,10 @@ const TimerCard = ({
 									<Input
 										type="number"
 										value={pomodoroSettings.shortBreakTime}
-										onChange={(e) => setPomodoroSettings(prev => ({
-											...prev,
+										onChange={(e) => updatePomodoroSettings({
+											...pomodoroSettings,
 											shortBreakTime: parseInt(e.target.value)
-										}))}
+										})}
 										min="1"
 										max="30"
 									/>
@@ -163,10 +163,10 @@ const TimerCard = ({
 									<Input
 										type="number"
 										value={pomodoroSettings.longBreakTime}
-										onChange={(e) => setPomodoroSettings(prev => ({
-											...prev,
+										onChange={(e) => updatePomodoroSettings({
+											...pomodoroSettings,
 											longBreakTime: parseInt(e.target.value)
-										}))}
+										})}
 										min="1"
 										max="60"
 									/>
@@ -179,10 +179,10 @@ const TimerCard = ({
 									<Input
 										type="number"
 										value={pomodoroSettings.longBreakInterval}
-										onChange={(e) => setPomodoroSettings(prev => ({
-											...prev,
+										onChange={(e) => updatePomodoroSettings({
+											...pomodoroSettings,
 											longBreakInterval: parseInt(e.target.value)
-										}))}
+										})}
 										min="1"
 										max="10"
 									/>

@@ -259,7 +259,10 @@ export default function TaskModal({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <AddTimer />
+            <AddTimer
+              defaultTaskId={task.id}
+              onTimerClose={() => setIsTimerOpen(false)}
+            />
           </div>
         )}
       </DialogContent>

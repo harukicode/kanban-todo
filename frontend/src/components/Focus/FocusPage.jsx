@@ -204,7 +204,7 @@ const FocusPage = () => {
 						logs={getFilteredLogs().filter((log) => log.source === "focus")}
 						focusTasks={focusTasks}
 						pomodoroSettings={pomodoroSettings}
-						setPomodoroSettings={updatePomodoroSettings}
+						updatePomodoroSettings={updatePomodoroSettings}
 					/>
 				</div>
 				

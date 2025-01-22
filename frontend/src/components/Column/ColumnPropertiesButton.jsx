@@ -109,10 +109,6 @@ export const ColumnPropertiesButton = React.memo(
           <DropdownMenuContent align="end" className="w-[200px]">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={handleOpenModal}>
-                <AiOutlineFolderAdd className="mr-2 h-4 w-4" />
-                Create New Task
-              </DropdownMenuItem>
               <DropdownMenuItem onSelect={handleEditNameClick}>
                 <BiEditAlt className="mr-2 h-4 w-4" />
                 Edit Column Name

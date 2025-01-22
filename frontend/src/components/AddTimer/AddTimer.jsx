@@ -2,7 +2,7 @@
 import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
 import React, { useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock } from "lucide-react";
+import { Clock, Timer } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import TimerDisplay from "./TimerDisplay";
@@ -11,7 +11,7 @@ import TimerFooter from "./TimerFooter";
 import { useTimer, useTimerStore } from '@/lib/timerLib'
 import useTaskStore from "@/stores/TaskStore";
 
-export default function AddTimer() {
+export default function AddTimer({ defaultTaskId }) {
   const {
     time,
     isRunning,
@@ -31,6 +31,16 @@ export default function AddTimer() {
   const setShowShortTimeAlert = useTimerStore((state) => state.setShowShortTimeAlert);
   // Находим выбранную задачу
   const selectedTask = tasks.find((task) => task.id === selectedTaskId);
+  
+  useEffect(() => {
+    if (defaultTaskId) {
+      const selectedTask = tasks.find(task => task.id === defaultTaskId);
+      if (selectedTask) {
+        useTaskStore.getState().setSelectedTaskId(defaultTaskId);
+        setSelectedTask(defaultTaskId);
+      }
+    }
+  }, [defaultTaskId, tasks, setSelectedTask]);
   
   // Синхронизируем выбранную задачу с таймером
   useEffect(() => {
@@ -87,6 +97,7 @@ export default function AddTimer() {
               onCheckedChange={handleTimerModeChange}
               className="data-[state=checked]:bg-green-500"
             />
+            <Timer className="h-4 w-4 text-gray-500" />
           </div>
         </div>
       </CardHeader>
