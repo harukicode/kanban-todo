@@ -1,5 +1,6 @@
 // AddTimer.jsx
 import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
+import { TimerModeChangeAlert } from '@/hooks/TimerModeChangeAlert.jsx'
 import React, { useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, Timer } from "lucide-react";
@@ -21,6 +22,10 @@ export default function AddTimer({ defaultTaskId }) {
     stopTimer,
     setSelectedTask,
     resetPomodoro,
+    showModeChangeAlert,
+    setShowModeChangeAlert,
+    handleConfirmModeChange,
+    pendingMode
   } = useTimer();
   
   const tasks = useTaskStore((state) => state.tasks);
@@ -77,6 +82,7 @@ export default function AddTimer({ defaultTaskId }) {
   };
   
   return (
+    <>
     <Card className="w-80 bg-white shadow-lg rounded-lg overflow-hidden">
       <CardHeader className="bg-gray-100 border-b border-gray-200">
         <Button
@@ -119,10 +125,19 @@ export default function AddTimer({ defaultTaskId }) {
           isPomodoroMode={mode === "pomodoro"}
         />
       </CardFooter>
+    </Card>
+      <TimerModeChangeAlert
+        isOpen={showModeChangeAlert}
+        onOpenChange={setShowModeChangeAlert}
+        onConfirm={handleConfirmModeChange}
+        currentMode={mode}
+        newMode={pendingMode}
+      />
+      
       <ShortTimeAlert
         isVisible={showShortTimeAlert}
         onClose={() => setShowShortTimeAlert(false)}
       />
-    </Card>
+    </>
   );
 }

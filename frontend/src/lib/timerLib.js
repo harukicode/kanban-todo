@@ -410,6 +410,8 @@ export const useTimerStore = create(
 export const useTimer = () => {
 	const store = useTimerStore();
 	const [displayTime, setDisplayTime] = React.useState(0);
+	const [pendingMode, setPendingMode] = React.useState(null);
+	const [showModeChangeAlert, setShowModeChangeAlert] = React.useState(false);
 	
 	const getCurrentPomodoroTime = React.useCallback(() => {
 		return store.getCurrentPomodoroTime();
@@ -490,12 +492,35 @@ export const useTimer = () => {
 	};
 	
 	const handleSetMode = (newMode) => {
-		store.setMode(newMode);
-		// При смене режима устанавливаем соответствующее время
-		if (newMode === 'pomodoro') {
-			setDisplayTime(store.pomodoroSettings.workTime * 60);
-		} else {
-			setDisplayTime(0);
+		// Если таймер не запущен, меняем режим сразу
+		if (!store.isRunning) {
+			store.setMode(newMode);
+			if (newMode === 'pomodoro') {
+				setDisplayTime(store.pomodoroSettings.workTime * 60);
+			} else {
+				setDisplayTime(0);
+			}
+			return;
+		}
+		
+		// Если таймер запущен, показываем предупреждение
+		setPendingMode(newMode);
+		setShowModeChangeAlert(true);
+	};
+	
+	const handleConfirmModeChange = () => {
+		if (pendingMode) {
+			// Сначала останавливаем текущий таймер
+			store.stopTimer();
+			// Затем меняем режим
+			store.setMode(pendingMode);
+			if (pendingMode === 'pomodoro') {
+				setDisplayTime(store.pomodoroSettings.workTime * 60);
+			} else {
+				setDisplayTime(0);
+			}
+			setPendingMode(null);
+			setShowModeChangeAlert(false);
 		}
 	};
 	
@@ -511,6 +536,11 @@ export const useTimer = () => {
 		isRunning: store.isRunning,
 		mode: store.mode,
 		currentMode: store.currentMode,
+		showModeChangeAlert,
+		setShowModeChangeAlert,
+		handleConfirmModeChange,
+		setMode: handleSetMode,
+		pendingMode,
 		selectedTaskId: store.selectedTaskId,
 		pomodoroSettings: store.pomodoroSettings,
 		timeLogs: store.timeLogs,
@@ -518,7 +548,6 @@ export const useTimer = () => {
 		
 		startTimer: handleStartTimer,
 		stopTimer: handleStopTimer,
-		setMode: handleSetMode,
 		resetTimer: store.resetTimer,
 		resetPomodoro: handleResetPomodoro,
 		setSelectedTask: store.setSelectedTask,

@@ -1,4 +1,5 @@
 import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
+import { TimerModeChangeAlert } from '@/hooks/TimerModeChangeAlert.jsx'
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -22,7 +23,11 @@ export default function FullTimer({ onClose }) {
 		pomodoroSettings,
 		updatePomodoroSettings,
 		formattedTime,
-		resetPomodoro
+		resetPomodoro,
+		showModeChangeAlert,
+		setShowModeChangeAlert,
+		handleConfirmModeChange,
+		pendingMode
 	} = useTimer();
 	
 	const tasks = useTaskStore((state) => state.tasks);
@@ -37,6 +42,7 @@ export default function FullTimer({ onClose }) {
 			startTimer();
 		}
 	};
+	
 	
 	const handlePomodoroChange = (checked) => {
 		setMode(checked ? 'pomodoro' : 'stopwatch');
@@ -58,6 +64,8 @@ export default function FullTimer({ onClose }) {
 			resetPomodoro();
 		}
 	};
+	
+	
 	
 	return (
 		<>
@@ -158,6 +166,14 @@ export default function FullTimer({ onClose }) {
 			<ShortTimeAlert
 				isVisible={showShortTimeAlert}
 				onClose={() => setShowShortTimeAlert(false)}
+			/>
+			
+			<TimerModeChangeAlert
+				isOpen={showModeChangeAlert}
+				onOpenChange={setShowModeChangeAlert}
+				onConfirm={handleConfirmModeChange}
+				currentMode={mode}
+				newMode={pendingMode}
 			/>
 		</>
 	);

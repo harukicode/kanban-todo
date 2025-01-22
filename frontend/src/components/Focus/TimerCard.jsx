@@ -1,3 +1,4 @@
+import { TimerModeChangeAlert } from '@/hooks/TimerModeChangeAlert.jsx'
 import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,13 @@ const TimerCard = ({
 	                   focusTasks,
 	                   pomodoroSettings,
 	                   updatePomodoroSettings,
+	                   showModeChangeAlert,
+	                   setShowModeChangeAlert,
+	                   handleConfirmModeChange,
+	                   pendingMode
                    }) => {
 	return (
+		<>
 		<Card className="shadow-md flex flex-col h-[calc(100%-400px-1rem)]">
 			<div className="flex items-center justify-between p-3 border-b">
 				<div className="flex items-center gap-2">
@@ -193,6 +199,14 @@ const TimerCard = ({
 				</div>
 			</Tabs>
 		</Card>
+			<TimerModeChangeAlert
+				isOpen={showModeChangeAlert}
+				onOpenChange={setShowModeChangeAlert}
+				onConfirm={handleConfirmModeChange}
+				currentMode={timerMode}
+				newMode={pendingMode}
+			/>
+		</>
 	);
 };
 

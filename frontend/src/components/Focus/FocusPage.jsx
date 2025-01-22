@@ -34,6 +34,10 @@ const FocusPage = () => {
 		updatePomodoroSettings,
 		formattedTime,
 		resetPomodoro,
+		showModeChangeAlert,
+		setShowModeChangeAlert,
+		handleConfirmModeChange,
+		pendingMode,
 	} = useTimer();
 	
 	const showShortTimeAlert = useTimerStore((state) => state.showShortTimeAlert);
@@ -205,6 +209,10 @@ const FocusPage = () => {
 						focusTasks={focusTasks}
 						pomodoroSettings={pomodoroSettings}
 						updatePomodoroSettings={updatePomodoroSettings}
+						showModeChangeAlert={showModeChangeAlert}
+						setShowModeChangeAlert={setShowModeChangeAlert}
+						handleConfirmModeChange={handleConfirmModeChange}
+						pendingMode={pendingMode}
 					/>
 				</div>
 				
