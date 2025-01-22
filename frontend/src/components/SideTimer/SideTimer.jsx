@@ -308,9 +308,6 @@ export default function SideTimer() {
     <div className="w-full max-w-8xl mx-auto p-4 font-sans">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Button size="icon" variant="ghost">
-            <Plus className="h-4 w-4" />
-          </Button>
           <h2 className="text-lg font-medium">My Time</h2>
           <Button
             variant="outline"
@@ -369,13 +366,6 @@ export default function SideTimer() {
             </Popover>
           ) : (
             <>
-              <Button
-                variant="outline"
-                className="h-9 px-4 font-normal"
-                onClick={() => setSelectedDate(new Date())}
-              >
-                Today
-              </Button>
               <div className="flex">
                 <Button
                   size="icon"
@@ -745,10 +735,6 @@ export default function SideTimer() {
             </TabsContent>
             <TabsContent value="analyze">
               <div className="space-y-4">
-                <Button className="w-full">
-                  <BarChart className="w-4 h-4 mr-2" />
-                  Analyze Productivity
-                </Button>
                 <Button className="w-full" onClick={exportData}>
                   <Download className="w-4 h-4 mr-2" />
                   Export Data
@@ -758,15 +744,7 @@ export default function SideTimer() {
           </Tabs>
         </Card>
       </div>
-
-      <div className="flex items-center gap-2 mb-4">
-        <Button variant="outline" className="h-8 px-3 text-sm font-normal">
-          Add time entry
-        </Button>
-        <Button variant="outline" className="h-8 px-3 text-sm font-normal">
-          Add break
-        </Button>
-      </div>
+      
     </div>
   );
 }

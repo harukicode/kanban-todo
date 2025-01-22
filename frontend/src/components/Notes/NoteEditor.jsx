@@ -1,10 +1,10 @@
-import { Comments } from '@/components/Notes/Comments.jsx'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { Comments } from "@/components/Notes/Comments.jsx"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Pin, Tags, Copy, Printer, Trash2, MoreVertical, Folder } from 'lucide-react'
+import { Pin, Tags, Copy, Printer, Trash2, MoreVertical, Folder } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
 	AlertDialog,
@@ -18,8 +18,9 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
-import useNotesStore from '@/Stores/NotesStore.jsx'
+import useNotesStore from "@/Stores/NotesStore.jsx"
 import "quill/dist/quill.snow.css"
+import { format, isToday, isYesterday } from "date-fns"
 
 function NoteEditor({ noteId }) {
 	const {
@@ -31,27 +32,30 @@ function NoteEditor({ noteId }) {
 		removeTagFromNote,
 		duplicateNote,
 		moveNoteToFolder,
-		folders
+		folders,
 	} = useNotesStore()
 	
-	const note = useNotesStore(state => getNoteById(noteId))
+	const note = useNotesStore((state) => getNoteById(noteId))
 	const [editor, setEditor] = useState(null)
 	const editorRef = useRef(null)
-	const [editedNote, setEditedNote] = useState(note || { title: '', content: '', tags: [], attachments: [] })
-	const [newTag, setNewTag] = useState('')
+	const [editedNote, setEditedNote] = useState(note || { title: "", content: "", tags: [], attachments: [] })
+	const [newTag, setNewTag] = useState("")
 	const [isEditorReady, setIsEditorReady] = useState(false)
 	
-	const saveContent = useCallback((content) => {
-		if (!editedNote?.id) return
-		
-		const updatedNote = {
-			...editedNote,
-			content: content,
-			updatedAt: new Date().toISOString()
-		}
-		updateNote(updatedNote)
-		setEditedNote(updatedNote)
-	}, [editedNote?.id, updateNote])
+	const saveContent = useCallback(
+		(content) => {
+			if (!editedNote?.id) return
+			
+			const updatedNote = {
+				...editedNote,
+				content: content,
+				updatedAt: new Date().toISOString(),
+			}
+			updateNote(updatedNote)
+			setEditedNote(updatedNote)
+		},
+		[editedNote?.id, updateNote],
+	)
 	
 	// Инициализируем редактор при монтировании
 	useEffect(() => {
@@ -61,70 +65,70 @@ function NoteEditor({ noteId }) {
 			try {
 				if (!editorRef.current || editor) return
 				
-				editorRef.current.innerHTML = ''
-				const Quill = (await import('quill')).default
+				editorRef.current.innerHTML = ""
+				const Quill = (await import("quill")).default
 				
 				// Добавляем обработчик для drop событий
-				editorRef.current.addEventListener('dragover', (e) => {
-					e.preventDefault();
-				});
+				editorRef.current.addEventListener("dragover", (e) => {
+					e.preventDefault()
+				})
 				
-				editorRef.current.addEventListener('drop', async (e) => {
-					e.preventDefault();
-					const files = Array.from(e.dataTransfer.files);
-					const imageFiles = files.filter(file => file.type.startsWith('image/'));
+				editorRef.current.addEventListener("drop", async (e) => {
+					e.preventDefault()
+					const files = Array.from(e.dataTransfer.files)
+					const imageFiles = files.filter((file) => file.type.startsWith("image/"))
 					
 					for (const file of imageFiles) {
-						const reader = new FileReader();
+						const reader = new FileReader()
 						reader.onload = () => {
-							const range = quillInstance.getSelection(true);
-							quillInstance.insertEmbed(range.index, 'image', reader.result);
-						};
-						reader.readAsDataURL(file);
+							const range = quillInstance.getSelection(true)
+							quillInstance.insertEmbed(range.index, "image", reader.result)
+						}
+						reader.readAsDataURL(file)
 					}
-				});
+				})
 				
 				quillInstance = new Quill(editorRef.current, {
-					theme: 'snow',
+					theme: "snow",
 					modules: {
 						toolbar: [
-							[{ 'size': ['small', false, 'large'] }],
-							['bold', 'italic', 'underline', 'strike'],
-							[{ 'color': [] }, { 'background': [] }],
-							[{ 'align': [] }],
-							[{ 'list': 'ordered'}, { 'list': 'bullet' }],
-							['image'], // Добавляем кнопку для загрузки изображений
-							['clean']
-						]
+							[{ size: ["small", false, "large"] }],
+							["bold", "italic", "underline", "strike"],
+							[{ color: [] }, { background: [] }],
+							[{ align: [] }],
+							[{ list: "ordered" }, { list: "bullet" }],
+							["image"], // Добавляем кнопку для загрузки изображений
+							["clean"],
+						],
 					},
-					placeholder: 'Start writing...'
-				});
+					placeholder: "Start writing...",
+				})
 				
 				// Добавляем обработчик клика по кнопке загрузки изображения
-				const toolbar = quillInstance.getModule('toolbar');
-				toolbar.addHandler('image', () => {
-					const input = document.createElement('input');
-					input.setAttribute('type', 'file');
-					input.setAttribute('accept', 'image/*');
-					input.click();
+				const toolbar = quillInstance.getModule("toolbar")
+				toolbar.addHandler("image", () => {
+					const input = document.createElement("input")
+					input.setAttribute("type", "file")
+					input.setAttribute("accept", "image/*")
+					input.click()
 					
 					input.onchange = () => {
-						const file = input.files[0];
+						const file = input.files[0]
 						if (file) {
-							const reader = new FileReader();
+							const reader = new FileReader()
 							reader.onload = () => {
-								const range = quillInstance.getSelection(true);
-								quillInstance.insertEmbed(range.index, 'image', reader.result);
-							};
-							reader.readAsDataURL(file);
+								const range = quillInstance.getSelection(true)
+								quillInstance.insertEmbed(range.index, "image", reader.result)
+							}
+							reader.readAsDataURL(file)
 						}
-					};
-				});
+					}
+				})
 				
 				setEditor(quillInstance)
 				setIsEditorReady(true)
 			} catch (error) {
-				console.error('Failed to load Quill:', error)
+				console.error("Failed to load Quill:", error)
 			}
 		}
 		
@@ -132,7 +136,7 @@ function NoteEditor({ noteId }) {
 		
 		return () => {
 			if (quillInstance) {
-				quillInstance.off('text-change')
+				quillInstance.off("text-change")
 			}
 		}
 	}, [])
@@ -144,7 +148,7 @@ function NoteEditor({ noteId }) {
 		setEditedNote(note)
 		
 		if (editor && isEditorReady) {
-			const content = note.content || ''
+			const content = note.content || ""
 			if (editor.root.innerHTML !== content) {
 				editor.root.innerHTML = content
 			}
@@ -164,11 +168,11 @@ function NoteEditor({ noteId }) {
 			}, 1000)
 		}
 		
-		editor.on('text-change', handleTextChange)
+		editor.on("text-change", handleTextChange)
 		
 		return () => {
 			if (timeout) clearTimeout(timeout)
-			editor.off('text-change', handleTextChange)
+			editor.off("text-change", handleTextChange)
 		}
 	}, [editor, isEditorReady, saveContent])
 	
@@ -181,67 +185,65 @@ function NoteEditor({ noteId }) {
 	
 	const handleAddTag = () => {
 		if (newTag.trim() && editedNote && !editedNote.tags.includes(newTag.trim())) {
-			addTagToNote(editedNote.id, newTag.trim());
-			setNewTag('');
+			addTagToNote(editedNote.id, newTag.trim())
+			setNewTag("")
 		}
-	};
+	}
 	
 	const handleRemoveTag = (tag) => {
 		if (editedNote) {
-			removeTagFromNote(editedNote.id, tag);
+			removeTagFromNote(editedNote.id, tag)
 		}
-	};
+	}
 	
 	const handleTogglePin = () => {
 		if (editedNote) {
-			togglePinNote(editedNote.id);
+			togglePinNote(editedNote.id)
 		}
-	};
+	}
 	
-
 	const handleDuplicateNote = () => {
 		if (editedNote) {
-			duplicateNote(editedNote.id);
+			duplicateNote(editedNote.id)
 		}
-	};
+	}
 	
 	const handleMoveToFolder = (folderId) => {
 		if (editedNote) {
-			moveNoteToFolder(editedNote.id, folderId);
+			moveNoteToFolder(editedNote.id, folderId)
 		}
-	};
+	}
 	
 	const handleDeleteNote = () => {
-		console.log('Delete clicked for note:', editedNote.id);
+		console.log("Delete clicked for note:", editedNote.id)
 		if (editedNote) {
-			const confirmed = window.confirm('Are you sure you want to delete this note?');
-			console.log('Confirmed:', confirmed);
+			const confirmed = window.confirm("Are you sure you want to delete this note?")
+			console.log("Confirmed:", confirmed)
 			if (confirmed) {
-				console.log('Calling deleteNote with id:', editedNote.id);
-				deleteNote(editedNote.id);
+				console.log("Calling deleteNote with id:", editedNote.id)
+				deleteNote(editedNote.id)
 			}
 		}
-	};
+	}
 	
 	if (!note || !editedNote) {
-		return <div className="flex-1 flex items-center justify-center">Note not found</div>;
+		return <div className="flex-1 flex items-center justify-center">Note not found</div>
 	}
 	
 	return (
 		<div className="flex-1 flex flex-col h-full">
 			<div className="flex items-center justify-between p-4 border-b">
 				<div className="flex items-center gap-2">
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={handleTogglePin}
-						className="hover:bg-accent"
-					>
+					<Button variant="ghost" size="icon" onClick={handleTogglePin} className="hover:bg-accent">
 						<Pin className={`h-4 w-4 ${editedNote.isPinned ? "text-yellow-500" : ""}`} />
 					</Button>
 					<Separator orientation="vertical" className="h-4" />
 					<Button variant="ghost" size="sm">
-						Today
+						{isToday(new Date(editedNote.createdAt))
+							? "Today"
+							: isYesterday(new Date(editedNote.createdAt))
+								? "Yesterday"
+								: format(new Date(editedNote.createdAt), "MMM d, yyyy")}
 					</Button>
 				</div>
 				
@@ -256,11 +258,7 @@ function NoteEditor({ noteId }) {
 							<SheetTitle>Note Actions</SheetTitle>
 						</SheetHeader>
 						<div className="grid gap-2 py-4">
-							<Button
-								variant="ghost"
-								className="justify-start"
-								onClick={handleTogglePin}
-							>
+							<Button variant="ghost" className="justify-start" onClick={handleTogglePin}>
 								<Pin className="mr-2 h-4 w-4" />
 								{editedNote.isPinned ? "Unpin" : "Pin"}
 							</Button>
@@ -286,16 +284,9 @@ function NoteEditor({ noteId }) {
 									</div>
 									<div className="flex flex-wrap gap-2 mt-4">
 										{editedNote.tags?.map((tag) => (
-											<Badge
-												key={tag}
-												variant="secondary"
-												className="px-2 py-1"
-											>
+											<Badge key={tag} variant="secondary" className="px-2 py-1">
 												{tag}
-												<button
-													className="ml-2 text-xs hover:text-destructive"
-													onClick={() => handleRemoveTag(tag)}
-												>
+												<button className="ml-2 text-xs hover:text-destructive" onClick={() => handleRemoveTag(tag)}>
 													×
 												</button>
 											</Badge>
@@ -304,15 +295,9 @@ function NoteEditor({ noteId }) {
 								</DialogContent>
 							</Dialog>
 							
-							
 							<Separator />
-
 							
-							<Button
-								variant="ghost"
-								className="justify-start"
-								onClick={handleDuplicateNote}
-							>
+							<Button variant="ghost" className="justify-start" onClick={handleDuplicateNote}>
 								<Copy className="mr-2 h-4 w-4" /> Duplicate
 							</Button>
 							
@@ -329,11 +314,7 @@ function NoteEditor({ noteId }) {
 									<div className="grid gap-2 py-4">
 										{folders.map((folder) => (
 											<DialogClose asChild key={folder.id}>
-												<Button
-													variant="ghost"
-													className="justify-start"
-													onClick={() => handleMoveToFolder(folder.id)}
-												>
+												<Button variant="ghost" className="justify-start" onClick={() => handleMoveToFolder(folder.id)}>
 													<Folder className="mr-2 h-4 w-4" /> {folder.name}
 												</Button>
 											</DialogClose>
@@ -350,10 +331,7 @@ function NoteEditor({ noteId }) {
 							
 							<AlertDialog>
 								<AlertDialogTrigger asChild>
-									<Button
-										variant="ghost"
-										className="justify-start text-destructive hover:text-destructive"
-									>
+									<Button variant="ghost" className="justify-start text-destructive hover:text-destructive">
 										<Trash2 className="mr-2 h-4 w-4" /> Delete
 									</Button>
 								</AlertDialogTrigger>
@@ -366,9 +344,7 @@ function NoteEditor({ noteId }) {
 									</AlertDialogHeader>
 									<AlertDialogFooter>
 										<AlertDialogCancel>Cancel</AlertDialogCancel>
-										<AlertDialogAction onClick={() => deleteNote(editedNote.id)}>
-											Delete
-										</AlertDialogAction>
+										<AlertDialogAction onClick={() => deleteNote(editedNote.id)}>Delete</AlertDialogAction>
 									</AlertDialogFooter>
 								</AlertDialogContent>
 							</AlertDialog>
@@ -389,14 +365,15 @@ function NoteEditor({ noteId }) {
 					<div
 						ref={editorRef}
 						className="h-full min-h-[200px] quill-editor"
-						style={{ backgroundColor: 'transparent' }}
+						style={{ backgroundColor: "transparent" }}
 					/>
 				</div>
 			</div>
 			
 			<Comments noteId={editedNote.id} />
 		</div>
-	);
+	)
 }
 
-export default NoteEditor;
+export default NoteEditor
+
