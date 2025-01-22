@@ -91,7 +91,11 @@ export const useTimerStore = create(
 				const state = get();
 				const selectedTaskId = options.taskId || state.selectedTaskId;
 				
-				if (selectedTaskId) {
+				// Не создаем лог если это перерыв в режиме помодоро
+				const isBreak = state.mode === 'pomodoro' &&
+					(state.currentMode === 'shortBreak' || state.currentMode === 'longBreak');
+				
+				if (selectedTaskId && !isBreak) {
 					// Определяем название задачи в зависимости от источника
 					let taskName;
 					if (options.source === 'focus') {
@@ -124,30 +128,30 @@ export const useTimerStore = create(
 						selectedTaskId: selectedTaskId,
 						currentSource: options.source
 					}));
+				} else {
+					// Для перерывов просто запускаем таймер без создания лога
+					set({
+						isRunning: true,
+						startTime: now.toISOString(),
+						selectedTaskId: selectedTaskId,
+						currentSource: options.source
+					});
 				}
 			},
-			
+
+// В функции stopTimer добавляем проверку режима
 			stopTimer: () => {
 				const state = get();
-				if (state.startTime && state.selectedTaskId) {
+				const isBreak = state.mode === 'pomodoro' &&
+					(state.currentMode === 'shortBreak' || state.currentMode === 'longBreak');
+				
+				if (state.startTime && state.selectedTaskId && !isBreak) {
 					// Вычисляем время сессии на основе режима
 					let timeSpent;
 					
 					if (state.mode === 'pomodoro') {
 						// Для помодоро всегда используем полное время сессии при автоматическом завершении
-						switch (state.currentMode) {
-							case 'work':
-								timeSpent = state.pomodoroSettings.workTime * 60;
-								break;
-							case 'shortBreak':
-								timeSpent = state.pomodoroSettings.shortBreakTime * 60;
-								break;
-							case 'longBreak':
-								timeSpent = state.pomodoroSettings.longBreakTime * 60;
-								break;
-							default:
-								timeSpent = state.pomodoroSettings.workTime * 60;
-						}
+						timeSpent = state.pomodoroSettings.workTime * 60;
 						
 						// Если таймер был остановлен вручную, вычисляем фактическое время
 						if (state.time > 1) {
@@ -204,6 +208,15 @@ export const useTimerStore = create(
 						currentLogId: null,
 						currentSource: null
 					}));
+				} else {
+					// Для перерывов просто останавливаем таймер без обновления логов
+					set({
+						isRunning: false,
+						startTime: null,
+						time: 0,
+						currentLogId: null,
+						currentSource: null
+					});
 				}
 			},
 			
