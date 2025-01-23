@@ -1,3 +1,4 @@
+import { PDFExport } from '@/components/SideTimer/PdfExport.jsx'
 import useColumnsStore from '@/Stores/ColumnsStore';
 import useFocusTaskStore from '@/Stores/FocusTaskStore.jsx'
 import useProjectStore from '@/Stores/ProjectsStore';
@@ -735,10 +736,12 @@ export default function SideTimer() {
             </TabsContent>
             <TabsContent value="analyze">
               <div className="space-y-4">
-                <Button className="w-full" onClick={exportData}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Data
-                </Button>
+                <PDFExport
+                  logs={timeLogs}
+                  projects={projects}
+                  formatDuration={formatDuration}
+                  getProjectForTask={getProjectForTask}
+                />
               </div>
             </TabsContent>
           </Tabs>

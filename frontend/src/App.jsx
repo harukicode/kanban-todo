@@ -15,6 +15,7 @@ import SideTimer from "./components/SideTimer/SideTimer.jsx";
 import NotesPage from "./components/Notes/Notes.jsx";
 import PageWrapper from "./App/PageWrapper.jsx";
 import FocusPage from "./components/Focus/FocusPage.jsx";
+import { Toaster } from "@/components/ui/toaster"
 
 const App = () => {
   return (
@@ -71,6 +72,7 @@ const App = () => {
         </SidebarProvider>
         
       </div>
+      <Toaster/>
     </Router>
   );
 };
