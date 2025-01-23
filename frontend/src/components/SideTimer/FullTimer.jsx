@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Pause, RotateCcw } from 'lucide-react';
 import { GiTomato } from "react-icons/gi";
-import { useTimer, useTimerStore } from '@/lib/timerLib';
+import { useTimer, useTimerStore } from '@/lib/TimerLib/timerLib.js';
 import useTaskStore from "@/stores/TaskStore";
 
 export default function FullTimer({ onClose }) {

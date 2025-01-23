@@ -21,7 +21,7 @@ import {
 import { List, Settings, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTimer, formatTime } from "@/lib/timerLib";
+import { useTimer, formatTime } from "@/lib/TimerLib/timerLib.js";
 import { format } from "date-fns";
 
 const LogDialog = ({ isOpen, onOpenChange }) => {

@@ -1,7 +1,7 @@
 import ShortTimeAlert from "@/App/ShortTimeAlert.jsx"
 import MindMap from "@/components/Focus/MindMap.jsx"
 import TimerCard from "@/components/Focus/TimerCard.jsx"
-import { useTimer, useTimerStore } from "@/lib/timerLib.js"
+import { useTimer, useTimerStore } from "@/lib/TimerLib/timerLib.js"
 import useFocusTaskStore from "@/Stores/FocusTaskStore.jsx"
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"

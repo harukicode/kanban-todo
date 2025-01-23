@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import TimerDisplay from "./TimerDisplay";
 import TimerControls from "./TimerControls";
 import TimerFooter from "./TimerFooter";
-import { useTimer, useTimerStore } from '@/lib/timerLib'
+import { useTimer, useTimerStore } from '@/lib/TimerLib/timerLib.js'
 import useTaskStore from "@/stores/TaskStore";
 
 export default function AddTimer({ defaultTaskId }) {
