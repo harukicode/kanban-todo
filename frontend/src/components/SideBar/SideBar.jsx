@@ -66,22 +66,20 @@ export default function SideBar() {
 
       <SidebarContent className="px-3 py-0 flex-grow overflow-y-auto">
         <SidebarGroup>
-          <h3 className="text-lg font-semibold mb-4">Navigation</h3>
+          <h3 className="text-l font-bold mb-4 px-4">Navigation</h3>
           <SidebarMenu>
             {navigationItems.map((item) => (
               <SidebarMenuItem key={item.label}>
                 <SidebarMenuButton
                   asChild
                   isActive={currentPath === item.path}
-                  className={`w-full h-10 justify-start rounded-lg flex items-center p-2 mb-2 transition-all ${
-                    currentPath === item.path
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-transparent hover:bg-accent hover:text-accent-foreground"
+                  className={`w-full h-12 justify-start rounded-lg flex items-center px-4 mb-2 transition-all${
+                    currentPath === item.path ? "active-button" : "inactive-button"
                   }`}
                 >
-                  <Link to={item.path} className="flex items-center w-full">
-                    <item.icon size={28} className="mr-3" />
-                    <span className="text-lg ">{item.label}</span>
+                  <Link to={item.path} className="flex items-center w-full gap-3">
+                    <item.icon/>
+                    <span className="text-lg" >{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -5,6 +5,18 @@
 .text-normal { font-size: 1rem; }
 .text-large { font-size: 1.25rem; }
 
+/* Стили для активной кнопки */
+.active-button {
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Тень */
+}
+
+.inactive-button:hover {
+	background-color: #f3f4f6; /* Светло-серый фон при наведении */
+}
+
+
+
+
 #editor {
 	height: calc(100% - 42px);
 	background: white;
