@@ -1,26 +1,59 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const cors = require('cors');
+const taskRoutes = require('./routes/tasks');
+const columnRoutes = require('./routes/columns');
 
 // Load environment variables
 dotenv.config();
 
-// Create an Express app
+// Create Express app
 const app = express();
 
-// JSON parsing middleware
+// CORS настройка
+app.use((req, res, next) => {
+	res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+	res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+	res.header('Access-Control-Allow-Credentials', 'true');
+	
+	if (req.method === 'OPTIONS') {
+		return res.status(200).end();
+	}
+	next();
+});
+
+// Basic middleware
 app.use(express.json());
 
-// API routes
+// Routes
+app.use('/api/tasks', taskRoutes);
+app.use('/api/columns', columnRoutes); // исправленный путь
+
+// Базовый маршрут для проверки
 app.get('/', (req, res) => {
-	res.send('Hello World!');
+	res.json({ message: 'API is working!' });
 });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGODB_URI)
 	.then(() => console.log('Connected to MongoDB'))
 	.catch((err) => console.error('MongoDB connection error:', err));
 
-// Start the server
+// Error handling
+app.use((err, req, res, next) => {
+	console.error(err.stack);
+	res.status(500).json({ message: err.message || 'Something went wrong!' });
+});
+// Добавьте после CORS middleware
+app.use((req, res, next) => {
+	console.log(`${req.method} ${req.url}`, {
+		body: req.body,
+		query: req.query
+	});
+	next();
+});
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

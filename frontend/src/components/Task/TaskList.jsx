@@ -5,13 +5,24 @@ import {
 } from "@dnd-kit/sortable";
 
 export const TasksList = ({ tasks, columnId, showSubtasks, doneColumn }) => {
+  
+  
+  
+  const uniqueTasks = tasks.reduce((acc, task) => {
+    if (!acc.some(t => t.id === task.id)) {
+      acc.push(task);
+    }
+    return acc;
+  }, []);
+  
+  
   return (
     <div className="space-y-2 flex-grow">
       <SortableContext
-        items={tasks.map((task) => task.id)}
+        items={uniqueTasks.map((task) => task.id)}
         strategy={verticalListSortingStrategy}
       >
-        {tasks.map((task) => (
+        {uniqueTasks.map((task) => (
           <Task
             key={task.id}
             task={task}

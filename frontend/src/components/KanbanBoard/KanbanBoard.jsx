@@ -7,14 +7,14 @@ import useColumnsStore from "@/Stores/ColumnsStore.jsx";
 import useProjectStore from "@/Stores/ProjectsStore.jsx";
 import useTaskStore from "@/Stores/TaskStore.jsx";
 import { closestCorners, DndContext, DragOverlay } from "@dnd-kit/core";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 export default function KanbanBoard() {
-  const { columns, setColumns, addColumn, deleteColumn, updateColumn } =
+  const { columns, setColumns, addColumn, deleteColumn, updateColumn, fetchColumns } =
     useColumnsStore();
   const { activeProjectId } = useProjectStore();
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const { moveTask, addTask } = useTaskStore();
+  const { moveTask, addTask,fetchTasks } = useTaskStore();
   const [showSubtasksForAllColumns, setShowSubtasksForAllColumns] =
     useState(false);
 
@@ -56,7 +56,29 @@ export default function KanbanBoard() {
     projectFilteredColumns,
     priorityFilter,
   );
-
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await fetchColumns();
+        const tasksResponse = await fetchTasks();
+        
+        // После загрузки задач, распределяем их по колонкам
+        const { columns } = useColumnsStore.getState();
+        const updatedColumns = columns.map(column => ({
+          ...column,
+          tasks: tasksResponse.filter(task => task.columnId === column.id)
+        }));
+        setColumns(updatedColumns);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+    
+    loadData();
+  }, [fetchColumns, fetchTasks, setColumns]);
+  
+  
+  
   const addNewColumn = useCallback(() => {
     addColumn({
       title: "New Column",

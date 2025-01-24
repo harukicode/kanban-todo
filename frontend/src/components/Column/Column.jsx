@@ -60,6 +60,8 @@ export function Column({
       });
     });
   };
+  const uniqueTasks = Array.from(new Set(tasks.map(t => t.id)))
+    .map(id => tasks.find(t => t.id === id));
 
   return (
     <div
@@ -82,7 +84,7 @@ export function Column({
         />
 
         <TasksList
-          tasks={tasks}
+          tasks={uniqueTasks}
           columnId={columnId}
           showSubtasks={showColumnSubtasks}
           doneColumn={column.doneColumn}

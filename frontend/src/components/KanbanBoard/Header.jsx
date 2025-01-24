@@ -29,7 +29,7 @@ export default function Header({
   const priorities = [
     { value: "all", label: "All Priorities" },
     { value: "high", label: "High" },
-    { value: "secondary", label: "Secondary" },
+    { value: "medium", label: "Medium" },
     { value: "low", label: "Low" },
   ];
   

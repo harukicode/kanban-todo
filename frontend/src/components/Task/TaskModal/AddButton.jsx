@@ -11,7 +11,6 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   AlignLeft,
   Calendar as CalendarIcon,
-  MessageCircle,
   Plus,
   FileText,
 } from "lucide-react";
@@ -19,14 +18,12 @@ import { format, parseISO } from "date-fns";
 
 export function AddButton({
                             dueDate,
-                            comments,
                             description,
                             onDueDateChange,
                             onDescriptionChange,
                             onNoteCreate,
                           }) {
   const [isMainPopoverOpen, setIsMainPopoverOpen] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(dueDate);
   
   useEffect(() => {
@@ -37,14 +34,7 @@ export function AddButton({
     const formattedDate = date ? date.toISOString() : null;
     setSelectedDate(formattedDate);
     onDueDateChange(formattedDate);
-    setIsCalendarOpen(false);
     setIsMainPopoverOpen(false);
-  };
-  
-  // Обработчик для предотвращения рекурсии фокуса
-  const handleOpenAutoFocus = (e) => {
-    // Предотвращаем автофокус для всех поповеров
-    e.preventDefault();
   };
   
   return (
@@ -68,14 +58,9 @@ export function AddButton({
       </PopoverTrigger>
       
       <PopoverContent
-        className="w-[200px] p-2"
+        className="w-[250px] p-2"
         sideOffset={5}
-        onOpenAutoFocus={handleOpenAutoFocus} // Добавляем обработчик
-        onInteractOutside={(e) => {
-          if (!isCalendarOpen) {
-            setIsMainPopoverOpen(false);
-          }
-        }}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="flex flex-col space-y-1">
           <Button
@@ -103,20 +88,11 @@ export function AddButton({
             Description
           </Button>
           
-          <Popover
-            open={isCalendarOpen}
-            onOpenChange={setIsCalendarOpen}
-            modal={true}
-          >
+          <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
                 className="w-full justify-start"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsCalendarOpen(true);
-                }}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {selectedDate
@@ -129,28 +105,18 @@ export function AddButton({
               className="w-auto p-0"
               align="start"
               side="right"
-              onOpenAutoFocus={handleOpenAutoFocus} // Добавляем обработчик
+              onOpenAutoFocus={(e) => e.preventDefault()}
             >
               <Calendar
                 mode="single"
                 selected={selectedDate ? parseISO(selectedDate) : undefined}
-                onSelect={handleDateSelect}
+                onSelect={(date) => {
+                  handleDateSelect(date);
+                }}
                 disabled={false}
               />
             </PopoverContent>
           </Popover>
-          
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMainPopoverOpen(false);
-            }}
-          >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Comment
-          </Button>
         </div>
       </PopoverContent>
     </Popover>

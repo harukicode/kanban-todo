@@ -1,80 +1,56 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { MoveRight } from "lucide-react";
-import useProjectStore from "@/Stores/ProjectsStore";
-import useColumnsStore from "@/Stores/ColumnsStore";
-import useTaskStore from "@/Stores/TaskStore";
+import React, { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { MoveRight } from "lucide-react"
+import { cn } from "@/lib/utils"
+import useProjectStore from "@/Stores/ProjectsStore"
+import useColumnsStore from "@/Stores/ColumnsStore"
+import useTaskStore from "@/Stores/TaskStore"
 
-export default function MoveTaskDropdown({ task, onClose }) {
-  const [selectedProject, setSelectedProject] = useState(task.projectId || "");
-  const [selectedColumn, setSelectedColumn] = useState(task.columnId || "");
-  const { projects } = useProjectStore();
-  const { columns } = useColumnsStore();
-  const { moveTask } = useTaskStore();
-
-  // Фильтруем колонки для выбранного проекта
-  const availableColumns = columns.filter(
-    (column) => column.projectId === selectedProject,
-  );
-
-  // Обработчик изменения проекта
-  const handleProjectChange = (newProjectId) => {
-    setSelectedProject(newProjectId);
-
-    // Получаем колонки для нового проекта
-    const newProjectColumns = columns.filter(
-      (column) => column.projectId === newProjectId,
-    );
-
-    // Если есть доступные колонки, выбираем первую
+export default function SimplifiedMoveTaskDropdown({ task, onClose }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [selectedProject, setSelectedProject] = useState(task.projectId || "")
+  const [selectedColumn, setSelectedColumn] = useState(task.columnId || "")
+  const { projects } = useProjectStore()
+  const { columns } = useColumnsStore()
+  const { moveTask } = useTaskStore()
+  const dropdownRef = useRef(null)
+  
+  const availableColumns = columns.filter((column) => column.projectId === selectedProject)
+  
+  const handleProjectChange = (e) => {
+    const newProjectId = e.target.value
+    setSelectedProject(newProjectId)
+    const newProjectColumns = columns.filter((column) => column.projectId === newProjectId)
     if (newProjectColumns.length > 0) {
-      setSelectedColumn(newProjectColumns[0].id);
+      setSelectedColumn(newProjectColumns[0].id)
     } else {
-      setSelectedColumn(""); // Сбрасываем выбор колонки, если колонок нет
+      setSelectedColumn("")
     }
-  };
-
-  // Обработчик изменения колонки
-  const handleColumnChange = (newColumnId) => {
-    setSelectedColumn(newColumnId);
-  };
-
+  }
+  
+  const handleColumnChange = (e) => {
+    setSelectedColumn(e.target.value)
+  }
+  
   const handleMove = () => {
     if (!selectedProject || !selectedColumn) {
       console.error("Project or column not selected", {
         selectedProject,
         selectedColumn,
         availableColumns,
-      });
-      return;
+      })
+      return
     }
-
-    if (
-      selectedProject !== task.projectId ||
-      selectedColumn !== task.columnId
-    ) {
+    
+    if (selectedProject !== task.projectId || selectedColumn !== task.columnId) {
       console.log("Moving task:", {
         taskId: task.id,
         fromColumnId: task.columnId,
         toColumnId: selectedColumn,
         toProjectId: selectedProject,
-      });
-
+      })
+      
       moveTask(
         task.timeSpent,
         task.description,
@@ -84,73 +60,80 @@ export default function MoveTaskDropdown({ task, onClose }) {
         task.columnId,
         selectedColumn,
         selectedProject,
-      );
-      onClose();
+      )
+      onClose()
     }
-  };
-
+  }
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+  
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <MoveRight size={16} className="mr-2" /> Move
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56">
-        <DropdownMenuLabel>Move task</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <div className="px-2 py-1.5 space-y-2">
-          <Select value={selectedProject} onValueChange={handleProjectChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select project" />
-            </SelectTrigger>
-            <SelectContent>
+    <div ref={dropdownRef} className="relative inline-block">
+      <Button variant="outline" size="sm" onClick={() => setIsOpen(!isOpen)}>
+        <MoveRight size={16} className="mr-2" /> Move
+      </Button>
+      {isOpen && (
+        <div className="absolute z-10 right-0 bottom-full mb-2 w-56 rounded-md shadow-lg bg-popover p-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="project-select">Project</Label>
+            <select
+              id="project-select"
+              value={selectedProject}
+              onChange={handleProjectChange}
+              className={cn(
+                "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "appearance-none bg-select-arrow bg-no-repeat bg-right",
+              )}
+            >
+              <option value="">Select project</option>
               {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
+                <option key={project.id} value={project.id}>
                   {project.name}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={selectedColumn}
-            onValueChange={handleColumnChange}
-            disabled={!selectedProject || availableColumns.length === 0}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue
-                placeholder={
-                  availableColumns.length === 0
-                    ? "No columns available"
-                    : "Select column"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="column-select">Column</Label>
+            <select
+              id="column-select"
+              value={selectedColumn}
+              onChange={handleColumnChange}
+              disabled={!selectedProject || availableColumns.length === 0}
+              className={cn(
+                "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "appearance-none bg-select-arrow bg-no-repeat bg-right",
+              )}
+            >
+              <option value="">{availableColumns.length === 0 ? "No columns available" : "Select column"}</option>
               {availableColumns.map((column) => (
-                <SelectItem key={column.id} value={column.id}>
+                <option key={column.id} value={column.id}>
                   {column.title}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
+            </select>
+          </div>
           <Button
-            className="w-full cursor-pointer"
+            className="w-full"
             onClick={handleMove}
-            disabled={
-              !selectedProject ||
-              !selectedColumn ||
-              availableColumns.length === 0
-            }
+            disabled={!selectedProject || !selectedColumn || availableColumns.length === 0}
           >
             Move
           </Button>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+        </div>
+      )}
+    </div>
+  )
 }
+

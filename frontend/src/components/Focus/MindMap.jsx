@@ -66,7 +66,7 @@ export default function MindMap({ onAddToTaskList }) {
 			</CardHeader>
 			
 			<CardContent className="flex-1 p-4 overflow-auto">
-				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 h-full">
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 h-full auto-rows-[minmax(80px,auto)]">
 					<AnimatePresence initial={false}>
 						{tasks.map((task) => (
 							<motion.div
@@ -74,7 +74,7 @@ export default function MindMap({ onAddToTaskList }) {
 								initial={{ opacity: 0, scale: 0.8 }}
 								animate={{ opacity: 1, scale: 1 }}
 								exit={{ opacity: 0, scale: 0.8 }}
-								className="flex items-stretch"
+								className="flex items-stretch min-w-[100px] h-12"
 							>
 								<TaskBubble
 									task={task.text}

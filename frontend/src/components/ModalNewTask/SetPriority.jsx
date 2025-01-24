@@ -10,17 +10,26 @@ const SetPriority = ({ selectedPriority, setSelectedPriority }) => {
   ]
   
   return (
-    <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+    <Select
+      value={selectedPriority}
+      onValueChange={setSelectedPriority}
+      // Добавляем пропсы для управления состоянием открытия
+      open={undefined} // Убираем прямое управление
+      onOpenChange={(open) => {
+        // Принудительно сбрасываем фокус при закрытии
+        if (!open) document.activeElement?.blur()
+      }}
+    >
       <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Set Priority">
-          {selectedPriority && (
-            <div className="flex items-center gap-2">
-              <FaFlag className={
-                priorities.find(p => p.value === selectedPriority)?.color || "text-gray-400"
-              } />
-              {priorities.find(p => p.value === selectedPriority)?.label || "No Priority"}
-            </div>
-          )}
+        <SelectValue>
+          <div className="flex items-center gap-2">
+            <FaFlag className={
+              priorities.find(p => p.value === selectedPriority)?.color ||
+              "text-gray-400"
+            } />
+            {priorities.find(p => p.value === selectedPriority)?.label ||
+              "Set Priority"}
+          </div>
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
@@ -29,10 +38,12 @@ const SetPriority = ({ selectedPriority, setSelectedPriority }) => {
             key={priority.value}
             value={priority.value}
             className="flex items-center gap-2"
+            // Добавляем подавление автоматического фокуса
+            onFocus={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
               <FaFlag className={priority.color} />
-              {priority.label}
+              <span>{priority.label}</span>
             </div>
           </SelectItem>
         ))}
@@ -42,4 +53,3 @@ const SetPriority = ({ selectedPriority, setSelectedPriority }) => {
 }
 
 export default SetPriority
-
