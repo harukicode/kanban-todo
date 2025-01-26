@@ -14,14 +14,27 @@ import { colorOptions } from "@/constants/SideBar/colorOptions";
 const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const [projectName, setProjectName] = useState("");
   const [selectedColor, setSelectedColor] = useState(colorOptions[0]);
-
-  const handleSubmit = (e) => {
+  
+  
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedColor(colorOptions[0]);
+    }
+  }, [isOpen]);
+  
+  
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (projectName.trim()) {
-      onAddProject({ name: projectName.trim(), color: selectedColor });
-      setProjectName("");
-      setSelectedColor(colorOptions[0]);
-      onClose();
+      try {
+        console.log('Sending project data:', { name: projectName.trim(), color: selectedColor });
+        await onAddProject({ name: projectName.trim(), color: selectedColor });
+        setProjectName("");
+        setSelectedColor(colorOptions[0]);
+        onClose();
+      } catch (error) {
+        console.error('Failed to add project:', error);
+      }
     }
   };
 

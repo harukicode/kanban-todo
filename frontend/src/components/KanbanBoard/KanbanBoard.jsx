@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 export default function KanbanBoard() {
   const { columns, setColumns, addColumn, deleteColumn, updateColumn, fetchColumns } =
     useColumnsStore();
-  const { activeProjectId } = useProjectStore();
+  const { projects, activeProjectId } = useProjectStore();
   const [priorityFilter, setPriorityFilter] = useState("all");
   const { moveTask, addTask,fetchTasks } = useTaskStore();
   const [showSubtasksForAllColumns, setShowSubtasksForAllColumns] =
@@ -47,10 +47,11 @@ export default function KanbanBoard() {
       [columns, setColumns],
     ),
   });
-
-  const projectFilteredColumns = useMemo(() => {
-    return columns.filter((column) => column.projectId === activeProjectId);
-  }, [columns, activeProjectId]);
+  
+  const projectFilteredColumns = useMemo(() =>
+      columns.filter((column) => column.projectId === activeProjectId),
+    [columns, activeProjectId]
+  );
 
   const filteredColumns = useFilteredTasks(
     projectFilteredColumns,
@@ -80,6 +81,7 @@ export default function KanbanBoard() {
   
   
   const addNewColumn = useCallback(() => {
+    if (!activeProjectId) return;
     addColumn({
       title: "New Column",
       tasks: [],
@@ -94,6 +96,19 @@ export default function KanbanBoard() {
     },
     [addTask, activeProjectId],
   );
+  
+  if (projects.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-6rem)]">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-2">Welcome to Kanban Board</h2>
+          <p className="text-gray-500 mb-6">
+            To get started, create your first project. Projects help you organize your tasks and keep your work structured.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="kanban-board p-4">

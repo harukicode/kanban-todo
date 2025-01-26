@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,32 +12,56 @@ import { Label } from "@/components/ui/label";
 import { colorOptions } from "@/constants/SideBar/colorOptions";
 
 const EditProjectModal = ({ isOpen, onClose, onEditProject, project }) => {
-  const [projectName, setProjectName] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
-
-  // Заполняем поля формы данными из проекта
+  // Локальное состояние для формы
+  const [localProject, setLocalProject] = useState(null);
+  
+  // Синхронизация с внешними данными
   useEffect(() => {
-    if (project) {
-      setProjectName(project.name);
-      setSelectedColor(project.color);
-    }
-  }, [project]);
-
-  // Обработчик отправки формы
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (projectName.trim()) {
-      onEditProject(project.id, {
-        name: projectName.trim(),
-        color: selectedColor,
+    if (isOpen && project) {
+      setLocalProject({
+        name: project.name,
+        color: project.color
       });
-      onClose();
+    } else {
+      setLocalProject(null);
     }
-  };
-
+  }, [isOpen, project]);
+  
+  // Обработчики
+  const handleClose = useCallback(() => {
+    setLocalProject(null);
+    onClose();
+  }, [onClose]);
+  
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    if (!localProject || !localProject.name.trim()) return;
+    
+    try {
+      await onEditProject(project.id, {
+        name: localProject.name.trim(),
+        color: localProject.color
+      });
+      handleClose();
+    } catch (error) {
+      console.error('Failed to edit project:', error);
+    }
+  }, [localProject, project?.id, onEditProject, handleClose]);
+  
+  // Если нет данных, не показываем модальное окно
+  if (!localProject) return null;
+  
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => !open && handleClose()}
+    >
+      <DialogContent
+        className="sm:max-w-[425px]"
+        onPointerDownOutside={(e) => {
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Edit Project</DialogTitle>
         </DialogHeader>
@@ -50,8 +74,11 @@ const EditProjectModal = ({ isOpen, onClose, onEditProject, project }) => {
               <Input
                 autoComplete="off"
                 id="projectName"
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
+                value={localProject.name}
+                onChange={(e) => setLocalProject(prev => ({
+                  ...prev,
+                  name: e.target.value
+                }))}
                 className="col-span-3"
               />
             </div>
@@ -59,22 +86,38 @@ const EditProjectModal = ({ isOpen, onClose, onEditProject, project }) => {
               <Label className="text-right">Color</Label>
               <div className="flex gap-2 col-span-3">
                 {colorOptions.map((color) => (
-                  <div
+                  <button
                     key={color}
+                    type="button"
                     className={`w-6 h-6 rounded-full cursor-pointer ${
-                      selectedColor === color
+                      localProject.color === color
                         ? "ring-2 ring-offset-2 ring-black"
                         : ""
                     }`}
                     style={{ backgroundColor: color }}
-                    onClick={() => setSelectedColor(color)}
+                    onClick={() => setLocalProject(prev => ({
+                      ...prev,
+                      color
+                    }))}
                   />
                 ))}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit">Save Changes</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!localProject.name.trim()}
+            >
+              Save Changes
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -9,9 +9,8 @@ import useProjectStore from "@/Stores/ProjectsStore.jsx";
 import { IoIosTimer } from "react-icons/io";
 import { ChevronDown, Plus, Focus } from "lucide-react";
 import AddTimer from "@/components/AddTimer/AddTimer";
-import { useState } from "react";
+import { useMemo, useState } from 'react'
 import { useNavigate } from "react-router-dom";
-
 export default function Header({
                                  onAddColumn,
                                  setPriorityFilter,
@@ -23,8 +22,11 @@ export default function Header({
   const [isTimerVisible, setIsTimerVisible] = useState(false);
   const navigate = useNavigate();
   
-  const activeProject =
-    projects.find((project) => project.id === activeProjectId) || projects[0];
+  
+  const activeProject = useMemo(() =>
+      projects.find((project) => project.id === activeProjectId) || projects[0],
+    [projects, activeProjectId]
+  );
   
   const priorities = [
     { value: "all", label: "All Priorities" },
@@ -35,6 +37,16 @@ export default function Header({
   
   const activePriority =
     priorities.find((p) => p.value === priorityFilter) || priorities[0];
+  
+  
+  // Если нет проектов, отображаем упрощенный заголовок
+  if (projects.length === 0) {
+    return (
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold">Kanban Board</h1>
+      </div>
+    );
+  }
   
   return (
     <div className="mb-4">

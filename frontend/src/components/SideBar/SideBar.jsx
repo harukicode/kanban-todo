@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from "react-router-dom";
 import { IoAddOutline } from "react-icons/io5";
 import { MdOutlineSettingsSuggest } from "react-icons/md";
@@ -36,20 +36,56 @@ export default function SideBar() {
     setActiveProjectId,
     deleteProject,
     editProject,
+    fetchProjects, // Добавляем новый метод
+    isLoading,     // Добавляем индикатор загрузки
+    error          // Добавляем обработку ошибок
   } = useProjectStore();
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState(null);
-
-  const handleEditProject = (project) => {
-    setProjectToEdit(project);
-    setIsEditProjectModalOpen(true);
-  };
-
-  const handleDeleteProject = (id) => {
+  
+  const [modalState, setModalState] = useState({
+    editModal: {
+      isOpen: false,
+      project: null
+    },
+    addModal: {
+      isOpen: false
+    }
+  });
+  
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+  
+  const handleEditProject = useCallback((project) => {
+    setModalState(prev => ({
+      ...prev,
+      editModal: {
+        isOpen: true,
+        project
+      }
+    }));
+  }, []);
+  
+  
+  const handleDeleteProject = useCallback((id) => {
     deleteProject(id);
-  };
-
+  }, [deleteProject]);
+  
+  
+  const handleCloseEditModal = useCallback(() => {
+    setModalState(prev => ({
+      ...prev,
+      editModal: {
+        isOpen: false,
+        project: null
+      }
+    }));
+  }, []);
+  
+  
+  
   return (
     <Sidebar className="w-64 h-screen bg-white border-r border-gray-200 shadow-md flex flex-col">
       <SidebarHeader className="px-4 pb-1 pt-8 bg-gray-50">
@@ -171,12 +207,12 @@ export default function SideBar() {
         onClose={() => setIsAddProjectModalOpen(false)}
         onAddProject={addProject}
       />
-
+      
       <EditProjectModal
-        isOpen={isEditProjectModalOpen}
-        onClose={() => setIsEditProjectModalOpen(false)}
+        isOpen={modalState.editModal.isOpen}
+        onClose={handleCloseEditModal}
         onEditProject={editProject}
-        project={projectToEdit}
+        project={modalState.editModal.project}
       />
     </Sidebar>
   );

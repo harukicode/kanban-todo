@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const taskRoutes = require('./routes/tasks');
 const columnRoutes = require('./routes/columns');
+const projectRoutes = require('./routes/projects'); // Добавляем новый роутер
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +31,7 @@ app.use(express.json());
 // Routes
 app.use('/api/tasks', taskRoutes);
 app.use('/api/columns', columnRoutes); // исправленный путь
+app.use('/api/projects', projectRoutes); // Добавляем маршруты проектов
 
 // Базовый маршрут для проверки
 app.get('/', (req, res) => {
@@ -54,6 +56,18 @@ app.use((req, res, next) => {
 	});
 	next();
 });
+
+mongoose.connection.on('connected', async () => {
+	console.log('MongoDB connection established');
+	try {
+		const collections = await mongoose.connection.db.listCollections().toArray();
+		console.log('Available collections:', collections.map(c => c.name));
+	} catch (err) {
+		console.error('Error listing collections:', err);
+	}
+});
+
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
