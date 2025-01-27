@@ -118,6 +118,8 @@ export default function TaskModal({
     setIsNoteModalOpen(true);
   };
   
+  
+  
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent

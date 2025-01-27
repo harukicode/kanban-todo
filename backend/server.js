@@ -5,6 +5,7 @@ const cors = require('cors');
 const taskRoutes = require('./routes/tasks');
 const columnRoutes = require('./routes/columns');
 const projectRoutes = require('./routes/projects'); // Добавляем новый роутер
+const subtaskRoutes = require('./routes/subtasks');
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +33,7 @@ app.use(express.json());
 app.use('/api/tasks', taskRoutes);
 app.use('/api/columns', columnRoutes); // исправленный путь
 app.use('/api/projects', projectRoutes); // Добавляем маршруты проектов
+app.use('/api/subtasks', subtaskRoutes);
 
 // Базовый маршрут для проверки
 app.get('/', (req, res) => {

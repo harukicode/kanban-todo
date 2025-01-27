@@ -18,16 +18,29 @@ export default function SubtaskList({ taskId }) {
 
   // Local state for new subtask input
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [error, setError] = useState(null);
 
   // Get subtasks and stats
   const subtasks = getSubtasksForTask(taskId);
   const { completed, total } = getSubtaskStats(taskId);
-
-  const handleAddSubtask = (e) => {
+  
+  const handleAddSubtask = async (e) => {
     e?.preventDefault();
     if (newSubtaskTitle.trim()) {
-      addSubtask(taskId, newSubtaskTitle.trim());
-      setNewSubtaskTitle("");
+      try {
+        setError(null);
+        const result = await addSubtask(taskId, newSubtaskTitle.trim());
+        console.log('Subtask created:', result);
+        setNewSubtaskTitle("");
+      } catch (error) {
+        console.error('Error adding subtask:', error);
+        setError(error.message || 'Failed to create subtask');
+        
+        // Дополнительное логирование деталей ошибки
+        if (error.details) {
+          console.error('Validation details:', error.details);
+        }
+      }
     }
   };
 

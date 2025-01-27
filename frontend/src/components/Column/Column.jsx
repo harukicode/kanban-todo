@@ -25,7 +25,20 @@ export function Column({
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const [showColumnSubtasks, setShowColumnSubtasks] = useState(showAllSubtasks);
   const { updateSubtask, getSubtasksForTask } = useSubtaskStore();
-
+  
+  useEffect(() => {
+    const loadSubtasks = async () => {
+      try {
+        await useSubtaskStore.getState().fetchSubtasks();
+      } catch (error) {
+        console.error('Error loading subtasks:', error);
+      }
+    };
+    
+    loadSubtasks();
+  }, []);
+  
+  
   useEffect(() => {
     setShowColumnSubtasks(showAllSubtasks);
   }, [showAllSubtasks]);

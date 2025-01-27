@@ -1,72 +1,164 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
+const API_URL = 'http://localhost:5000/api';
+
 const useSubtaskStore = create(
   persist(
     (set, get) => ({
       subtasks: [],
+      isLoading: false,
+      error: null,
       
-      addSubtask: (taskId, title) =>
-        set((state) => ({
-          subtasks: [
-            ...state.subtasks,
-            {
-              id: crypto.randomUUID(),
-              taskId,
-              title,
-              completed: false,
-              createdAt: new Date().toISOString(),
-              completedAt: null,
-              updatedAt: null,
-            },
-          ],
-        })),
-      
-      toggleSubtask: (subtaskId) =>
-        set((state) => ({
-          subtasks: state.subtasks.map((subtask) =>
-            subtask.id === subtaskId
-              ? {
-                ...subtask,
-                completed: !subtask.completed,
-                completedAt: !subtask.completed ? new Date().toISOString() : null,
-                updatedAt: new Date().toISOString(),
-              }
-              : subtask
-          ),
-        })),
-      
-      deleteSubtask: (subtaskId) =>
-        set((state) => ({
-          subtasks: state.subtasks.filter((subtask) => subtask.id !== subtaskId),
-        })),
-      
-      getSubtasksForTask: (taskId) => {
-        return get().subtasks.filter((subtask) => subtask.taskId === taskId);
+      // Fetch subtasks
+      fetchSubtasks: async () => {
+        set({ isLoading: true });
+        try {
+          const response = await fetch(`${API_URL}/subtasks`);
+          if (!response.ok) throw new Error('Failed to fetch subtasks');
+          const subtasks = await response.json();
+          set({ subtasks, isLoading: false });
+        } catch (error) {
+          set({ error: error.message, isLoading: false });
+        }
       },
       
-      deleteSubtasksForTask: (taskId) =>
-        set((state) => ({
-          subtasks: state.subtasks.filter((subtask) => subtask.taskId !== taskId),
-        })),
+      // Add subtask
+      addSubtask: async (taskId, title) => {
+        set({ isLoading: true, error: null });
+        try {
+          const subtaskData = {
+            taskId,
+            title,
+            completed: false
+          };
+          
+          console.log('Sending subtask data:', subtaskData);
+          
+          const response = await fetch(`${API_URL}/subtasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subtaskData)
+          });
+          
+          const data = await response.json();
+          if (!response.ok) {
+            console.error('Server response:', data);
+            throw new Error(data.message || 'Failed to create subtask');
+          }
+          
+          set(state => ({
+            subtasks: [...state.subtasks, data],
+            isLoading: false
+          }));
+          return data;
+        } catch (error) {
+          console.error('Error in addSubtask:', error);
+          set({ error: error.message, isLoading: false });
+          throw error;
+        }
+      },
       
-      updateSubtask: (subtaskId, updates) =>
-        set((state) => ({
-          subtasks: state.subtasks.map((subtask) =>
-            subtask.id === subtaskId
-              ? {
-                ...subtask,
-                ...updates,
-                updatedAt: new Date().toISOString(),
-              }
-              : subtask
-          ),
-        })),
+      // Toggle subtask completion
+      toggleSubtask: async (subtaskId) => {
+        set({ isLoading: true });
+        try {
+          const subtask = get().subtasks.find(st => st.id === subtaskId);
+          if (!subtask) throw new Error('Subtask not found');
+          
+          const response = await fetch(`${API_URL}/subtasks/${subtaskId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              completed: !subtask.completed
+            })
+          });
+          
+          if (!response.ok) throw new Error('Failed to update subtask');
+          const updatedSubtask = await response.json();
+          
+          set(state => ({
+            subtasks: state.subtasks.map(st =>
+              st.id === subtaskId ? updatedSubtask : st
+            ),
+            isLoading: false
+          }));
+        } catch (error) {
+          set({ error: error.message, isLoading: false });
+        }
+      },
+      
+      // Delete subtask
+      deleteSubtask: async (subtaskId) => {
+        set({ isLoading: true });
+        try {
+          const response = await fetch(`${API_URL}/subtasks/${subtaskId}`, {
+            method: 'DELETE'
+          });
+          
+          if (!response.ok) throw new Error('Failed to delete subtask');
+          
+          set(state => ({
+            subtasks: state.subtasks.filter(st => st.id !== subtaskId),
+            isLoading: false
+          }));
+        } catch (error) {
+          set({ error: error.message, isLoading: false });
+        }
+      },
+      
+      // Delete all subtasks for a task
+      deleteSubtasksForTask: async (taskId) => {
+        set({ isLoading: true });
+        try {
+          const response = await fetch(`${API_URL}/subtasks/task/${taskId}`, {
+            method: 'DELETE'
+          });
+          
+          if (!response.ok) throw new Error('Failed to delete subtasks');
+          
+          set(state => ({
+            subtasks: state.subtasks.filter(st => st.taskId !== taskId),
+            isLoading: false
+          }));
+        } catch (error) {
+          set({ error: error.message, isLoading: false });
+        }
+      },
+      
+      // Update subtask
+      updateSubtask: async (subtaskId, updates) => {
+        set({ isLoading: true });
+        try {
+          const response = await fetch(`${API_URL}/subtasks/${subtaskId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+          });
+          
+          if (!response.ok) throw new Error('Failed to update subtask');
+          const updatedSubtask = await response.json();
+          
+          set(state => ({
+            subtasks: state.subtasks.map(st =>
+              st.id === subtaskId ? updatedSubtask : st
+            ),
+            isLoading: false
+          }));
+        } catch (error) {
+          set({ error: error.message, isLoading: false });
+        }
+      },
+      
+      // Helper functions
+      getSubtasksForTask: (taskId) => {
+        return get().subtasks.filter(st => st.taskId === taskId);
+      },
       
       getSubtaskStats: (taskId) => {
         const taskSubtasks = get().getSubtasksForTask(taskId);
         const total = taskSubtasks.length;
-        const completed = taskSubtasks.filter((st) => st.completed).length;
+        const completed = taskSubtasks.filter(st => st.completed).length;
         const progress = total > 0 ? (completed / total) * 100 : 0;
         
         return {
@@ -78,26 +170,38 @@ const useSubtaskStore = create(
         };
       },
       
-      addMultipleSubtasks: (taskId, titles) =>
-        set((state) => ({
-          subtasks: [
-            ...state.subtasks,
-            ...titles.map((title) => ({
-              id: crypto.randomUUID(),
-              taskId,
-              title,
-              completed: false,
-              createdAt: new Date().toISOString(),
-              completedAt: null,
-              updatedAt: null,
-            })),
-          ],
-        })),
+      // Bulk operations
+      addMultipleSubtasks: async (taskId, titles) => {
+        set({ isLoading: true });
+        try {
+          const promises = titles.map(title =>
+            fetch(`${API_URL}/subtasks`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                taskId,
+                title,
+                completed: false
+              })
+            }).then(res => res.json())
+          );
+          
+          const newSubtasks = await Promise.all(promises);
+          
+          set(state => ({
+            subtasks: [...state.subtasks, ...newSubtasks],
+            isLoading: false
+          }));
+        } catch (error) {
+          set({ error: error.message, isLoading: false });
+        }
+      },
       
-      reorderSubtasks: (taskId, sourceIndex, destinationIndex) =>
-        set((state) => {
+      // Reorder subtasks (optional, implement if needed)
+      reorderSubtasks: (taskId, sourceIndex, destinationIndex) => {
+        set(state => {
           const taskSubtasks = [...get().getSubtasksForTask(taskId)];
-          const otherSubtasks = state.subtasks.filter((st) => st.taskId !== taskId);
+          const otherSubtasks = state.subtasks.filter(st => st.taskId !== taskId);
           
           const [removed] = taskSubtasks.splice(sourceIndex, 1);
           taskSubtasks.splice(destinationIndex, 0, removed);
@@ -105,7 +209,8 @@ const useSubtaskStore = create(
           return {
             subtasks: [...otherSubtasks, ...taskSubtasks],
           };
-        }),
+        });
+      },
     }),
     {
       name: "subtask-storage",

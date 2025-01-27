@@ -37,7 +37,8 @@ export default function Task({
   // Local state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showTaskSubtasks, setShowTaskSubtasks] = useState(showSubtasks);
-
+  
+  const {isLoading } = useSubtaskStore();
 
   const handleClick = (e) => {
     e.stopPropagation();
@@ -87,10 +88,14 @@ export default function Task({
    * Handles task deletion
    * Deletes both the task and its subtasks
    */
-  const handleDeleteTask = (e) => {
+  const handleDeleteTask = async (e) => {
     e.stopPropagation();
-    deleteSubtasksForTask(task.id);
-    deleteTask(columnId, task.id);
+    try {
+      await deleteSubtasksForTask(task.id);
+      await deleteTask(columnId, task.id);
+    } catch (error) {
+      console.error('Error deleting task and subtasks:', error);
+    }
   };
 
   /**
@@ -173,7 +178,7 @@ export default function Task({
             </div>
           </div>
         </CardHeader>
-
+        
         {showTaskSubtasks && subtasks.length > 0 && (
           <CardContent>
             <div className="mt-2">
@@ -181,8 +186,13 @@ export default function Task({
                 Subtasks: {completed}/{total}
               </div>
               <Progress value={progress} className="h-1 mb-2" />
-              <div className="mt-2 space-y-1 max-h-32 ">
-                {subtasks.map((subtask) => (
+              <div className="mt-2 space-y-1 max-h-32">
+                {isLoading ? (
+                  <div className="text-center text-sm text-muted-foreground">
+                    Loading subtasks...
+                  </div>
+                ) : (
+                  subtasks.map((subtask) => (
                   <div
                     key={subtask.id}
                     className="flex items-center space-x-2"
@@ -202,7 +212,8 @@ export default function Task({
                       {subtask.title}
                     </label>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </CardContent>
