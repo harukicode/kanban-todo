@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import FullTimer from '../FullTimer';
-import { useTimer, useTimerStore } from '@/lib/TimerLib/timerLib';
+import { useTimer, useTimerStore } from '@/lib/TimerLib/timerLib.jsx';
 
 vi.mock('@/lib/TimerLib/timerLib', () => ({
 	useTimer: vi.fn(),

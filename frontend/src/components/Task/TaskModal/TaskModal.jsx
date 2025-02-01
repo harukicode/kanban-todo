@@ -17,6 +17,7 @@ import TaskDescription from "@/components/Task/TaskModal/TaskDescription.jsx"
 import AddTimer from "@/components/AddTimer/AddTimer.jsx"
 import MoveTaskDropdown from "@/components/Task/TaskModal/MoveTaskDropdown.jsx"
 import { AddButton } from "@/components/Task/TaskModal/AddButton.jsx"
+import { useToast } from "@/hooks/use-toast";
 
 export default function TaskModal({
                                     isOpen,
@@ -42,6 +43,7 @@ export default function TaskModal({
   
   // Get subtask statistics
   const { total, completed } = getSubtaskStats(task.id)
+  const { toast } = useToast();
   
   // Refs
   const titleInputRef = useRef(null)
@@ -202,7 +204,7 @@ export default function TaskModal({
         {/* Modal footer */}
         <DialogFooter className="px-6 py-3 bg-gray-50 mt-auto">
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <AddButton
                 description={task.description}
                 dueDate={task.dueDate}
@@ -220,11 +222,28 @@ export default function TaskModal({
               >
                 <Clock size={16} className="mr-2" /> Timer
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const { generateTaskPDF } = await import('@/components/Task/TaskModal/TaskPDFExport');
+                    await generateTaskPDF(editedTask);
+                    toast({
+                      title: "Success",
+                      description: "PDF report generated successfully",
+                    });
+                  } catch (error) {
+                    console.error('Error generating PDF:', error);
+                    toast({
+                      title: "Error",
+                      description: error.message || "Failed to generate PDF report",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
                 <FileText size={16} className="mr-2" /> Reports
-              </Button>
-              <Button variant="outline" size="sm">
-                <MoreHorizontal size={16} className="mr-2" /> More
               </Button>
             </div>
             <div className="flex items-center space-x-2">

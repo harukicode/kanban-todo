@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useTimer, useTimerStore, formatTime } from '@/lib/TimerLib/timerLib';
+import { useTimer, useTimerStore, formatTime } from '@/lib/TimerLib/timerLib.jsx';
 
 describe('timerLib', () => {
 	beforeEach(() => {

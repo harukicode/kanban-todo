@@ -98,7 +98,7 @@ export const useTimerStore = create(
 			
 			// Действия с таймером
 			// В useTimerStore
-// timerLib.js
+// timerLib.jsx
 			startTimer: (options = { source: 'timer' }) => {
 				const state = get();
 				const now = Date.now();

@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import FullTimer from './FullTimer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTimer, useTimerStore } from '@/lib/TimerLib/timerLib.js';
+import { useTimer, useTimerStore } from '@/lib/TimerLib/timerLib.jsx';
 
 export default function SideTimer() {
   // Состояния из timerLib

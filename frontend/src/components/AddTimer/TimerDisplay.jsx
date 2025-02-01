@@ -1,5 +1,5 @@
 import React from "react";
-import { formatTime } from "@/lib/TimerLib/timerLib.js";
+import { formatTime } from "@/lib/TimerLib/timerLib.jsx";
 
 const TimerDisplay = ({ time }) => (
   <div className="text-center mb-4">
