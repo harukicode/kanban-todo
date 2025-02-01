@@ -323,10 +323,6 @@ function NoteEditor({ noteId }) {
 								</DialogContent>
 							</Dialog>
 							
-							<Button variant="ghost" className="justify-start">
-								<Printer className="mr-2 h-4 w-4" /> Print
-							</Button>
-							
 							<Separator />
 							
 							<AlertDialog>

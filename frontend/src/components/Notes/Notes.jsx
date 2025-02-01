@@ -7,7 +7,9 @@ import { Plus, Folder } from 'lucide-react'
 import NotesList from './NotesList'
 import NoteEditor from './NoteEditor'
 import FolderList from './FolderList'
+import { NewFolderModal } from './NewFolderModal'
 import useNotesStore from '@/Stores/NotesStore'
+import { useState } from 'react'
 
 function NotesPage() {
 	const {
@@ -26,11 +28,10 @@ function NotesPage() {
 		getFilteredNotes
 	} = useNotesStore()
 	
-	const handleAddFolder = () => {
-		const folderName = prompt('Enter new folder name:')
-		if (folderName) {
-			addFolder(folderName)
-		}
+	const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false)
+	
+	const handleCreateFolder = (folderName) => {
+		addFolder(folderName)
 	}
 	
 	const filteredNotes = getFilteredNotes()
@@ -38,7 +39,10 @@ function NotesPage() {
 	return (
 		<Card className="flex h-[calc(100vh-5rem)] bg-background rounded-lg overflow-hidden">
 			<div className="w-64 border-r bg-background p-4 rounded-l-lg">
-				<Button className="w-full mb-4" onClick={handleAddFolder}>
+				<Button
+					className="w-full mb-4"
+					onClick={() => setIsNewFolderModalOpen(true)}
+				>
 					<Folder className="mr-2 h-4 w-4" />
 					New Folder
 				</Button>
@@ -77,6 +81,12 @@ function NotesPage() {
 					/>
 				)}
 			</div>
+			
+			<NewFolderModal
+				isOpen={isNewFolderModalOpen}
+				onClose={() => setIsNewFolderModalOpen(false)}
+				onCreateFolder={handleCreateFolder}
+			/>
 		</Card>
 	)
 }
