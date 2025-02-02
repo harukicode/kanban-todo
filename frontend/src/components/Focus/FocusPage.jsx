@@ -18,6 +18,9 @@ const FocusPage = () => {
 		addFocusTask,
 		deleteFocusTask,
 		updateFocusTask,
+		isLoading,
+		error,
+		fetchFocusTasks,
 	} = useFocusTaskStore();
 	
 	const {
@@ -27,7 +30,6 @@ const FocusPage = () => {
 		setMode,
 		startTimer,
 		stopTimer,
-		resetTimer,
 		setSelectedTask,
 		getFilteredLogs,
 		pomodoroSettings,
@@ -47,7 +49,10 @@ const FocusPage = () => {
 	const [editingTask, setEditingTask] = useState(null);
 	const [activeTask, setActiveTask] = useState(null);
 	
-	
+	// Загружаем задачи при монтировании компонента
+	useEffect(() => {
+		fetchFocusTasks();
+	}, [fetchFocusTasks]);
 	
 	useEffect(() => {
 		if (activeTask) {
@@ -55,19 +60,19 @@ const FocusPage = () => {
 		}
 	}, [activeTask, setSelectedTask]);
 	
-	const addTask = () => {
+	const addTask = async () => {
 		if (newTask.trim()) {
-			addFocusTask({
+			const task = await addFocusTask({
 				text: newTask,
-				timeSpent: 0,
-				sessions: [],
 			});
-			setNewTask("");
+			if (task) {
+				setNewTask("");
+			}
 		}
 	};
 	
-	const deleteTask = (id) => {
-		deleteFocusTask(id);
+	const deleteTask = async (id) => {
+		await deleteFocusTask(id);
 		if (activeTask && activeTask.id === id) {
 			setActiveTask(null);
 		}
@@ -77,9 +82,9 @@ const FocusPage = () => {
 		setEditingTask({ ...task });
 	};
 	
-	const saveEdit = () => {
+	const saveEdit = async () => {
 		if (editingTask) {
-			updateFocusTask(editingTask.id, editingTask);
+			await updateFocusTask(editingTask.id, editingTask);
 			setEditingTask(null);
 		}
 	};
@@ -109,6 +114,16 @@ const FocusPage = () => {
 		setMode(mode === "normal" ? "pomodoro" : "normal");
 	};
 	
+	if (error) {
+		return (
+			<div className="min-h-screen flex items-center justify-center bg-gray-50">
+				<Card className="p-6">
+					<div className="text-red-500">Error: {error}</div>
+				</Card>
+			</div>
+		);
+	}
+	
 	return (
 		<div className="min-h-screen flex flex-col bg-gray-50 p-4">
 			<div className="flex items-center justify-between mb-4">
@@ -137,60 +152,80 @@ const FocusPage = () => {
 									value={newTask}
 									onChange={(e) => setNewTask(e.target.value)}
 									className="flex-grow"
+									disabled={isLoading}
 								/>
-								<Button onClick={addTask} variant="default" size="icon">
-									<Plus size={20} />
+								<Button
+									onClick={addTask}
+									variant="default"
+									size="icon"
+									disabled={isLoading || !newTask.trim()}
+								>
+									{isLoading ? (
+										<span className="animate-spin">⏳</span>
+									) : (
+										<Plus size={20} />
+									)}
 								</Button>
 							</div>
 							<ScrollArea className="flex-1 h-[calc(100%-4rem)] -mx-4">
 								<div className="space-y-2 px-4 pb-4">
-									{focusTasks.map((task) => (
-										<div
-											key={task.id}
-											className="flex items-center justify-between p-2 bg-gray-100 rounded"
-										>
-											{editingTask && editingTask.id === task.id ? (
-												<Input
-													value={editingTask.text}
-													onChange={(e) =>
-														setEditingTask({ ...editingTask, text: e.target.value })
-													}
-													onBlur={saveEdit}
-													autoFocus
-												/>
-											) : (
-												<div className="flex flex-col">
-													<span>{task.text}</span>
-													<span className="text-sm text-gray-500">
-                            Time spent: {formatTimeDisplay(task.timeSpent || 0)}
-                          </span>
-												</div>
-											)}
-											<div>
-												<Button
-													variant="ghost"
-													size="icon"
-													onClick={() => startEditing(task)}
-												>
-													<Edit size={16} />
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon"
-													onClick={() => deleteTask(task.id)}
-												>
-													<Trash2 size={16} />
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon"
-													onClick={() => setActiveTask(task)}
-												>
-													<Clock size={16} />
-												</Button>
-											</div>
+									{isLoading && focusTasks.length === 0 ? (
+										<div className="text-center py-8 text-gray-500">
+											Loading tasks...
 										</div>
-									))}
+									) : focusTasks.length === 0 ? (
+										<div className="text-center py-8 text-gray-500">
+											No tasks yet
+										</div>
+									) : (
+										focusTasks.map((task) => (
+											<div
+												key={task.id}
+												className="flex items-center justify-between p-2 bg-gray-100 rounded"
+											>
+												{editingTask && editingTask.id === task.id ? (
+													<Input
+														value={editingTask.text}
+														onChange={(e) =>
+															setEditingTask({ ...editingTask, text: e.target.value })
+														}
+														onBlur={saveEdit}
+														autoFocus
+													/>
+												) : (
+													<div className="flex flex-col">
+														<span>{task.text}</span>
+													</div>
+												)}
+												<div>
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => startEditing(task)}
+														disabled={isLoading}
+													>
+														<Edit size={16} />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => deleteTask(task.id)}
+														disabled={isLoading}
+													>
+														<Trash2 size={16} />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => setActiveTask(task)}
+														disabled={isLoading}
+													>
+														<Clock size={16} />
+													</Button>
+												</div>
+											</div>
+										))
+									)}
 								</div>
 							</ScrollArea>
 						</CardContent>
@@ -218,11 +253,9 @@ const FocusPage = () => {
 				
 				<Card className="flex-1 shadow-md">
 					<MindMap
-						onAddToTaskList={(taskText) => {
-							addFocusTask({
+						onAddToTaskList={async (taskText) => {
+							await addFocusTask({
 								text: taskText,
-								timeSpent: 0,
-								sessions: [],
 							});
 						}}
 					/>

@@ -7,6 +7,7 @@ const columnRoutes = require('./routes/columns');
 const projectRoutes = require('./routes/projects'); // Добавляем новый роутер
 const subtaskRoutes = require('./routes/subtasks');
 const mindMapRoutes = require('./routes/mindmap');
+const focusTaskRoutes = require('./routes/focustasks');
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +37,8 @@ app.use('/api/columns', columnRoutes); // исправленный путь
 app.use('/api/projects', projectRoutes); // Добавляем маршруты проектов
 app.use('/api/subtasks', subtaskRoutes);
 app.use('/api/mindmap', mindMapRoutes);
+app.use('/api/focustasks', focusTaskRoutes);
+
 
 // Базовый маршрут для проверки
 app.get('/', (req, res) => {
