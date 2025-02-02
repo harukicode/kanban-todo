@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
@@ -7,12 +7,37 @@ import TaskBubble from "./TaskBubble"
 import { useMindMapStore, MAX_TASKS_LIMIT, MAX_TASK_LENGTH_LIMIT } from "@/Stores/MindMapStore.jsx"
 
 export default function MindMap({ onAddToTaskList }) {
-	const { tasks, newTask, selectedColor, colors, setNewTask, addTask, removeTask, setSelectedColor } = useMindMapStore()
+	const {
+		tasks,
+		newTask,
+		selectedColor,
+		colors,
+		isLoading,
+		error,
+		fetchTasks,
+		setNewTask,
+		addTask,
+		removeTask,
+		setSelectedColor
+	} = useMindMapStore();
+	
+	// Загружаем задачи при монтировании компонента
+	useEffect(() => {
+		fetchTasks();
+	}, [fetchTasks]);
 	
 	const handleTaskClick = (taskText) => {
 		if (onAddToTaskList) {
-			onAddToTaskList(taskText)
+			onAddToTaskList(taskText);
 		}
+	};
+	
+	if (error) {
+		return (
+			<Card className="h-full flex items-center justify-center">
+				<div className="text-red-500">Error: {error}</div>
+			</Card>
+		);
 	}
 	
 	return (
@@ -30,7 +55,9 @@ export default function MindMap({ onAddToTaskList }) {
 								key={color.value}
 								onClick={() => setSelectedColor(color)}
 								className={`w-6 h-6 rounded-full transition-all duration-200 ${
-									selectedColor.value === color.value ? "ring-2 ring-purple-500 ring-offset-2" : "hover:scale-110"
+									selectedColor.value === color.value
+										? "ring-2 ring-purple-500 ring-offset-2"
+										: "hover:scale-110"
 								}`}
 								style={{ backgroundColor: color.value }}
 								title={color.name}
@@ -45,8 +72,8 @@ export default function MindMap({ onAddToTaskList }) {
 							onChange={(e) => setNewTask(e.target.value)}
 							onKeyPress={(e) => e.key === "Enter" && addTask()}
 							maxLength={MAX_TASK_LENGTH_LIMIT}
-							disabled={tasks.length >= MAX_TASKS_LIMIT}
-							className="w-full md:w-[280px] px-4 py-2.5 rounded-full border border-gray-200 bg-white/75 backdrop-blur-sm hover:bg-white focus:bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/30 text-[15px]"
+							disabled={isLoading || tasks.length >= MAX_TASKS_LIMIT}
+							className="w-full md:w-[280px] px-4 py-2.5 rounded-full border border-gray-200 bg-white/75 backdrop-blur-sm hover:bg-white focus:bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/30 text-[15px] disabled:opacity-50"
 							placeholder={
 								tasks.length >= MAX_TASKS_LIMIT
 									? "Maximum tasks reached"
@@ -55,11 +82,15 @@ export default function MindMap({ onAddToTaskList }) {
 						/>
 						<Button
 							onClick={addTask}
-							disabled={tasks.length >= MAX_TASKS_LIMIT || !newTask.trim()}
+							disabled={isLoading || tasks.length >= MAX_TASKS_LIMIT || !newTask.trim()}
 							className="shrink-0 rounded-full px-4 py-2.5 bg-purple-500 text-white hover:bg-purple-600 shadow-sm disabled:opacity-50 disabled:hover:bg-purple-500"
 							size="default"
 						>
-							<Plus className="h-5 w-5" />
+							{isLoading ? (
+								<span className="animate-spin">⏳</span>
+							) : (
+								<Plus className="h-5 w-5" />
+							)}
 						</Button>
 					</div>
 				</div>
@@ -78,7 +109,7 @@ export default function MindMap({ onAddToTaskList }) {
 							>
 								<TaskBubble
 									task={task.text}
-									color={task.color}
+									color={task.color.value}
 									onRemove={() => removeTask(task.id)}
 									onTaskClick={handleTaskClick}
 								/>
@@ -86,13 +117,19 @@ export default function MindMap({ onAddToTaskList }) {
 						))}
 					</AnimatePresence>
 					
-					{tasks.length === 0 && (
+					{tasks.length === 0 && !isLoading && (
 						<div className="col-span-full h-full flex items-center justify-center text-gray-400">
 							Add tasks to start building your mind map
+						</div>
+					)}
+					
+					{isLoading && tasks.length === 0 && (
+						<div className="col-span-full h-full flex items-center justify-center text-gray-400">
+							Loading tasks...
 						</div>
 					)}
 				</div>
 			</CardContent>
 		</Card>
-	)
+	);
 }

@@ -12,48 +12,135 @@ const COLORS = [
 
 const MAX_TASKS = 45
 const MAX_TASK_LENGTH = 20
+const API_URL = 'http://localhost:5000/api/mindmap';
 
 export const useMindMapStore = create(
 	persist(
-		(set) => ({
+		(set, get) => ({
 			tasks: [],
 			newTask: "",
 			selectedColor: COLORS[0],
 			colors: COLORS,
+			isLoading: false,
+			error: null,
+			
+			fetchTasks: async () => {
+				set({ isLoading: true, error: null });
+				try {
+					const response = await fetch(API_URL);
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(errorData.message || 'Failed to fetch tasks');
+					}
+					const tasks = await response.json();
+					
+					// Преобразуем данные из БД в формат фронтенда
+					const formattedTasks = tasks.map(task => ({
+						...task,
+						color: {
+							value: task.color,
+							hover: task.hoverColor
+						}
+					}));
+					
+					set({ tasks: formattedTasks, isLoading: false });
+				} catch (error) {
+					console.error('Fetch tasks error:', error);
+					set({ error: error.message, isLoading: false });
+				}
+			},
 			
 			setNewTask: (text) => set({ newTask: text }),
 			
-			addTask: () =>
-				set((state) => {
-					if (!state.newTask.trim() || state.tasks.length >= MAX_TASKS) return state
+			addTask: async () => {
+				const { newTask, selectedColor, tasks } = get();
+				
+				if (!newTask.trim() || tasks.length >= MAX_TASKS) return;
+				
+				set({ isLoading: true, error: null });
+				try {
+					const taskId = Date.now().toString();
 					
-					const newTask = {
-						id: Date.now().toString(),
-						text: state.newTask.trim().slice(0, MAX_TASK_LENGTH),
-						color: state.selectedColor.value,
-						hoverColor: state.selectedColor.hover,
+					// Создаем данные в формате, ожидаемом сервером
+					const taskData = {
+						id: taskId,
+						text: newTask.trim().slice(0, MAX_TASK_LENGTH),
+						color: selectedColor.value,
+						hoverColor: selectedColor.hover
+					};
+					
+					console.log('Sending task data:', taskData);
+					
+					const response = await fetch(API_URL, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(taskData)
+					});
+					
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(errorData.message || 'Failed to add task');
 					}
 					
-					return {
-						tasks: [...state.tasks, newTask],
+					const newTaskData = await response.json();
+					
+					// Преобразуем полученные данные в формат фронтенда
+					const formattedTask = {
+						...newTaskData,
+						color: {
+							value: newTaskData.color,
+							hover: newTaskData.hoverColor
+						}
+					};
+					
+					set(state => ({
+						tasks: [...state.tasks, formattedTask],
 						newTask: "",
-					}
-				}),
+						isLoading: false
+					}));
+				} catch (error) {
+					console.error('Add task error:', error);
+					set({ error: error.message, isLoading: false });
+				}
+			},
 			
-			removeTask: (taskId) =>
-				set((state) => ({
-					tasks: state.tasks.filter((task) => task.id !== taskId),
-				})),
+			removeTask: async (taskId) => {
+				set({ isLoading: true, error: null });
+				try {
+					const response = await fetch(`${API_URL}/${taskId}`, {
+						method: 'DELETE'
+					});
+					
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(errorData.message || 'Failed to delete task');
+					}
+					
+					set(state => ({
+						tasks: state.tasks.filter((task) => task.id !== taskId),
+						isLoading: false
+					}));
+				} catch (error) {
+					console.error('Remove task error:', error);
+					set({ error: error.message, isLoading: false });
+				}
+			},
 			
 			setSelectedColor: (color) => set({ selectedColor: color }),
+			clearError: () => set({ error: null })
 		}),
 		{
 			name: "mind-map-storage",
 			getStorage: () => localStorage,
-		},
-	),
-)
+			partialize: (state) => ({
+				tasks: state.tasks,
+				selectedColor: state.selectedColor
+			})
+		}
+	)
+);
 
 export const MAX_TASKS_LIMIT = MAX_TASKS
 export const MAX_TASK_LENGTH_LIMIT = MAX_TASK_LENGTH
-

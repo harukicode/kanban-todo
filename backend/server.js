@@ -6,6 +6,7 @@ const taskRoutes = require('./routes/tasks');
 const columnRoutes = require('./routes/columns');
 const projectRoutes = require('./routes/projects'); // Добавляем новый роутер
 const subtaskRoutes = require('./routes/subtasks');
+const mindMapRoutes = require('./routes/mindmap');
 
 // Load environment variables
 dotenv.config();
@@ -15,7 +16,7 @@ const app = express();
 
 // CORS настройка
 app.use((req, res, next) => {
-	res.header('Access-Control-Allow-Origin', 'http://localhost:5174');
+	res.header('Access-Control-Allow-Origin', 'http://localhost:5175');
 	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
 	res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 	res.header('Access-Control-Allow-Credentials', 'true');
@@ -34,6 +35,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/columns', columnRoutes); // исправленный путь
 app.use('/api/projects', projectRoutes); // Добавляем маршруты проектов
 app.use('/api/subtasks', subtaskRoutes);
+app.use('/api/mindmap', mindMapRoutes);
 
 // Базовый маршрут для проверки
 app.get('/', (req, res) => {
