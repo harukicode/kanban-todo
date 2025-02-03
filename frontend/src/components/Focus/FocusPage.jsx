@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Plus, Edit, Trash2, Clock } from "lucide-react"
+import { toast } from "@/hooks/use-toast.js"
 
 const FocusPage = () => {
 	const navigate = useNavigate();
@@ -34,7 +35,6 @@ const FocusPage = () => {
 		getFilteredLogs,
 		pomodoroSettings,
 		updatePomodoroSettings,
-		formattedTime,
 		resetPomodoro,
 		showModeChangeAlert,
 		setShowModeChangeAlert,
@@ -48,9 +48,23 @@ const FocusPage = () => {
 	const [newTask, setNewTask] = useState("");
 	const [editingTask, setEditingTask] = useState(null);
 	const [activeTask, setActiveTask] = useState(null);
+	const [logs, setLogs] = useState([]);
 	
-	// Загружаем задачи при монтировании компонента
 	useEffect(() => {
+		const initializeTimer = async () => {
+			try {
+				await useTimerStore.getState().initializeTimer();
+			} catch (error) {
+				console.error('Error initializing timer:', error);
+				toast({
+					title: "Error",
+					description: "Failed to initialize timer",
+					variant: "destructive"
+				});
+			}
+		};
+		
+		initializeTimer();
 		fetchFocusTasks();
 	}, [fetchFocusTasks]);
 	
@@ -60,21 +74,65 @@ const FocusPage = () => {
 		}
 	}, [activeTask, setSelectedTask]);
 	
+	useEffect(() => {
+		const fetchLogs = async () => {
+			try {
+				const fetchedLogs = await getFilteredLogs({ source: 'focus' });
+				setLogs(fetchedLogs);
+			} catch (error) {
+				console.error('Error fetching logs:', error);
+				toast({
+					title: "Error",
+					description: "Failed to fetch time logs",
+					variant: "destructive"
+				});
+			}
+		};
+		
+		fetchLogs();
+		const interval = setInterval(fetchLogs, 30000);
+		return () => clearInterval(interval);
+	}, [getFilteredLogs]);
+	
 	const addTask = async () => {
 		if (newTask.trim()) {
-			const task = await addFocusTask({
-				text: newTask,
-			});
-			if (task) {
-				setNewTask("");
+			try {
+				const task = await addFocusTask({
+					text: newTask,
+				});
+				if (task) {
+					setNewTask("");
+					toast({
+						title: "Success",
+						description: "Task added successfully"
+					});
+				}
+			} catch (error) {
+				toast({
+					title: "Error",
+					description: "Failed to add task",
+					variant: "destructive"
+				});
 			}
 		}
 	};
 	
 	const deleteTask = async (id) => {
-		await deleteFocusTask(id);
-		if (activeTask && activeTask.id === id) {
-			setActiveTask(null);
+		try {
+			await deleteFocusTask(id);
+			if (activeTask && activeTask.id === id) {
+				setActiveTask(null);
+			}
+			toast({
+				title: "Success",
+				description: "Task deleted successfully"
+			});
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to delete task",
+				variant: "destructive"
+			});
 		}
 	};
 	
@@ -84,34 +142,53 @@ const FocusPage = () => {
 	
 	const saveEdit = async () => {
 		if (editingTask) {
-			await updateFocusTask(editingTask.id, editingTask);
-			setEditingTask(null);
+			try {
+				await updateFocusTask(editingTask.id, editingTask);
+				setEditingTask(null);
+				toast({
+					title: "Success",
+					description: "Task updated successfully"
+				});
+			} catch (error) {
+				toast({
+					title: "Error",
+					description: "Failed to update task",
+					variant: "destructive"
+				});
+			}
 		}
 	};
 	
-	const formatTimeDisplay = (seconds) => {
-		const hours = Math.floor(seconds / 3600);
-		const minutes = Math.floor((seconds % 3600) / 60);
-		const secs = seconds % 60;
-		return `${hours.toString().padStart(2, "0")}:${minutes
-			.toString()
-			.padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-	};
-	
-	const toggleTimer = () => {
-		if (!isRunning && activeTask) {
-			startTimer({
-				source: "focus",
-				taskId: activeTask.id,
-				taskName: activeTask.text,
+	const toggleTimer = async () => {
+		try {
+			if (!isRunning && activeTask) {
+				await startTimer({
+					source: "focus",
+					taskId: activeTask.id,
+					taskName: activeTask.text,
+				});
+			} else {
+				await stopTimer();
+			}
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to control timer",
+				variant: "destructive"
 			});
-		} else {
-			stopTimer();
 		}
 	};
 	
-	const switchTimerMode = () => {
-		setMode(mode === "normal" ? "pomodoro" : "normal");
+	const switchTimerMode = async () => {
+		try {
+			await setMode(mode === "normal" ? "pomodoro" : "normal");
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to switch timer mode",
+				variant: "destructive"
+			});
+		}
 	};
 	
 	if (error) {
@@ -239,8 +316,7 @@ const FocusPage = () => {
 						toggleTimer={toggleTimer}
 						resetPomodoro={resetPomodoro}
 						activeTask={activeTask}
-						formatTime={formatTimeDisplay}
-						logs={getFilteredLogs().filter((log) => log.source === "focus")}
+						logs={logs}
 						focusTasks={focusTasks}
 						pomodoroSettings={pomodoroSettings}
 						updatePomodoroSettings={updatePomodoroSettings}
@@ -254,9 +330,21 @@ const FocusPage = () => {
 				<Card className="flex-1 shadow-md">
 					<MindMap
 						onAddToTaskList={async (taskText) => {
-							await addFocusTask({
-								text: taskText,
-							});
+							try {
+								await addFocusTask({
+									text: taskText,
+								});
+								toast({
+									title: "Success",
+									description: "Task added from mind map"
+								});
+							} catch (error) {
+								toast({
+									title: "Error",
+									description: "Failed to add task from mind map",
+									variant: "destructive"
+								});
+							}
 						}}
 					/>
 				</Card>

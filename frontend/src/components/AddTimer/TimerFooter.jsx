@@ -1,6 +1,6 @@
 import useFocusTaskStore from '@/Stores/FocusTaskStore.jsx'
 import useTaskStore from '@/Stores/TaskStore.jsx'
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,31 +18,68 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { List, Settings, Trash2 } from "lucide-react";
+import { List, Settings, Trash2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTimer, formatTime } from "@/lib/TimerLib/timerLib.jsx";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast.js";
 
 const LogDialog = ({ isOpen, onOpenChange }) => {
   const { getFilteredLogs, deleteTimeLog } = useTimer();
   const [logToDelete, setLogToDelete] = useState(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [logs, setLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Получаем логи и фильтруем их в зависимости от выбранного фильтра
-  const logs = getFilteredLogs()
-    .filter(log => sourceFilter === "all" || log.source === sourceFilter)
-    .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+  useEffect(() => {
+    const fetchLogs = async () => {
+      if (!isOpen) return;
+      
+      setIsLoading(true);
+      try {
+        const fetchedLogs = await getFilteredLogs();
+        const filteredLogs = fetchedLogs.filter(log =>
+          sourceFilter === "all" || log.source === sourceFilter
+        ).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+        
+        setLogs(filteredLogs);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch time logs",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchLogs();
+  }, [isOpen, sourceFilter, getFilteredLogs]);
   
   const handleDeleteClick = (log) => {
     setLogToDelete(log);
     setIsDeleteAlertOpen(true);
   };
   
-  const handleConfirmDelete = () => {
-    if (logToDelete) {
-      deleteTimeLog(logToDelete.logId);
+  const handleConfirmDelete = async () => {
+    if (!logToDelete) return;
+    
+    try {
+      await deleteTimeLog(logToDelete.logId);
+      setLogs(logs.filter(log => log.logId !== logToDelete.logId));
+      toast({
+        title: "Success",
+        description: "Time log deleted successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete time log",
+        variant: "destructive"
+      });
     }
     setIsDeleteAlertOpen(false);
     setLogToDelete(null);
@@ -79,68 +116,72 @@ const LogDialog = ({ isOpen, onOpenChange }) => {
             </div>
           </DialogHeader>
           <div className="max-h-[400px] overflow-y-auto">
-            {logs.map((log) => {
-              // Получаем название задачи в зависимости от источника
-              let taskName = log.taskName;
-              if (log.source === 'focus') {
-                const focusTaskStore = useFocusTaskStore.getState();
-                const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
-                if (focusTask) {
-                  taskName = focusTask.text;
-                }
-              } else {
-                const taskStore = useTaskStore.getState();
-                const task = taskStore.tasks.find(t => t.id === log.taskId);
-                if (task) {
-                  taskName = task.title;
-                }
-              }
-              
-              return (
-                <div
-                  key={log.logId}
-                  className="mb-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold">{taskName}</div>
-                      <div className="text-sm text-gray-500">
-                        {format(new Date(log.startTime), 'MMM dd, yyyy HH:mm')} -
-                        {format(new Date(log.endTime), 'HH:mm')}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <div className="font-medium">
-                          {formatTime(log.timeSpent)}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {log.mode === 'pomodoro' ? `Pomodoro - ${log.currentMode}` : 'Stopwatch'}
-                        </div>
-                        {log.source === 'focus' && (
-                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full mt-1">
-                            Focus Mode
-                          </span>
-                        )}
-                      </div>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteClick(log)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {logs.length === 0 && (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+              </div>
+            ) : logs.length === 0 ? (
               <div className="text-center text-gray-500 py-4">
                 No logs found
               </div>
+            ) : (
+              logs.map((log) => {
+                let taskName = log.taskName;
+                if (log.source === 'focus') {
+                  const focusTaskStore = useFocusTaskStore.getState();
+                  const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
+                  if (focusTask) {
+                    taskName = focusTask.text;
+                  }
+                } else {
+                  const taskStore = useTaskStore.getState();
+                  const task = taskStore.tasks.find(t => t.id === log.taskId);
+                  if (task) {
+                    taskName = task.title;
+                  }
+                }
+                
+                return (
+                  <div
+                    key={log.logId}
+                    className="mb-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-semibold">{taskName}</div>
+                        <div className="text-sm text-gray-500">
+                          {format(new Date(log.startTime), 'MMM dd, yyyy HH:mm')} -
+                          {format(new Date(log.endTime), 'HH:mm')}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <div className="font-medium">
+                            {formatTime(log.timeSpent)}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {log.mode === 'pomodoro' ? `Pomodoro - ${log.currentMode}` : 'Stopwatch'}
+                          </div>
+                          {log.source === 'focus' && (
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full mt-1">
+                              Focus Mode
+                            </span>
+                          )}
+                        </div>
+                        
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(log)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </DialogContent>
@@ -173,9 +214,21 @@ const LogDialog = ({ isOpen, onOpenChange }) => {
 const SettingsDialog = ({ isOpen, onOpenChange, settings, onSettingsSave }) => {
   const [localSettings, setLocalSettings] = useState(settings);
   
-  const handleSave = () => {
-    onSettingsSave(localSettings);
-    onOpenChange(false);
+  const handleSave = async () => {
+    try {
+      await onSettingsSave(localSettings);
+      onOpenChange(false);
+      toast({
+        title: "Success",
+        description: "Timer settings updated successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update timer settings",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -196,6 +249,8 @@ const SettingsDialog = ({ isOpen, onOpenChange, settings, onSettingsSave }) => {
                 workTime: parseInt(e.target.value)
               }))}
               className="col-span-3"
+              min={1}
+              max={60}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -209,6 +264,8 @@ const SettingsDialog = ({ isOpen, onOpenChange, settings, onSettingsSave }) => {
                 shortBreakTime: parseInt(e.target.value)
               }))}
               className="col-span-3"
+              min={1}
+              max={30}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -222,6 +279,8 @@ const SettingsDialog = ({ isOpen, onOpenChange, settings, onSettingsSave }) => {
                 longBreakTime: parseInt(e.target.value)
               }))}
               className="col-span-3"
+              min={1}
+              max={60}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -235,6 +294,8 @@ const SettingsDialog = ({ isOpen, onOpenChange, settings, onSettingsSave }) => {
                 longBreakInterval: parseInt(e.target.value)
               }))}
               className="col-span-3"
+              min={1}
+              max={10}
             />
           </div>
         </div>

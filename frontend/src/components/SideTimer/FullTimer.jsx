@@ -1,6 +1,6 @@
 import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
 import { TimerModeChangeAlert } from '@/hooks/TimerModeChangeAlert.jsx'
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -9,6 +9,7 @@ import { Play, Pause, RotateCcw } from 'lucide-react';
 import { GiTomato } from "react-icons/gi";
 import { useTimer, useTimerStore } from '@/lib/TimerLib/timerLib.jsx';
 import useTaskStore from "@/stores/TaskStore";
+import _ from 'lodash';
 
 export default function FullTimer({ onClose }) {
 	const {
@@ -34,34 +35,78 @@ export default function FullTimer({ onClose }) {
 	const showShortTimeAlert = useTimerStore((state) => state.showShortTimeAlert);
 	const setShowShortTimeAlert = useTimerStore((state) => state.setShowShortTimeAlert);
 	const selectedTask = tasks.find(task => task.id === selectedTaskId);
+	const [isLoading, setIsLoading] = useState(false);
+	const [localWorkTime, setLocalWorkTime] = useState(pomodoroSettings.workTime);
 	
-	const handleTimerAction = () => {
-		if (isRunning) {
-			stopTimer();
-		} else if (selectedTaskId) {
-			startTimer();
+	
+	
+	const debouncedUpdate = useMemo(() => {
+		return _.debounce((value) => {
+			updatePomodoroSettings({
+				...pomodoroSettings,
+				workTime: value
+			}).catch(error => {
+				console.error('Settings update failed:', error);
+			});
+		}, 100);
+	}, [pomodoroSettings, updatePomodoroSettings]);
+	
+	
+	// Очищаем debounced функцию при размонтировании
+	useEffect(() => {
+		return () => {
+			debouncedUpdate.cancel();
+		};
+	}, [debouncedUpdate]);
+	
+	const handleTimerAction = async () => {
+		setIsLoading(true);
+		try {
+			if (isRunning) {
+				await stopTimer();
+			} else if (selectedTaskId) {
+				await startTimer();
+			}
+		} catch (error) {
+			console.error('Timer action failed:', error);
+			// Можно добавить toast уведомление об ошибке
+		} finally {
+			setIsLoading(false);
 		}
 	};
 	
 	
-	const handlePomodoroChange = (checked) => {
-		setMode(checked ? 'pomodoro' : 'stopwatch');
+	const handlePomodoroChange = async (checked) => {
+		setIsLoading(true);
+		try {
+			await setMode(checked ? 'pomodoro' : 'stopwatch');
+		} catch (error) {
+			console.error('Mode change failed:', error);
+		} finally {
+			setIsLoading(false);
+		}
 	};
 	
 	const handleWorkTimeChange = ([value]) => {
-		updatePomodoroSettings({
-			...pomodoroSettings,
-			workTime: value
-		});
+		if (value === localWorkTime) return; // Предотвращаем лишние обновления
+		setLocalWorkTime(value);
+		debouncedUpdate(value);
 	};
 	
 	const handleTaskSelect = (taskId) => {
 		setSelectedTask(taskId);
 	};
 	
-	const handleResetPomodoro = () => {
+	const handleResetPomodoro = async () => {
 		if (mode === 'pomodoro') {
-			resetPomodoro();
+			setIsLoading(true);
+			try {
+				await resetPomodoro();
+			} catch (error) {
+				console.error('Reset failed:', error);
+			} finally {
+				setIsLoading(false);
+			}
 		}
 	};
 	
@@ -149,16 +194,17 @@ export default function FullTimer({ onClose }) {
 				{mode === 'pomodoro' && (
 					<div className="flex items-center space-x-2 flex-1">
 						<Slider
-							value={[pomodoroSettings.workTime]}
+							value={[localWorkTime]}
 							onValueChange={handleWorkTimeChange}
 							max={60}
 							min={1}
 							step={1}
 							className="w-full"
+							disabled={isLoading}
 						/>
 						<span className="text-sm font-medium w-12 text-right">
-              {pomodoroSettings.workTime} min
-            </span>
+          {localWorkTime} min
+        </span>
 					</div>
 				)}
 			</div>

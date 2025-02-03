@@ -1,6 +1,7 @@
 import ShortTimeAlert from '@/App/ShortTimeAlert.jsx'
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar.jsx";
-import React from "react";
+import { useTimerStore } from '@/lib/TimerLib/timerLib.jsx'
+import React, { useEffect } from 'react'
 import {
   BrowserRouter as Router,
   Route,
@@ -18,6 +19,12 @@ import FocusPage from "./components/Focus/FocusPage.jsx";
 import { Toaster } from "@/components/ui/toaster"
 
 const App = () => {
+  
+  useEffect(() => {
+    useTimerStore.getState().initializeTimer();
+  }, []);
+  
+  
   return (
     <Router>
       <div className="flex">

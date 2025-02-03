@@ -3,6 +3,7 @@ import useTaskStore from '@/Stores/TaskStore.jsx'
 import React from 'react'
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { API_ENDPOINTS, apiRequest } from '@/config/api';
 
 export const formatTime = (timeInSeconds) => {
 	const hours = Math.floor(timeInSeconds / 3600);
@@ -99,47 +100,66 @@ export const useTimerStore = create(
 			// Действия с таймером
 			// В useTimerStore
 // timerLib.jsx
-			startTimer: (options = { source: 'timer' }) => {
+			startTimer: async (options = { source: 'timer' }) => {
 				const state = get();
 				const now = Date.now();
 				const selectedTaskId = options.taskId || state.selectedTaskId;
 				
-				// Не создаем лог если это перерыв в режиме помодоро
 				const isBreak = state.mode === 'pomodoro' &&
 					(state.currentMode === 'shortBreak' || state.currentMode === 'longBreak');
 				
 				if (selectedTaskId && !isBreak) {
-					let taskName;
-					if (options.source === 'focus') {
-						const focusTaskStore = useFocusTaskStore.getState();
-						const focusTask = focusTaskStore.getFocusTaskById(selectedTaskId);
-						taskName = focusTask ? focusTask.text : "Unknown Task";
-					} else {
-						const taskStore = useTaskStore.getState();
-						const task = taskStore.tasks.find(t => t.id === selectedTaskId);
-						taskName = task ? task.title : "Unknown Task";
+					try {
+						let taskName;
+						if (options.source === 'focus') {
+							const focusTaskStore = useFocusTaskStore.getState();
+							const focusTask = focusTaskStore.getFocusTaskById(selectedTaskId);
+							taskName = focusTask ? focusTask.text : "Unknown Task";
+						} else {
+							const taskStore = useTaskStore.getState();
+							const task = taskStore.tasks.find(t => t.id === selectedTaskId);
+							taskName = task ? task.title : "Unknown Task";
+						}
+						
+						// Нормализуем режим таймера
+						const normalizedMode = state.mode === 'normal' ? 'stopwatch' : state.mode;
+						
+						const logEntry = {
+							logId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+							taskId: selectedTaskId,
+							taskName,
+							startTime: new Date(now).toISOString(),
+							endTime: new Date(now).toISOString(),
+							timeSpent: 0,
+							mode: normalizedMode,
+							currentMode: state.currentMode,
+							source: options.source
+						};
+						
+						console.log('Creating time log with data:', logEntry);
+						
+						const newLog = await apiRequest(API_ENDPOINTS.timelogs, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify(logEntry)
+						});
+						
+						set((state) => ({
+							isRunning: true,
+							startTimestamp: now,
+							currentLogId: logEntry.logId,
+							timeLogs: [...state.timeLogs, newLog],
+							selectedTaskId: selectedTaskId,
+							currentSource: options.source
+						}));
+						
+						return newLog;
+					} catch (error) {
+						console.error('Error creating time log:', error);
+						throw error;
 					}
-					
-					const logEntry = {
-						logId: Date.now().toString(),
-						taskId: selectedTaskId,
-						taskName: taskName,
-						startTime: new Date(now).toISOString(),
-						endTime: new Date(now).toISOString(),
-						timeSpent: 0,
-						mode: state.mode,
-						currentMode: state.currentMode,
-						source: options.source
-					};
-					
-					set(state => ({
-						isRunning: true,
-						startTimestamp: now,
-						currentLogId: logEntry.logId,
-						timeLogs: [...state.timeLogs, logEntry],
-						selectedTaskId: selectedTaskId,
-						currentSource: options.source
-					}));
 				} else {
 					set({
 						isRunning: true,
@@ -151,7 +171,7 @@ export const useTimerStore = create(
 			},
 
 // В функции stopTimer добавляем проверку режима
-			stopTimer: () => {
+			stopTimer: async () => {
 				const state = get();
 				const now = Date.now();
 				if (!state.startTimestamp) return;
@@ -162,57 +182,75 @@ export const useTimerStore = create(
 				if (state.startTimestamp && state.selectedTaskId && !isBreak) {
 					const elapsedSeconds = Math.floor((now - state.startTimestamp) / 1000);
 					
-					// Проверяем минимальное время для записи
-					if (elapsedSeconds < 10 && state.mode !== 'pomodoro') {
+					// Получаем время помодоро сессии, если мы в этом режиме
+					const pomodoroTime = state.mode === 'pomodoro' ? state.getCurrentPomodoroTime() : 0;
+					const remainingTime = state.mode === 'pomodoro' ? state.calculateElapsedTime() : 0;
+					const actualTimeSpent = state.mode === 'pomodoro' ? pomodoroTime - remainingTime : elapsedSeconds;
+					
+					// Проверяем минимальное время для обоих режимов
+					if (actualTimeSpent < 10) {
 						set({
 							showShortTimeAlert: true,
 							isRunning: false,
 							startTimestamp: null,
 							currentLogId: null,
-							currentSource: null,
-							timeLogs: state.timeLogs.filter(log => log.logId !== state.currentLogId)
+							currentSource: null
 						});
+						
+						// Удаляем лог только если он существует
+						if (state.currentLogId) {
+							try {
+								await apiRequest(`${API_ENDPOINTS.timelogs}/${state.currentLogId}`, {
+									method: 'DELETE'
+								});
+								
+								set(state => ({
+									timeLogs: state.timeLogs.filter(log => log.logId !== state.currentLogId)
+								}));
+							} catch (error) {
+								console.error('Error deleting short time log:', error);
+							}
+						}
 						return;
 					}
 					
-					// Изменяем логику определения времени сессии
-					let timeSpent;
-					if (state.mode === 'pomodoro') {
-						const pomodoroTime = state.getCurrentPomodoroTime();
-						const remainingTime = state.calculateElapsedTime(); // Получаем оставшееся время
-						timeSpent = pomodoroTime - remainingTime; // Вычисляем фактически прошедшее время
-					} else {
-						timeSpent = elapsedSeconds;
-					}
-					
-					const updatedLog = {
-						endTime: new Date(now).toISOString(),
-						timeSpent: timeSpent
-					};
-					
-					// Обновляем задачу в соответствующем сторе
-					if (state.currentSource === 'focus') {
-						const focusTaskStore = useFocusTaskStore.getState();
-						const task = focusTaskStore.getFocusTaskById(state.selectedTaskId);
-						if (task) {
-							focusTaskStore.updateFocusTask(state.selectedTaskId, {
-								...task,
-								timeSpent: (task.timeSpent || 0) + timeSpent
+					// Обновляем лог только если он существует
+					if (state.currentLogId) {
+						try {
+							const updatedLog = await apiRequest(`${API_ENDPOINTS.timelogs}/${state.currentLogId}`, {
+								method: 'PUT',
+								body: JSON.stringify({
+									endTime: new Date(now).toISOString(),
+									timeSpent: actualTimeSpent
+								})
+							});
+							
+							set(state => ({
+								isRunning: false,
+								startTimestamp: null,
+								timeLogs: state.timeLogs.map((log) =>
+									log.logId === state.currentLogId ? updatedLog : log
+								),
+								currentLogId: null,
+								currentSource: null
+							}));
+						} catch (error) {
+							console.error('Error updating time log:', error);
+							set({
+								isRunning: false,
+								startTimestamp: null,
+								currentLogId: null,
+								currentSource: null
 							});
 						}
+					} else {
+						set({
+							isRunning: false,
+							startTimestamp: null,
+							currentLogId: null,
+							currentSource: null
+						});
 					}
-					
-					set(state => ({
-						isRunning: false,
-						startTimestamp: null,
-						timeLogs: state.timeLogs.map((log) =>
-							log.logId === state.currentLogId
-								? { ...log, ...updatedLog }
-								: log
-						),
-						currentLogId: null,
-						currentSource: null
-					}));
 				} else {
 					set({
 						isRunning: false,
@@ -222,6 +260,16 @@ export const useTimerStore = create(
 					});
 				}
 			},
+			
+			initializeTimer: async () => {
+				try {
+					await get().fetchLogs();
+					await get().fetchPomodoroSettings();
+				} catch (error) {
+					console.error('Error initializing timer:', error);
+				}
+			},
+			
 			
 			// Управление режимами
 			setMode: (mode) => {
@@ -234,13 +282,41 @@ export const useTimerStore = create(
 				});
 			},
 			
-			updatePomodoroSettings: (newSettings) => {
-				set((state) => ({
-					pomodoroSettings: {
-						...state.pomodoroSettings,
-						...newSettings,
-					},
-				}));
+			// Получение логов при инициализации
+			fetchLogs: async () => {
+				try {
+					const logs = await apiRequest(API_ENDPOINTS.timelogs);
+					set({ timeLogs: logs });
+				} catch (error) {
+					console.error('Error fetching logs:', error);
+				}
+			},
+			
+			// Загрузка настроек Pomodoro
+			fetchPomodoroSettings: async () => {
+				try {
+					const response = await fetch('/api/settings/pomodoro');
+					const settings = await response.json();
+					set({ pomodoroSettings: settings });
+				} catch (error) {
+					console.error('Error fetching pomodoro settings:', error);
+				}
+			},
+			
+			
+			// Обновление настроек Pomodoro
+			updatePomodoroSettings: async (newSettings) => {
+				try {
+					const response = await fetch('/api/settings/pomodoro', {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(newSettings)
+					});
+					const settings = await response.json();
+					set({ pomodoroSettings: settings });
+				} catch (error) {
+					console.error('Error updating pomodoro settings:', error);
+				}
 			},
 			
 			handlePomodoroComplete: () => {
@@ -295,97 +371,135 @@ export const useTimerStore = create(
 				set({ selectedTaskId: taskId });
 			},
 			
-			// Работа с логами
-			addTimeLog: (log) => {
-				set((state) => ({
-					timeLogs: [...state.timeLogs, log],
-				}));
+			// Добавление лога времени
+			addTimeLog: async (log) => {
+				try {
+					const response = await fetch('/api/timelogs', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(log)
+					});
+					const newLog = await response.json();
+					set(state => ({
+						timeLogs: [...state.timeLogs, newLog]
+					}));
+				} catch (error) {
+					console.error('Error adding time log:', error);
+				}
 			},
 			
-			updateTimeLog: (logId, updatedData) => {
-				set(state => ({
-					timeLogs: state.timeLogs.map(log =>
-						log.logId === logId ? { ...log, ...updatedData } : log
-					),
-				}));
-			},
-			
-			deleteTimeLog: (logId) => {
-				set(state => ({
-					timeLogs: state.timeLogs.filter(log => log.logId !== logId),
-				}));
-			},
-			
-			getFilteredLogs: (filters = {}) => {
-				const state = get();
-				return state.timeLogs.filter((log) => {
-					// Базовые фильтры
-					if (filters.taskId && log.taskId !== filters.taskId) return false;
-					if (filters.startDate && new Date(log.startTime) < new Date(filters.startDate)) return false;
-					if (filters.endDate && new Date(log.endTime) > new Date(filters.endDate)) return false;
-					if (filters.mode && log.mode !== filters.mode) return false;
-					if (filters.source && log.source !== filters.source) return false;
+			// Обновление лога времени
+			updateTimeLog: async (logId, updatedData) => {
+				try {
+					const updatedLog = await apiRequest(`${API_ENDPOINTS.timelogs}/${logId}`, {
+						method: 'PUT',
+						body: JSON.stringify(updatedData)
+					});
 					
-					// Обновляем имя задачи, если оно отсутствует
-					if (!log.taskName || log.taskName === "Unknown Task") {
-						if (log.source === 'focus') {
-							const focusTaskStore = useFocusTaskStore.getState();
-							const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
-							if (focusTask) {
-								log.taskName = focusTask.text;
-							}
-						} else {
-							const taskStore = useTaskStore.getState();
-							const task = taskStore.tasks.find(t => t.id === log.taskId);
-							if (task) {
-								log.taskName = task.title;
-							}
-						}
-					}
+					// Немедленно обновляем состояние с обновленным логом
+					set((state) => ({
+						timeLogs: state.timeLogs.map(log =>
+							log.logId === logId ? updatedLog : log
+						)
+					}));
 					
-					return true;
-				});
+					return updatedLog;
+				} catch (error) {
+					console.error('Error updating time log:', error);
+					throw error;
+				}
+			},
+			
+			// Удаление лога времени
+			deleteTimeLog: async (logId) => {
+				try {
+					await apiRequest(`${API_ENDPOINTS.timelogs}/${logId}`, {
+						method: 'DELETE'
+					});
+					
+					// Немедленно обновляем состояние, удаляя лог
+					set((state) => ({
+						timeLogs: state.timeLogs.filter(log => log.logId !== logId)
+					}));
+				} catch (error) {
+					console.error('Error deleting time log:', error);
+					throw error;
+				}
+			},
+			
+			// Получение отфильтрованных логов
+			getFilteredLogs: async (filters = {}) => {
+				try {
+					const queryParams = new URLSearchParams();
+					if (filters.startDate) queryParams.append('startDate', filters.startDate.toISOString());
+					if (filters.endDate) queryParams.append('endDate', filters.endDate.toISOString());
+					if (filters.source) queryParams.append('source', filters.source);
+					if (filters.mode) queryParams.append('mode', filters.mode);
+					
+					const logs = await apiRequest(`${API_ENDPOINTS.timelogs}?${queryParams}`);
+					
+					// Обновляем состояние при получении логов
+					set({ timeLogs: logs });
+					
+					return logs;
+				} catch (error) {
+					console.error('Error fetching filtered logs:', error);
+					return [];
+				}
 			},
 			
 			// Статистика
-			getTaskStats: (taskId) => {
-				const state = get();
-				const taskLogs = state.timeLogs.filter((log) => log.taskId === taskId);
-				
-				return {
-					totalTime: taskLogs.reduce((sum, log) => sum + log.timeSpent, 0),
-					sessionCount: taskLogs.length,
-					averageSessionTime:
-						taskLogs.length > 0
-							? taskLogs.reduce((sum, log) => sum + log.timeSpent, 0) /
-							taskLogs.length
-							: 0,
-				};
+			getTaskStats: async (taskId) => {
+				try {
+					const logs = await get().getFilteredLogs({ taskId });
+					
+					return {
+						totalTime: logs.reduce((sum, log) => sum + log.timeSpent, 0),
+						sessionCount: logs.length,
+						averageSessionTime: logs.length > 0
+							? logs.reduce((sum, log) => sum + log.timeSpent, 0) / logs.length
+							: 0
+					};
+				} catch (error) {
+					console.error('Error getting task stats:', error);
+					return {
+						totalTime: 0,
+						sessionCount: 0,
+						averageSessionTime: 0
+					};
+				}
 			},
 			
-			getDailyStats: (date = new Date()) => {
-				const state = get();
-				const startOfDay = new Date(date);
-				startOfDay.setHours(0, 0, 0, 0);
-				const endOfDay = new Date(date);
-				endOfDay.setHours(23, 59, 59, 999);
-				
-				const dailyLogs = state.timeLogs.filter(
-					(log) =>
-						new Date(log.startTime) >= startOfDay &&
-						new Date(log.endTime) <= endOfDay
-				);
-				
-				return {
-					totalTime: dailyLogs.reduce((sum, log) => sum + log.timeSpent, 0),
-					sessions: dailyLogs.length,
-					pomodoroSessions: dailyLogs.filter((log) => log.mode === "pomodoro")
-						.length,
-					taskBreakdown: dailyLogs.reduce((acc, log) => {
-						acc[log.taskId] = (acc[log.taskId] || 0) + log.timeSpent;
-						return acc;
-					}, {}),
-				};
+			getDailyStats: async (date = new Date()) => {
+				try {
+					const startOfDay = new Date(date);
+					startOfDay.setHours(0, 0, 0, 0);
+					const endOfDay = new Date(date);
+					endOfDay.setHours(23, 59, 59, 999);
+					
+					const logs = await get().getFilteredLogs({
+						startDate: startOfDay,
+						endDate: endOfDay
+					});
+					
+					return {
+						totalTime: logs.reduce((sum, log) => sum + log.timeSpent, 0),
+						sessions: logs.length,
+						pomodoroSessions: logs.filter((log) => log.mode === "pomodoro").length,
+						taskBreakdown: logs.reduce((acc, log) => {
+							acc[log.taskId] = (acc[log.taskId] || 0) + log.timeSpent;
+							return acc;
+						}, {})
+					};
+				} catch (error) {
+					console.error('Error getting daily stats:', error);
+					return {
+						totalTime: 0,
+						sessions: 0,
+						pomodoroSessions: 0,
+						taskBreakdown: {}
+					};
+				}
 			},
 		}),
 		{
@@ -424,6 +538,20 @@ export const useTimer = () => {
 			store.updateTime(newTime);
 		}
 	};
+	
+	React.useEffect(() => {
+		// Загружаем логи при монтировании
+		store.fetchLogs();
+		
+		// Создаем интервал для регулярного обновления
+		const intervalId = setInterval(() => {
+			store.fetchLogs();
+		}, 5000); // Обновляем каждые 5 секунд
+		
+		return () => {
+			clearInterval(intervalId);
+		};
+	}, []);
 	
 	React.useEffect(() => {
 		if (!store.isRunning) {
@@ -470,24 +598,53 @@ export const useTimer = () => {
 		};
 	}, [store.isRunning, store.mode, store.startTimestamp]);
 	
-	const handleStartTimer = (options) => {
+	const handleStartTimer = async (options) => {
 		if (store.mode === 'pomodoro') {
 			const initialTime = getCurrentPomodoroTime();
 			handleTimeUpdate(initialTime);
 		} else {
 			handleTimeUpdate(0);
 		}
-		store.startTimer(options);
+		
+		try {
+			await store.startTimer(options);
+			await store.fetchLogs(); // Просто обновляем логи через существующий метод
+		} catch (error) {
+			console.error('Error starting timer:', error);
+		}
 	};
 	
-	const handleStopTimer = () => {
-		// Обновляем время в store перед остановкой
-		store.updateTime(displayTime);
-		store.stopTimer();
-		if (store.mode === 'pomodoro') {
-			handleTimeUpdate(getCurrentPomodoroTime());
-		} else {
-			handleTimeUpdate(0);
+	const handleDeleteTimeLog = async (logId) => {
+		try {
+			await store.deleteTimeLog(logId);
+			await store.fetchLogs(); // Обновляем логи после удаления
+		} catch (error) {
+			console.error('Error deleting time log:', error);
+		}
+	};
+	
+	const handleUpdateTimeLog = async (logId, updates) => {
+		try {
+			await store.updateTimeLog(logId, updates);
+			await store.fetchLogs(); // Обновляем логи после обновления
+		} catch (error) {
+			console.error('Error updating time log:', error);
+		}
+	};
+	
+	const handleStopTimer = async () => {
+		try {
+			store.updateTime(displayTime);
+			await store.stopTimer();
+			await store.fetchLogs(); // Обновляем логи после остановки
+			
+			if (store.mode === 'pomodoro') {
+				handleTimeUpdate(getCurrentPomodoroTime());
+			} else {
+				handleTimeUpdate(0);
+			}
+		} catch (error) {
+			console.error('Error stopping timer:', error);
 		}
 	};
 	
@@ -553,11 +710,12 @@ export const useTimer = () => {
 		setSelectedTask: store.setSelectedTask,
 		updatePomodoroSettings: store.updatePomodoroSettings,
 		getFilteredLogs: store.getFilteredLogs,
-		updateTimeLog: store.updateTimeLog,
-		deleteTimeLog: store.deleteTimeLog,
+		deleteTimeLog: handleDeleteTimeLog,
+		updateTimeLog: handleUpdateTimeLog,
 		getTaskStats: store.getTaskStats,
 		getDailyStats: store.getDailyStats,
 		showShortTimeAlert: store.showShortTimeAlert,
 		setShowShortTimeAlert: store.setShowShortTimeAlert,
+		
 	};
 };

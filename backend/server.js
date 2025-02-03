@@ -8,6 +8,9 @@ const projectRoutes = require('./routes/projects'); // Добавляем нов
 const subtaskRoutes = require('./routes/subtasks');
 const mindMapRoutes = require('./routes/mindmap');
 const focusTaskRoutes = require('./routes/focustasks');
+const timeLogRoutes = require('./routes/timelogs');
+const settingsRoutes = require('./routes/settings');
+
 
 // Load environment variables
 dotenv.config();
@@ -17,7 +20,7 @@ const app = express();
 
 // CORS настройка
 app.use((req, res, next) => {
-	res.header('Access-Control-Allow-Origin', 'http://localhost:5175');
+	res.header('Access-Control-Allow-Origin', 'http://localhost:5176');
 	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
 	res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 	res.header('Access-Control-Allow-Credentials', 'true');
@@ -38,6 +41,8 @@ app.use('/api/projects', projectRoutes); // Добавляем маршруты 
 app.use('/api/subtasks', subtaskRoutes);
 app.use('/api/mindmap', mindMapRoutes);
 app.use('/api/focustasks', focusTaskRoutes);
+app.use('/api/timelogs', timeLogRoutes);
+app.use('/api/settings', settingsRoutes);
 
 
 // Базовый маршрут для проверки

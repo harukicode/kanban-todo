@@ -20,7 +20,6 @@ import { useTimer, useTimerStore } from '@/lib/TimerLib/timerLib.jsx';
 export default function SideTimer() {
   // Состояния из timerLib
   const {
-    timeLogs,
     getFilteredLogs,
     updateTimeLog,
     deleteTimeLog,
@@ -53,11 +52,35 @@ export default function SideTimer() {
   const [filterTask, setFilterTask] = useState("");
   const [groupBy, setGroupBy] = useState("none");
   const [selectedProject, setSelectedProject] = useState("all");
+  const [isLoading, setIsLoading] = useState(false);
+  const [filteredAndSortedLogs, setFilteredAndSortedLogs] = useState([]);
+  const [totalTime, setTotalTime] = useState(0);
+  const timeLogs = useTimerStore(state => state.timeLogs);
   
   // Store состояния
   const tasks = useTaskStore((state) => state.tasks);
   const projects = useProjectStore((state) => state.projects);
   const columns = useColumnsStore((state) => state.columns);
+  
+  // Загрузка начальных данных
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      try {
+        const logs = await getFilteredLogs();
+        setTimelineData(generateTimelineData(logs));
+      } catch (error) {
+        console.error('Failed to load initial data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadInitialData();
+  }, []);
+  
+  
+  
   
   const getPeriodDates = () => {
     switch (periodType) {
@@ -74,12 +97,13 @@ export default function SideTimer() {
     }
   };
   
-  const generateTimelineData = () => {
+  const generateTimelineData = async () => {
     const { start, end } = getPeriodDates();
-    const filteredLogs = getFilteredLogs({
-      startDate: start,
-      endDate: end
-    });
+    try {
+      const filteredLogs = await getFilteredLogs({
+        startDate: start,
+        endDate: end
+      });
     
     if (periodType === "day") {
       return Array.from({ length: 24 }, (_, hour) => {
@@ -115,11 +139,29 @@ export default function SideTimer() {
       }
       return data;
     }
+    } catch (error) {
+      console.error('Failed to generate timeline data:', error);
+      return [];
+    }
   };
   
+  // Обновление данных при изменении периода
   useEffect(() => {
-    setTimelineData(generateTimelineData());
-  }, [timeLogs, selectedDate, periodType, customDateRange]);
+    const updateTimelineData = async () => {
+      setIsLoading(true);
+      try {
+        const newData = await generateTimelineData();
+        setTimelineData(newData);
+      } catch (error) {
+        console.error('Failed to update timeline data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    updateTimelineData();
+  }, [selectedDate, periodType, customDateRange]);
+  
   
   useEffect(() => {
     const timer = setInterval(() => {
@@ -132,11 +174,20 @@ export default function SideTimer() {
     return `${format(new Date(start), "HH:mm")} - ${format(new Date(end), "HH:mm")}`;
   };
   
-  const calculateTotalTime = () => {
-    const { start, end } = getPeriodDates();
-    return getFilteredLogs({ startDate: start, endDate: end })
-      .reduce((total, log) => total + (log.timeSpent || 0), 0);
-  };
+  useEffect(() => {
+    const calculateTotalTime = async () => {
+      const { start, end } = getPeriodDates();
+      try {
+        const logs = await getFilteredLogs({ startDate: start, endDate: end });
+        const total = logs.reduce((total, log) => total + (log.timeSpent || 0), 0);
+        setTotalTime(total);
+      } catch (error) {
+        console.error('Failed to calculate total time:', error);
+      }
+    };
+    
+    calculateTotalTime();
+  }, [selectedDate, periodType, customDateRange]);
   
   const getProjectForTask = (taskId) => {
     const task = tasks.find(t => t.id === taskId);
@@ -148,113 +199,105 @@ export default function SideTimer() {
     return projects.find(p => p.id === column.projectId) || null;
   };
   
-  const filteredAndSortedLogs = React.useMemo(() => {
-    return getFilteredLogs()
-      .filter(log => {
-        const { start, end } = getPeriodDates();
-        const logDate = new Date(log.startTime);
-        const project = getProjectForTask(log.taskId);
+  useEffect(() => {
+    const fetchAndProcessLogs = async () => {
+      setIsLoading(true);
+      try {
+        const processedLogs = timeLogs
+          .filter(log => {
+            const { start, end } = getPeriodDates();
+            const logDate = new Date(log.startTime);
+            const project = getProjectForTask(log.taskId);
+            
+            let taskName;
+            if (log.source === 'focus') {
+              const focusTaskStore = useFocusTaskStore.getState();
+              const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
+              taskName = focusTask ? focusTask.text : log.taskName;
+            } else {
+              taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
+            }
+            
+            return logDate >= start && logDate <= end &&
+              taskName.toLowerCase().includes(filterTask.toLowerCase()) &&
+              (selectedProject === "all" || (project && project.id === selectedProject));
+          })
+          .sort((a, b) => {
+            // Получаем актуальное имя задачи для обоих логов
+            let taskNameA, taskNameB;
+            
+            if (sortBy === "taskName") {
+              // Получаем имя задачи с учетом источника
+              if (a.source === 'focus') {
+                const focusTaskStore = useFocusTaskStore.getState();
+                const focusTaskA = focusTaskStore.getFocusTaskById(a.taskId);
+                taskNameA = focusTaskA ? focusTaskA.text : a.taskName;
+              } else {
+                taskNameA = a.taskName || tasks.find(t => t.id === a.taskId)?.title || "Unknown Task";
+              }
+              
+              if (b.source === 'focus') {
+                const focusTaskStore = useFocusTaskStore.getState();
+                const focusTaskB = focusTaskStore.getFocusTaskById(b.taskId);
+                taskNameB = focusTaskB ? focusTaskB.text : b.taskName;
+              } else {
+                taskNameB = b.taskName || tasks.find(t => t.id === b.taskId)?.title || "Unknown Task";
+              }
+              
+              return sortOrder === "asc"
+                ? taskNameA.localeCompare(taskNameB)
+                : taskNameB.localeCompare(taskNameA);
+            }
+            if (sortBy === "startTime") {
+              const timeA = new Date(a.startTime).getTime();
+              const timeB = new Date(b.startTime).getTime();
+              return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
+            }
+            return 0;
+          });
         
-        let taskName;
-        if (log.source === 'focus') {
-          // Получаем название задачи из FocusTaskStore
-          const focusTaskStore = useFocusTaskStore.getState();
-          const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
-          taskName = focusTask ? focusTask.text : log.taskName;
-        } else {
-          // Получаем название задачи из TaskStore
-          taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
-        }
+        setFilteredAndSortedLogs(processedLogs);
         
-        return logDate >= start && logDate <= end &&
-          taskName.toLowerCase().includes(filterTask.toLowerCase()) &&
-          (selectedProject === "all" || (project && project.id === selectedProject));
-      })
-      .sort((a, b) => {
-        if (sortBy === "startTime") {
-          return sortOrder === "asc"
-            ? new Date(a.startTime) - new Date(b.startTime)
-            : new Date(b.startTime) - new Date(a.startTime);
-        } else if (sortBy === "duration") {
-          return sortOrder === "asc"
-            ? a.timeSpent - b.timeSpent
-            : b.timeSpent - a.timeSpent;
-        } else if (sortBy === "taskName") {
-          let nameA, nameB;
-          
-          if (a.source === 'focus') {
-            const focusTaskStore = useFocusTaskStore.getState();
-            const focusTaskA = focusTaskStore.getFocusTaskById(a.taskId);
-            nameA = focusTaskA ? focusTaskA.text : a.taskName;
-          } else {
-            nameA = a.taskName || tasks.find(t => t.id === a.taskId)?.title || "";
-          }
-          
-          if (b.source === 'focus') {
-            const focusTaskStore = useFocusTaskStore.getState();
-            const focusTaskB = focusTaskStore.getFocusTaskById(b.taskId);
-            nameB = focusTaskB ? focusTaskB.text : b.taskName;
-          } else {
-            nameB = b.taskName || tasks.find(t => t.id === b.taskId)?.title || "";
-          }
-          
-          return sortOrder === "asc"
-            ? nameA.localeCompare(nameB)
-            : nameB.localeCompare(nameA);
-        } else if (sortBy === "project") {
-          const projectA = getProjectForTask(a.taskId);
-          const projectB = getProjectForTask(b.taskId);
-          const nameA = projectA ? projectA.name : "";
-          const nameB = projectB ? projectB.name : "";
-          return sortOrder === "asc"
-            ? nameA.localeCompare(nameB)
-            : nameB.localeCompare(nameA);
-        }
-      });
-  }, [timeLogs, selectedDate, periodType, customDateRange, sortBy, sortOrder, filterTask, selectedProject]);
-  
-  const handleUpdateTimeLog = (logId, updatedData) => {
-    const log = timeLogs.find(l => l.logId === logId);
-    if (!log) return;
-    
-    try {
-      const startTime = new Date(log.startTime);
-      if (isNaN(startTime.getTime())) {
-        throw new Error('Invalid start time');
+        // Обновляем timelineData
+        const newTimelineData = await generateTimelineData();
+        setTimelineData(newTimelineData);
+        
+        // Обновляем общее время
+        const total = processedLogs.reduce((sum, log) => sum + (log.timeSpent || 0), 0);
+        setTotalTime(total);
+      } catch (error) {
+        console.error('Failed to process logs:', error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      const newTimeSpent = updatedData.timeSpent;
-      const endTime = new Date(startTime.getTime() + (newTimeSpent * 1000));
-      
-      const updateData = {
-        ...updatedData,
-        endTime: endTime.toISOString()
-      };
-      
-      // Обновляем в timerLib
-      updateTimeLog(logId, updateData);
-      
-      // Обновляем в TaskStore
-      const taskStore = useTaskStore.getState();
-      taskStore.updateTimeLog(logId, updateData);
+    };
+    
+    fetchAndProcessLogs();
+  }, [timeLogs, selectedDate, periodType, customDateRange, sortBy, sortOrder, filterTask, selectedProject, tasks]); // добавляем tasks
+  
+  
+  
+  const handleUpdateTimeLog = async (logId, updatedData) => {
+    setIsLoading(true);
+    try {
+      await updateTimeLog(logId, updatedData);
     } catch (error) {
-      console.error('Error updating time log:', error);
+      console.error('Failed to update time log:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  const handleDeleteTimeLog = (logId) => {
+  const handleDeleteTimeLog = async (logId) => {
+    setIsLoading(true);
     try {
-      // Используем deleteTimeLog из хука useTimer
-      deleteTimeLog(logId);
-      
-      // И обновляем TaskStore
-      const taskStore = useTaskStore.getState();
-      taskStore.deleteTimeLog(logId);
+      await deleteTimeLog(logId);
     } catch (error) {
       console.error('Error deleting time log:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
   
   const handlePeriodChange = (newPeriod) => {
     setPeriodType(newPeriod);
@@ -399,7 +442,7 @@ export default function SideTimer() {
               <div>
                 <div className="text-sm text-muted-foreground">Total</div>
                 <div className="text-2xl font-semibold">
-                  {formatDuration(calculateTotalTime())}
+                  {formatDuration(totalTime)}
                 </div>
               </div>
               <div className="text-right">
@@ -482,26 +525,31 @@ export default function SideTimer() {
         >
           <div className="space-y-1">
             {Object.entries(groupedLogs).map(([group, logs]) => (
-              <div key={group}>
+              <div key={`group-${group}`}>
                 {groupBy !== "none" && (
                   <h3 className="font-semibold text-lg mt-4 mb-2">{group}</h3>
                 )}
                 {logs.map((log) => {
                   const project = getProjectForTask(log.taskId);
-                  
+
                   // Определяем название задачи в зависимости от источника
                   let taskName;
-                  if (log.source === 'focus') {
+                  if (log.source === "focus") {
                     const focusTaskStore = useFocusTaskStore.getState();
-                    const focusTask = focusTaskStore.getFocusTaskById(log.taskId);
+                    const focusTask = focusTaskStore.getFocusTaskById(
+                      log.taskId,
+                    );
                     taskName = focusTask ? focusTask.text : log.taskName;
                   } else {
-                    taskName = log.taskName || tasks.find(t => t.id === log.taskId)?.title || "Unknown Task";
+                    taskName =
+                      log.taskName ||
+                      tasks.find((t) => t.id === log.taskId)?.title ||
+                      "Unknown Task";
                   }
-                  
+
                   return (
                     <div
-                      key={log.logId}
+                      key={`${log.logId}-${new Date(log.startTime).getTime()}`}
                       className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 rounded-lg group"
                     >
                       <div className="flex-1">
@@ -747,7 +795,6 @@ export default function SideTimer() {
           </Tabs>
         </Card>
       </div>
-      
     </div>
   );
 }
