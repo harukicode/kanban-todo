@@ -1,15 +1,17 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Folder } from 'lucide-react'
+import { Plus, Folder, Loader2 } from 'lucide-react'
 import NotesList from './NotesList'
 import NoteEditor from './NoteEditor'
 import FolderList from './FolderList'
 import { NewFolderModal } from './NewFolderModal'
 import useNotesStore from '@/Stores/NotesStore'
 import { useState } from 'react'
+import { useToast } from "@/hooks/use-toast"
 
 function NotesPage() {
 	const {
@@ -18,6 +20,8 @@ function NotesPage() {
 		selectedNote,
 		selectedFolder,
 		searchTerm,
+		isLoading,
+		error,
 		addNote,
 		setSelectedNote,
 		setSearchTerm,
@@ -25,16 +29,117 @@ function NotesPage() {
 		deleteFolder,
 		renameFolder,
 		setSelectedFolder,
-		getFilteredNotes
+		getFilteredNotes,
+		initialize,
+		clearError
 	} = useNotesStore()
 	
 	const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false)
+	const { toast } = useToast()
 	
-	const handleCreateFolder = (folderName) => {
-		addFolder(folderName)
+	// Инициализация данных при монтировании
+	useEffect(() => {
+		initialize().catch(error => {
+			toast({
+				title: "Error",
+				description: "Failed to load notes and folders",
+				variant: "destructive",
+			})
+		})
+	}, [initialize, toast])
+	
+	// Обработка ошибок
+	useEffect(() => {
+		if (error) {
+			toast({
+				title: "Error",
+				description: error,
+				variant: "destructive",
+			})
+			clearError()
+		}
+	}, [error, toast, clearError])
+	
+	const handleCreateFolder = async (folderName) => {
+		try {
+			await addFolder(folderName)
+			setIsNewFolderModalOpen(false)
+			toast({
+				title: "Success",
+				description: "Folder created successfully",
+			})
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to create folder",
+				variant: "destructive",
+			})
+		}
+	}
+	
+	const handleAddNote = async () => {
+		try {
+			const newNote = await addNote()
+			if (newNote) {
+				toast({
+					title: "Success",
+					description: "Note created successfully",
+				})
+			}
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to create note",
+				variant: "destructive",
+			})
+		}
+	}
+	
+	const handleDeleteFolder = async (folderId) => {
+		try {
+			await deleteFolder(folderId)
+			toast({
+				title: "Success",
+				description: "Folder deleted successfully",
+			})
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to delete folder",
+				variant: "destructive",
+			})
+		}
+	}
+	
+	const handleRenameFolder = async (folderId, newName) => {
+		try {
+			await renameFolder(folderId, newName)
+			toast({
+				title: "Success",
+				description: "Folder renamed successfully",
+			})
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to rename folder",
+				variant: "destructive",
+			})
+		}
 	}
 	
 	const filteredNotes = getFilteredNotes()
+	
+	// Отображение загрузки
+	if (isLoading && !notes.length && !folders.length) {
+		return (
+			<Card className="flex h-[calc(100vh-5rem)] bg-background rounded-lg overflow-hidden items-center justify-center">
+				<div className="flex flex-col items-center gap-2">
+					<Loader2 className="h-8 w-8 animate-spin text-primary" />
+					<p className="text-sm text-muted-foreground">Loading notes...</p>
+				</div>
+			</Card>
+		)
+	}
 	
 	return (
 		<Card className="flex h-[calc(100vh-5rem)] bg-background rounded-lg overflow-hidden">
@@ -50,8 +155,8 @@ function NotesPage() {
 					folders={folders}
 					selectedFolder={selectedFolder}
 					onSelectFolder={setSelectedFolder}
-					onDeleteFolder={deleteFolder}
-					onRenameFolder={renameFolder}
+					onDeleteFolder={handleDeleteFolder}
+					onRenameFolder={handleRenameFolder}
 				/>
 			</div>
 			<div className="flex flex-1">
@@ -63,8 +168,16 @@ function NotesPage() {
 							onChange={(e) => setSearchTerm(e.target.value)}
 							className="mb-2"
 						/>
-						<Button className="w-full" onClick={addNote}>
-							<Plus className="mr-2 h-4 w-4" />
+						<Button
+							className="w-full"
+							onClick={handleAddNote}
+							disabled={isLoading}
+						>
+							{isLoading ? (
+								<Loader2 className="h-4 w-4 animate-spin mr-2" />
+							) : (
+								<Plus className="mr-2 h-4 w-4" />
+							)}
 							Add Note
 						</Button>
 					</div>

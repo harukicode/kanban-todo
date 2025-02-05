@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Pin, Tags, Copy, Printer, Trash2, MoreVertical, Folder } from "lucide-react"
+import { Pin, Tags, Copy, Printer, Trash2, MoreVertical, Folder, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
 	AlertDialog,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import useNotesStore from "@/Stores/NotesStore.jsx"
+import { useToast } from "@/hooks/use-toast"
 import "quill/dist/quill.snow.css"
 import { format, isToday, isYesterday } from "date-fns"
 
@@ -33,28 +34,56 @@ function NoteEditor({ noteId }) {
 		duplicateNote,
 		moveNoteToFolder,
 		folders,
+		isLoading,
+		error,
+		clearError
 	} = useNotesStore()
 	
+	const { toast } = useToast()
 	const note = useNotesStore((state) => getNoteById(noteId))
 	const [editor, setEditor] = useState(null)
 	const editorRef = useRef(null)
 	const [editedNote, setEditedNote] = useState(note || { title: "", content: "", tags: [], attachments: [] })
 	const [newTag, setNewTag] = useState("")
 	const [isEditorReady, setIsEditorReady] = useState(false)
+	const [isSaving, setIsSaving] = useState(false)
+	
+	// Обработка ошибок
+	useEffect(() => {
+		if (error) {
+			toast({
+				title: "Error",
+				description: error,
+				variant: "destructive",
+			})
+			clearError()
+		}
+	}, [error, toast, clearError])
 	
 	const saveContent = useCallback(
-		(content) => {
+		async (content) => {
 			if (!editedNote?.id) return
 			
-			const updatedNote = {
-				...editedNote,
-				content: content,
-				updatedAt: new Date().toISOString(),
+			setIsSaving(true)
+			try {
+				const updatedNote = {
+					...editedNote,
+					content: content,
+					updatedAt: new Date().toISOString(),
+				}
+				await updateNote(updatedNote)
+				setEditedNote(updatedNote)
+			} catch (error) {
+				toast({
+					title: "Error",
+					description: "Failed to save changes",
+					variant: "destructive",
+				})
+			} finally {
+				setIsSaving(false)
 			}
-			updateNote(updatedNote)
-			setEditedNote(updatedNote)
 		},
-		[editedNote?.id, updateNote],
+		[editedNote?.id, updateNote, toast],
 	)
 	
 	// Инициализируем редактор при монтировании
@@ -176,62 +205,154 @@ function NoteEditor({ noteId }) {
 		}
 	}, [editor, isEditorReady, saveContent])
 	
-	const handleTitleChange = (e) => {
+	const handleTitleChange = async (e) => {
 		const title = e.target.value
 		const updatedNote = { ...editedNote, title }
-		updateNote(updatedNote)
-		setEditedNote(updatedNote)
+		try {
+			await updateNote(updatedNote)
+			setEditedNote(updatedNote)
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to update title",
+				variant: "destructive",
+			})
+		}
 	}
 	
-	const handleAddTag = () => {
+	const handleAddTag = async () => {
 		if (newTag.trim() && editedNote && !editedNote.tags.includes(newTag.trim())) {
-			addTagToNote(editedNote.id, newTag.trim())
-			setNewTag("")
-		}
-	}
-	
-	const handleRemoveTag = (tag) => {
-		if (editedNote) {
-			removeTagFromNote(editedNote.id, tag)
-		}
-	}
-	
-	const handleTogglePin = () => {
-		if (editedNote) {
-			togglePinNote(editedNote.id)
-		}
-	}
-	
-	const handleDuplicateNote = () => {
-		if (editedNote) {
-			duplicateNote(editedNote.id)
-		}
-	}
-	
-	const handleMoveToFolder = (folderId) => {
-		if (editedNote) {
-			moveNoteToFolder(editedNote.id, folderId)
-		}
-	}
-	
-	const handleDeleteNote = () => {
-		console.log("Delete clicked for note:", editedNote.id)
-		if (editedNote) {
-			const confirmed = window.confirm("Are you sure you want to delete this note?")
-			console.log("Confirmed:", confirmed)
-			if (confirmed) {
-				console.log("Calling deleteNote with id:", editedNote.id)
-				deleteNote(editedNote.id)
+			try {
+				await addTagToNote(editedNote.id, newTag.trim())
+				setNewTag("")
+				toast({
+					title: "Success",
+					description: "Tag added successfully",
+				})
+			} catch (error) {
+				toast({
+					title: "Error",
+					description: "Failed to add tag",
+					variant: "destructive",
+				})
 			}
 		}
 	}
 	
+	const handleRemoveTag = async (tag) => {
+		if (editedNote) {
+			try {
+				await removeTagFromNote(editedNote.id, tag)
+				toast({
+					title: "Success",
+					description: "Tag removed successfully",
+				})
+			} catch (error) {
+				toast({
+					title: "Error",
+					description: "Failed to remove tag",
+					variant: "destructive",
+				})
+			}
+		}
+	}
+	
+	const handleTogglePin = async () => {
+		if (editedNote) {
+			try {
+				await togglePinNote(editedNote.id)
+				toast({
+					title: "Success",
+					description: editedNote.isPinned ? "Note unpinned" : "Note pinned",
+				})
+			} catch (error) {
+				toast({
+					title: "Error",
+					description: "Failed to toggle pin",
+					variant: "destructive",
+				})
+			}
+		}
+	}
+	
+	const handleDuplicateNote = async () => {
+		if (editedNote) {
+			try {
+				const duplicated = await duplicateNote(editedNote.id);
+				if (duplicated) {
+					toast({
+						title: "Success",
+						description: "Note duplicated successfully",
+					});
+				}
+			} catch (error) {
+				toast({
+					title: "Error",
+					description: "Failed to duplicate note",
+					variant: "destructive",
+				});
+			}
+		}
+	};
+	
+	const handleMoveToFolder = async (folderId) => {
+		if (editedNote) {
+			try {
+				await moveNoteToFolder(editedNote.id, folderId)
+				toast({
+					title: "Success",
+					description: "Note moved successfully",
+				})
+			} catch (error) {
+				toast({
+					title: "Error",
+					description: "Failed to move note",
+					variant: "destructive",
+				})
+			}
+		}
+	}
+	
+	const handleDeleteNote = async () => {
+		try {
+			await deleteNote(editedNote.id)
+			toast({
+				title: "Success",
+				description: "Note deleted successfully",
+			})
+		} catch (error) {
+			toast({
+				title: "Error",
+				description: "Failed to delete note",
+				variant: "destructive",
+			})
+		}
+	}
+	
 	if (!note || !editedNote) {
-		return <div className="flex-1 flex items-center justify-center">Note not found</div>
+		return (
+			<div className="flex-1 flex items-center justify-center text-muted-foreground">
+				{isLoading ? (
+					<div className="flex items-center gap-2">
+						<Loader2 className="h-4 w-4 animate-spin" />
+						Loading note...
+					</div>
+				) : (
+					"Note not found"
+				)}
+			</div>
+		)
 	}
 	
 	return (
-		<div className="flex-1 flex flex-col h-full">
+		<div className="flex-1 flex flex-col h-full relative">
+			{isSaving && (
+				<div
+					className="absolute top-2 right-2 bg-background/80 px-2 py-1 rounded-md flex items-center gap-2 text-sm text-muted-foreground">
+					<Loader2 className="h-3 w-3 animate-spin" />
+					Saving...
+				</div>
+			)}
 			<div className="flex items-center justify-between p-4 border-b">
 				<div className="flex items-center gap-2">
 					<Button variant="ghost" size="icon" onClick={handleTogglePin} className="hover:bg-accent">
@@ -356,12 +477,17 @@ function NoteEditor({ noteId }) {
 					onChange={handleTitleChange}
 					className="text-xl font-bold mb-4 border-none bg-transparent focus-visible:ring-0"
 					placeholder="Note title"
+					disabled={isLoading}
 				/>
 				<div className="flex-1 overflow-auto">
 					<div
 						ref={editorRef}
 						className="h-full min-h-[200px] quill-editor"
-						style={{ backgroundColor: "transparent" }}
+						style={{
+							backgroundColor: "transparent",
+							opacity: isLoading ? 0.7 : 1,
+							pointerEvents: isLoading ? "none" : "auto"
+						}}
 					/>
 				</div>
 			</div>

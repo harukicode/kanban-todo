@@ -1,6 +1,8 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { devtools } from 'zustand/middleware'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { devtools } from 'zustand/middleware';
+
+const API_URL = 'http://localhost:5000/api';
 
 const initialFormatting = {
 	bold: false,
@@ -33,369 +35,464 @@ const useNotesStore = create(
 	devtools(
 		persist(
 			(set, get) => ({
-				// Добавим в initialState
 				...initialState,
-				taskNotesRootFolder: null, // Корневая папка для всех заметок задач
+				taskNotesRootFolder: null,
 				
-				// Добавляем новые функции
-				initTaskNotesFolder: () => {
+				// Инициализация данных
+				fetchNotes: async () => {
+					set({ isLoading: true, error: null });
+					try {
+						const response = await fetch(`${API_URL}/notes`);
+						if (!response.ok) throw new Error('Failed to fetch notes');
+						const notes = await response.json();
+						set({ notes, isLoading: false });
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
+					}
+				},
+				
+				fetchFolders: async () => {
+					set({ isLoading: true, error: null });
+					try {
+						const response = await fetch(`${API_URL}/folders`);
+						if (!response.ok) throw new Error('Failed to fetch folders');
+						const folders = await response.json();
+						set({ folders, isLoading: false });
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
+					}
+				},
+				
+				// Инициализация корневой папки для заметок задач
+				initTaskNotesFolder: async () => {
 					const store = get();
 					let rootFolder = store.folders.find(f => f.isTaskNotesRoot);
 					
 					if (!rootFolder) {
-						rootFolder = TASK_NOTES_ROOT;
-						set(state => ({
-							folders: [...state.folders, rootFolder]
-						}));
+						try {
+							const response = await fetch(`${API_URL}/folders`, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify(TASK_NOTES_ROOT)
+							});
+							if (!response.ok) throw new Error('Failed to create root folder');
+							rootFolder = await response.json();
+							set(state => ({
+								folders: [...state.folders, rootFolder]
+							}));
+						} catch (error) {
+							console.error('Error creating root folder:', error);
+						}
 					}
 					
 					return rootFolder;
 				},
 				
-				createTaskFolder: (task) => {
-					const store = get();
-					const rootFolder = store.folders.find(f => f.isTaskNotesRoot) || store.initTaskNotesFolder();
-					
-					// Проверяем существование папки для задачи
-					let taskFolder = store.folders.find(f => f.taskId === task.id);
-					
-					if (!taskFolder) {
-						// Укорачиваем название задачи до 20 символов
-						const truncatedTitle = task.title.length > 20
-							? task.title.substring(0, 20) + '...'
-							: task.title;
+				// Создание папки для задачи
+				createTaskFolder: async (task) => {
+					set({ isLoading: true, error: null });
+					try {
+						const response = await fetch(`${API_URL}/folders/task-folder`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								taskId: task.id,
+								taskTitle: task.title
+							})
+						});
 						
-						taskFolder = {
-							id: `task-folder-${Date.now()}`,
-							name: `Task: ${truncatedTitle}`, // Используем более короткий префикс
-							fullName: `Notes for: ${task.title}`, // Сохраняем полное название для тултипа
-							createdAt: new Date().toISOString(),
-							parentId: rootFolder.id,
-							taskId: task.id,
-							isTaskFolder: true // Оставляем флаг, но разрешаем редактирование
-						};
+						if (!response.ok) throw new Error('Failed to create task folder');
+						const taskFolder = await response.json();
 						
 						set(state => ({
-							folders: [...state.folders, taskFolder]
+							folders: [...state.folders, taskFolder],
+							isLoading: false
 						}));
+						
+						return taskFolder;
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
+						return null;
 					}
-					
-					return taskFolder;
 				},
 				
-				createTaskNote: (task, initialContent = '', title = null) => {
+				// Создание заметки для задачи
+				createTaskNote: async (task, initialContent = '', title = null) => {
 					const store = get();
-					const taskFolder = store.createTaskFolder(task);
+					const taskFolder = await store.createTaskFolder(task);
+					if (!taskFolder) return null;
 					
-					const newNote = {
-						id: Date.now(),
-						title: title || `Note for: ${task.title}`,
-						content: initialContent,
-						tags: ['task-note'],
-						isPinned: false,
-						createdAt: new Date().toISOString(),
-						updatedAt: new Date().toISOString(),
-						folderId: taskFolder.id,
-						taskId: task.id,
-						formatting: { ...initialFormatting },
-						comments: []
-					};
-					
-					set(state => ({
-						notes: [...state.notes, newNote],
-						selectedNote: newNote,
-						selectedFolder: taskFolder.id
-					}));
-					
-					return newNote;
-				},
-				
-				
-				// Дополнительно: получение всех заметок для конкретной задачи
-				getTaskNotes: (taskId) => {
-					return get().notes.filter(note => note.taskId === taskId);
+					try {
+						const response = await fetch(`${API_URL}/notes`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								title: title || `Note for: ${task.title}`,
+								content: initialContent,
+								tags: ['task-note'],
+								isPinned: false,
+								folderId: taskFolder.id,
+								taskId: task.id,
+								formatting: { ...initialFormatting }
+							})
+						});
+						
+						if (!response.ok) throw new Error('Failed to create note');
+						const newNote = await response.json();
+						
+						set(state => ({
+							notes: [...state.notes, newNote],
+							selectedNote: newNote,
+							selectedFolder: taskFolder.id
+						}));
+						
+						return newNote;
+					} catch (error) {
+						set({ error: error.message });
+						return null;
+					}
 				},
 				
 				// Базовые операции с заметками
-				setNotes: (notes) => set({ notes }),
-				setSelectedNote: (note) => set({ selectedNote: note }),
-				
-				addNote: () => {
-					const newNote = {
-						id: Date.now(),
-						title: 'New Note',
-						content: '',
-						tags: [],
-						isPinned: false,
-						createdAt: new Date().toISOString(),
-						updatedAt: new Date().toISOString(),
-						folderId: get().selectedFolder,
-						formatting: { ...initialFormatting },
-						comments: []
-					};
-					set(state => ({
-						notes: [...state.notes, newNote],
-						selectedNote: newNote
-					}));
-					return newNote;
-				},
-				
-				updateNote: (updatedNote) => {
-					if (!updatedNote) return;
-					
-					const newNote = {
-						...updatedNote,
-						updatedAt: new Date().toISOString()
-					};
-					
-					set(state => {
-						const updatedNotes = state.notes.map(note =>
-							note.id === newNote.id ? newNote : note
-						);
+				addNote: async () => {
+					const store = get();
+					try {
+						const response = await fetch(`${API_URL}/notes`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								title: 'New Note',
+								content: '',
+								tags: [],
+								isPinned: false,
+								folderId: store.selectedFolder,
+								formatting: { ...initialFormatting }
+							})
+						});
 						
-						return {
-							notes: updatedNotes,
-							selectedNote: state.selectedNote?.id === newNote.id ? newNote : state.selectedNote
-						};
-					});
+						if (!response.ok) throw new Error('Failed to create note');
+						const newNote = await response.json();
+						
+						set(state => ({
+							notes: [...state.notes, newNote],
+							selectedNote: newNote
+						}));
+						
+						return newNote;
+					} catch (error) {
+						set({ error: error.message });
+						return null;
+					}
 				},
 				
-				deleteNote: (noteId) => {
-					console.log('NotesStore deleteNote called with id:', noteId);
-					set(state => {
-						console.log('Current notes:', state.notes);
-						const filteredNotes = state.notes.filter(note => note.id !== noteId);
-						console.log('Filtered notes:', filteredNotes);
-						return {
-							notes: filteredNotes,
-							selectedNote: state.selectedNote?.id === noteId ? null : state.selectedNote
-						};
-					});
+				updateNote: async (updatedNote) => {
+					if (!updatedNote?.id) return;
+					set({ isLoading: true });
+					
+					try {
+						const response = await fetch(`${API_URL}/notes/${updatedNote.id}`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(updatedNote)
+						});
+						
+						if (!response.ok) throw new Error('Failed to update note');
+						const note = await response.json();
+						
+						set(state => ({
+							notes: state.notes.map(n => n.id === note.id ? note : n),
+							selectedNote: state.selectedNote?.id === note.id ? note : state.selectedNote,
+							isLoading: false
+						}));
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
+					}
 				},
 				
-				// Note formatting
-				updateNoteFormatting: (noteId, formatType, value) => {
-					set(state => ({
-						notes: state.notes.map(note =>
-							note.id === noteId
-								? {
-									...note,
-									formatting: {
-										...note.formatting,
-										[formatType]: value
-									},
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						)
-					}))
+				deleteNote: async (noteId) => {
+					set({ isLoading: true });
+					try {
+						const response = await fetch(`${API_URL}/notes/${noteId}`, {
+							method: 'DELETE'
+						});
+						
+						if (!response.ok) throw new Error('Failed to delete note');
+						
+						set(state => ({
+							notes: state.notes.filter(note => note.id !== noteId),
+							selectedNote: state.selectedNote?.id === noteId ? null : state.selectedNote,
+							isLoading: false
+						}));
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
+					}
+				},
+				
+				// Управление форматированием
+				updateNoteFormatting: async (noteId, formatType, value) => {
+					const store = get();
+					const note = store.notes.find(n => n.id === noteId);
+					if (!note) return;
+					
+					const updatedNote = {
+						...note,
+						formatting: {
+							...note.formatting,
+							[formatType]: value
+						}
+					};
+					
+					await store.updateNote(updatedNote);
 				},
 				
 				// Управление папками
-				setFolders: (folders) => set({ folders }),
-				setSelectedFolder: (folderId) => set({ selectedFolder: folderId }),
-				
-				addFolder: (name, parentId = null) => {
-					const newFolder = {
-						id: Date.now().toString(),
-						name,
-						parentId,
-						createdAt: new Date().toISOString()
-					};
-					set(state => ({
-						folders: [...state.folders, newFolder]
-					}));
-					return newFolder;
+				addFolder: async (name, parentId = null) => {
+					set({ isLoading: true });
+					try {
+						const response = await fetch(`${API_URL}/folders`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ name, parentId })
+						});
+						
+						if (!response.ok) throw new Error('Failed to create folder');
+						const newFolder = await response.json();
+						
+						set(state => ({
+							folders: [...state.folders, newFolder],
+							isLoading: false
+						}));
+						
+						return newFolder;
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
+						return null;
+					}
 				},
 				
-				deleteFolder: (folderId) => {
+				deleteFolder: async (folderId) => {
 					const store = get();
 					const folderToDelete = store.folders.find(f => f.id === folderId);
-					
-					// Защита от удаления системных папок
 					if (folderToDelete?.isTaskNotesRoot) return;
 					
-					set(state => ({
-						folders: state.folders.filter(folder => folder.id !== folderId),
-						notes: state.notes.map(note =>
-							note.folderId === folderId ? { ...note, folderId: null } : note
-						),
-						selectedFolder: state.selectedFolder === folderId ? null : state.selectedFolder
-					}));
+					set({ isLoading: true });
+					try {
+						const response = await fetch(`${API_URL}/folders/${folderId}`, {
+							method: 'DELETE'
+						});
+						
+						if (!response.ok) throw new Error('Failed to delete folder');
+						
+						set(state => ({
+							folders: state.folders.filter(folder => folder.id !== folderId),
+							selectedFolder: state.selectedFolder === folderId ? null : state.selectedFolder,
+							isLoading: false
+						}));
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
+					}
 				},
 				
-				renameFolder: (folderId, newName) => {
+				renameFolder: async (folderId, newName) => {
 					const store = get();
 					const folderToRename = store.folders.find(f => f.id === folderId);
-					
-					// Защита от переименования системных папок
 					if (folderToRename?.isTaskNotesRoot) return;
 					
-					set(state => ({
-						folders: state.folders.map(folder =>
-							folder.id === folderId
-								? { ...folder, name: newName, updatedAt: new Date().toISOString() }
-								: folder
-						)
-					}));
-				},
-				
-				// Tags actions
-				addTagToNote: (noteId, tag) => {
-					set(state => ({
-						notes: state.notes.map(note =>
-							note.id === noteId && !note.tags.includes(tag)
-								? {
-									...note,
-									tags: [...note.tags, tag],
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						)
-					}))
-				},
-				
-				removeTagFromNote: (noteId, tagToRemove) => {
-					set(state => ({
-						notes: state.notes.map(note =>
-							note.id === noteId
-								? {
-									...note,
-									tags: note.tags.filter(tag => tag !== tagToRemove),
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						)
-					}))
-				},
-				
-				// Comments actions
-				addComment: (noteId, content) => {
-					const newComment = {
-						id: Date.now(),
-						content,
-						createdAt: new Date().toISOString(),
-						author: 'Current User', // Можно заменить на реального пользователя
-						authorInitial: 'C'
-					}
-					
-					set(state => ({
-						notes: state.notes.map(note =>
-							note.id === noteId
-								? {
-									...note,
-									comments: [...(note.comments || []), newComment],
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						)
-					}))
-					return newComment
-				},
-				
-				editComment: (noteId, commentId, newContent) => {
-					set(state => ({
-						notes: state.notes.map(note =>
-							note.id === noteId
-								? {
-									...note,
-									comments: note.comments.map(comment =>
-										comment.id === commentId
-											? {
-												...comment,
-												content: newContent,
-												updatedAt: new Date().toISOString()
-											}
-											: comment
-									),
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						)
-					}))
-				},
-				
-				deleteComment: (noteId, commentId) => {
-					set(state => ({
-						notes: state.notes.map(note =>
-							note.id === noteId
-								? {
-									...note,
-									comments: note.comments.filter(comment => comment.id !== commentId),
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						)
-					}))
-				},
-				
-				// Other note actions
-				togglePinNote: (noteId) => {
-					set(state => {
-						const updatedNotes = state.notes.map(note =>
-							note.id === noteId
-								? {
-									...note,
-									isPinned: !note.isPinned,
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						);
+					set({ isLoading: true });
+					try {
+						const response = await fetch(`${API_URL}/folders/${folderId}`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ name: newName })
+						});
 						
-						// Находим обновленную заметку
-						const updatedNote = updatedNotes.find(note => note.id === noteId);
+						if (!response.ok) throw new Error('Failed to rename folder');
+						const updatedFolder = await response.json();
 						
-						return {
-							notes: updatedNotes,
-							// Обновляем selectedNote если это текущая выбранная заметка
-							selectedNote: state.selectedNote?.id === noteId ? updatedNote : state.selectedNote
-						};
-					});
-				},
-				
-				duplicateNote: (noteId) => {
-					const noteToDuplicate = get().notes.find(note => note.id === noteId)
-					if (noteToDuplicate) {
-						const duplicatedNote = {
-							...noteToDuplicate,
-							id: Date.now(),
-							title: `${noteToDuplicate.title} (copy)`,
-							createdAt: new Date().toISOString(),
-							updatedAt: new Date().toISOString()
-						}
 						set(state => ({
-							notes: [...state.notes, duplicatedNote]
-						}))
-						return duplicatedNote
+							folders: state.folders.map(f => f.id === folderId ? updatedFolder : f),
+							isLoading: false
+						}));
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
 					}
-					return null
 				},
 				
-				moveNoteToFolder: (noteId, folderId) => {
-					set(state => ({
-						notes: state.notes.map(note =>
-							note.id === noteId
-								? {
-									...note,
-									folderId,
-									updatedAt: new Date().toISOString()
-								}
-								: note
-						)
-					}))
+				// Теги
+				addTagToNote: async (noteId, tag) => {
+					try {
+						const response = await fetch(`${API_URL}/notes/${noteId}/tags`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ tag })
+						});
+						
+						if (!response.ok) throw new Error('Failed to add tag');
+						const updatedNote = await response.json();
+						
+						set(state => ({
+							notes: state.notes.map(note => note.id === noteId ? updatedNote : note)
+						}));
+					} catch (error) {
+						set({ error: error.message });
+					}
 				},
 				
-				// Search
+				removeTagFromNote: async (noteId, tag) => {
+					try {
+						const response = await fetch(`${API_URL}/notes/${noteId}/tags/${tag}`, {
+							method: 'DELETE'
+						});
+						
+						if (!response.ok) throw new Error('Failed to remove tag');
+						const updatedNote = await response.json();
+						
+						set(state => ({
+							notes: state.notes.map(note => note.id === noteId ? updatedNote : note)
+						}));
+					} catch (error) {
+						set({ error: error.message });
+					}
+				},
+				
+				// Комментарии
+				addComment: async (noteId, content) => {
+					try {
+						const response = await fetch(`${API_URL}/notes/${noteId}/comments`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								content,
+								author: 'Current User',
+								authorInitial: 'C'
+							})
+						});
+						
+						if (!response.ok) throw new Error('Failed to add comment');
+						const updatedNote = await response.json();
+						
+						set(state => ({
+							notes: state.notes.map(note => note.id === noteId ? updatedNote : note)
+						}));
+						
+						return updatedNote.comments[updatedNote.comments.length - 1];
+					} catch (error) {
+						set({ error: error.message });
+						return null;
+					}
+				},
+				
+				editComment: async (noteId, commentId, newContent) => {
+					try {
+						const response = await fetch(`${API_URL}/notes/${noteId}/comments/${commentId}`, {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ content: newContent })
+						});
+						
+						if (!response.ok) throw new Error('Failed to update comment');
+						const updatedNote = await response.json();
+						
+						set(state => ({
+							notes: state.notes.map(note => note.id === noteId ? updatedNote : note)
+						}));
+					} catch (error) {
+						set({ error: error.message });
+					}
+				},
+				
+				deleteComment: async (noteId, commentId) => {
+					try {
+						const response = await fetch(`${API_URL}/notes/${noteId}/comments/${commentId}`, {
+							method: 'DELETE'
+						});
+						
+						if (!response.ok) throw new Error('Failed to delete comment');
+						const updatedNote = await response.json();
+						
+						set(state => ({
+							notes: state.notes.map(note => note.id === noteId ? updatedNote : note)
+						}));
+					} catch (error) {
+						set({ error: error.message });
+					}
+				},
+				
+				// Другие действия с заметками
+				togglePinNote: async (noteId) => {
+					const store = get();
+					const note = store.notes.find(n => n.id === noteId);
+					if (!note) return;
+					
+					const updatedNote = { ...note, isPinned: !note.isPinned };
+					await store.updateNote(updatedNote);
+				},
+				
+				duplicateNote: async (noteId) => {
+					const store = get();
+					const noteToDuplicate = store.notes.find(note => note.id === noteId);
+					if (!noteToDuplicate) return null;
+					
+					try {
+						set({ isLoading: true });
+						const response = await fetch(`${API_URL}/notes/duplicate/${noteId}`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							}
+						});
+						
+						if (!response.ok) {
+							throw new Error('Failed to duplicate note');
+						}
+						
+						const newNote = await response.json();
+						set(state => ({
+							notes: [...state.notes, newNote],
+							isLoading: false
+						}));
+						
+						return newNote;
+					} catch (error) {
+						set({ error: error.message, isLoading: false });
+						return null;
+					}
+				},
+				
+				moveNoteToFolder: async (noteId, folderId) => {
+					const store = get();
+					const note = store.notes.find(n => n.id === noteId);
+					if (!note) return;
+					
+					const updatedNote = { ...note, folderId };
+					await store.updateNote(updatedNote);
+				},
+				
+				// Поиск
 				setSearchTerm: (term) => set({ searchTerm: term }),
 				
-				// Error handling
+				// Управление состоянием
+				setSelectedNote: (note) => set({ selectedNote: note }),
+				setSelectedFolder: (folderId) => set({ selectedFolder: folderId }),
+				setNotes: (notes) => set({ notes }),
+				setFolders: (folders) => set({ folders }),
 				setError: (error) => set({ error }),
 				clearError: () => set({ error: null }),
-				
-				// Loading state
 				setLoading: (isLoading) => set({ isLoading }),
 				
-				// Модифицируем getFilteredNotes для поддержки иерархии папок
+				// Получение заметок для задачи
+				getTaskNotes: async (taskId) => {
+					try {
+						const response = await fetch(`${API_URL}/notes/task/${taskId}`);
+						if (!response.ok) throw new Error('Failed to fetch task notes');
+						return await response.json();
+					} catch (error) {
+						set({ error: error.message });
+						return [];
+					}
+				},
+				
+				// Фильтрация заметок
 				getFilteredNotes: () => {
 					const state = get();
 					return state.notes
@@ -419,21 +516,45 @@ const useNotesStore = create(
 						});
 				},
 				
+				// Вспомогательные функции
 				getNoteById: (noteId) => get().notes.find(note => note.id === noteId),
 				getFolderById: (folderId) => get().folders.find(folder => folder.id === folderId),
 				getCurrentFormatting: () => get().selectedNote?.formatting || initialFormatting,
 				
-				// Reset store
+				// Инициализация хранилища
+				initialize: async () => {
+					const store = get();
+					set({ isLoading: true, error: null });
+					try {
+						// Загружаем папки и заметки параллельно
+						await Promise.all([
+							store.fetchFolders(),
+							store.fetchNotes()
+						]);
+						// Убеждаемся, что корневая папка существует
+						await store.initTaskNotesFolder();
+					} catch (error) {
+						set({ error: error.message });
+					} finally {
+						set({ isLoading: false });
+					}
+				},
+				
+				// Сброс состояния
 				reset: () => {
-					set(initialState)
+					set(initialState);
 				}
 			}),
 			{
 				name: 'notes-storage',
 				version: 1,
+				partialize: (state) => ({
+					selectedFolder: state.selectedFolder,
+					searchTerm: state.searchTerm
+				})
 			}
 		)
 	)
-)
+);
 
-export default useNotesStore
+export default useNotesStore;
