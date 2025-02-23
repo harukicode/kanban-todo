@@ -14,6 +14,7 @@ const useTaskStore = create(
       timeLogs: [],
       isLoading: false,
       error: null,
+      setTasks: (newTasks) => set({ tasks: newTasks }),
       
       fetchTasks: async () => {
         set({ isLoading: true });
@@ -22,7 +23,7 @@ const useTaskStore = create(
           if (!response.ok) throw new Error('Failed to fetch tasks');
           const tasks = await response.json();
           set({ tasks, isLoading: false });
-          return tasks; // Возвращаем задачи для использования в других местах
+          return tasks;
         } catch (error) {
           set({ error: error.message, isLoading: false });
           return [];

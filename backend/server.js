@@ -20,7 +20,7 @@ const app = express();
 
 // CORS настройка
 app.use((req, res, next) => {
-	res.header('Access-Control-Allow-Origin', 'http://localhost:5177');
+	res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
 	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
 	res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 	res.header('Access-Control-Allow-Credentials', 'true');
@@ -52,8 +52,8 @@ app.use('/api/mindmap', mindMapRoutes);
 app.use('/api/focustasks', focusTaskRoutes);
 app.use('/api/timelogs', timeLogRoutes);
 app.use('/api/settings', settingsRoutes);
-app.use('/api/notes', notesRoutes);     // Добавляем маршруты заметок
-app.use('/api/folders', foldersRoutes); // Добавляем маршруты папок
+app.use('/api/notes', notesRoutes);
+app.use('/api/folders', foldersRoutes);
 
 // Базовый маршрут для проверки
 app.get('/', (req, res) => {

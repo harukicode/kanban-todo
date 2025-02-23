@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Column = require('../models/Column');
+const Task = require('../models/Task');
 
 // Получение всех колонок
 router.get('/', async (req, res) => {
@@ -67,15 +68,38 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Удаление колонки
 router.delete('/:id', async (req, res) => {
   try {
-    const column = await Column.findOneAndDelete({ id: req.params.id });
+    // Check if column ID exists
+    const columnId = req.params.id;
+    if (!columnId) {
+      return res.status(400).json({ message: 'Column ID is required' });
+    }
+    
+    // Find the column
+    const column = await Column.findOne({ id: columnId });
     if (!column) {
       return res.status(404).json({ message: 'Column not found' });
     }
-    res.json({ message: 'Column deleted successfully' });
+    
+    // Delete associated tasks
+    const tasksDeleteResult = await Task.deleteMany({ columnId: columnId });
+    console.log('Deleted tasks count:', tasksDeleteResult.deletedCount);
+    
+    // Delete the column
+    const columnDeleteResult = await Column.deleteOne({ id: columnId });
+    console.log('Column delete result:', columnDeleteResult);
+    
+    // Send success response
+    res.json({
+      success: true,
+      message: 'Column and associated tasks deleted successfully',
+      deletedColumnId: columnId,
+      deletedTasksCount: tasksDeleteResult.deletedCount
+    });
+    
   } catch (error) {
+    console.error('Error deleting column:', error);
     res.status(500).json({ message: error.message });
   }
 });

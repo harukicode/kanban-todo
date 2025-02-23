@@ -39,7 +39,7 @@ const useProjectStore = create(
           console.log('Making request to add project:', newProject);
           const projectWithId = {
             ...newProject,
-            id: Date.now().toString() // Добавляем id здесь
+            id: Date.now().toString()
           };
           
           const response = await fetch(`${API_URL}/projects`, {
@@ -101,7 +101,6 @@ const useProjectStore = create(
           const project = await response.json();
           
           set(state => {
-            // Проверяем, существует ли проект перед обновлением
             const projectExists = state.projects.some(p => p.id === id);
             if (!projectExists) {
               return state;
@@ -128,7 +127,6 @@ const useProjectStore = create(
           throw error;
         }
       },
-      // Удаление проекта
       deleteProject: async (id) => {
         set({ isLoading: true });
         try {
@@ -153,7 +151,6 @@ const useProjectStore = create(
         }
       },
       
-      // Установка активного проекта
       setActiveProjectId: (id) => set({ activeProjectId: id }),
     }),
     {
