@@ -33,7 +33,6 @@ const initialState = {
 
 const useNotesStore = create(
 	devtools(
-		persist(
 			(set, get) => ({
 				...initialState,
 				taskNotesRootFolder: null,
@@ -545,15 +544,6 @@ const useNotesStore = create(
 					set(initialState);
 				}
 			}),
-			{
-				name: 'notes-storage',
-				version: 1,
-				partialize: (state) => ({
-					selectedFolder: state.selectedFolder,
-					searchTerm: state.searchTerm
-				})
-			}
-		)
 	)
 );
 

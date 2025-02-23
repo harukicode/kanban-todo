@@ -1,10 +1,8 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 const API_URL = 'http://localhost:5000/api/focustasks';
 
 const useFocusTaskStore = create(
-	persist(
 		(set, get) => ({
 			focusTasks: [],
 			isLoading: false,
@@ -123,14 +121,6 @@ const useFocusTaskStore = create(
 			// Сброс ошибки
 			clearError: () => set({ error: null })
 		}),
-		{
-			name: "focus-tasks-storage",
-			getStorage: () => localStorage,
-			partialize: (state) => ({
-				focusTasks: state.focusTasks
-			})
-		}
-	)
 );
 
 export default useFocusTaskStore;

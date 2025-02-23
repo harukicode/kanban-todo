@@ -1,5 +1,4 @@
 import { create } from "zustand"
-import { persist } from "zustand/middleware"
 
 const COLORS = [
 	{ name: "Sky Blue", value: "#87CEEB", hover: "#7AB8D3" },
@@ -15,7 +14,6 @@ const MAX_TASK_LENGTH = 20
 const API_URL = 'http://localhost:5000/api/mindmap';
 
 export const useMindMapStore = create(
-	persist(
 		(set, get) => ({
 			tasks: [],
 			newTask: "",
@@ -131,15 +129,6 @@ export const useMindMapStore = create(
 			setSelectedColor: (color) => set({ selectedColor: color }),
 			clearError: () => set({ error: null })
 		}),
-		{
-			name: "mind-map-storage",
-			getStorage: () => localStorage,
-			partialize: (state) => ({
-				tasks: state.tasks,
-				selectedColor: state.selectedColor
-			})
-		}
-	)
 );
 
 export const MAX_TASKS_LIMIT = MAX_TASKS

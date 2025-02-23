@@ -1,11 +1,8 @@
 import useTaskStore from '@/Stores/TaskStore.jsx'
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-
 const API_URL = 'http://localhost:5000/api';
 
 const useColumnsStore = create(
-  persist(
     (set, get) => ({
       columns: [],
       isLoading: false,
@@ -119,14 +116,6 @@ const useColumnsStore = create(
         }
       }
     }),
-    {
-      name: "columns-storage",
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        columns: state.columns,
-      }),
-    }
-  )
 );
 
 export default useColumnsStore;

@@ -1,3 +1,5 @@
+import useColumnsStore from '@/Stores/ColumnsStore.jsx'
+import useTaskStore from '@/Stores/TaskStore.jsx'
 import { create } from "zustand";
 
 const API_URL = 'http://localhost:5000/api';
@@ -134,32 +136,42 @@ const useProjectStore = create(
             method: 'DELETE',
           });
           
+          const data = await response.json();
+          
           if (!response.ok) throw new Error('Failed to delete project');
+          
+          const columnsStore = useColumnsStore.getState();
+          const taskStore = useTaskStore.getState();
+          
+          const updatedColumns = columnsStore.columns.filter(column => column.projectId !== id);
+          columnsStore.setColumns(updatedColumns);
+          
+          const updatedTasks = taskStore.tasks.filter(task => {
+            const column = columnsStore.columns.find(col => col.id === task.columnId);
+            return column && column.projectId !== id;
+          });
+          taskStore.setTasks(updatedTasks);
           
           set(state => ({
             projects: state.projects.filter(p => p.id !== id),
             activeProjectId: state.activeProjectId === id ?
-              'default_project' : state.activeProjectId,
+              (state.projects[0]?.id || null) : state.activeProjectId,
             isLoading: false,
             error: null
           }));
+          
+          console.log('Project deletion completed successfully');
+          
         } catch (error) {
+          console.error('Error during project deletion:', error);
           set({
             error: error.message,
             isLoading: false
           });
         }
       },
-      
       setActiveProjectId: (id) => set({ activeProjectId: id }),
     }),
-    {
-      name: "project-storage",
-      partialize: (state) => ({
-        projects: state.projects,
-        activeProjectId: state.activeProjectId,
-      }),
-    }
 );
 
 export default useProjectStore;

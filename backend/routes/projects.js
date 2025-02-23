@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
+const Column = require('../models/Column');
+const Task = require('../models/Task');
 
 // Получение всех проектов
 router.get('/', async (req, res) => {
@@ -74,7 +76,6 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
 	try {
 		const project = await Project.findOne({ id: req.params.id });
-		
 		if (!project) {
 			return res.status(404).json({ message: 'Project not found' });
 		}
@@ -83,8 +84,22 @@ router.delete('/:id', async (req, res) => {
 			return res.status(400).json({ message: 'Cannot delete default project' });
 		}
 		
+		const columns = await Column.find({ projectId: req.params.id });
+		
+		for (const column of columns) {
+			await Task.deleteMany({ columnId: column.id });
+		}
+		
+		const columnsDeleteResult = await Column.deleteMany({ projectId: req.params.id });
+		
 		await Project.deleteOne({ id: req.params.id });
-		res.json({ message: 'Project deleted successfully' });
+		
+		res.json({
+			success: true,
+			message: 'Project deleted successfully',
+			deletedProjectId: req.params.id,
+			deletedColumnsCount: columnsDeleteResult.deletedCount
+		});
 	} catch (error) {
 		res.status(500).json({ message: error.message });
 	}

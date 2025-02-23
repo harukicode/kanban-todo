@@ -1,10 +1,8 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 
 const API_URL = 'http://localhost:5000/api';
 
 const useSubtaskStore = create(
-  persist(
     (set, get) => ({
       subtasks: [],
       isLoading: false,
@@ -212,14 +210,6 @@ const useSubtaskStore = create(
         });
       },
     }),
-    {
-      name: "subtask-storage",
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        subtasks: state.subtasks,
-      }),
-    }
-  )
 );
 
 export default useSubtaskStore;

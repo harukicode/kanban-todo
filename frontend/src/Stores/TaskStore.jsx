@@ -1,12 +1,10 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import useColumnsStore from "./ColumnsStore";
 import useSubtaskStore from "./SubtaskStore";
 
 const API_URL = 'http://localhost:5000/api';
 
 const useTaskStore = create(
-  persist(
     (set, get) => ({
       tasks: [],
       selectedTaskId: null,
@@ -390,15 +388,6 @@ const useTaskStore = create(
         }
       },
     }),
-    {
-      name: "task-storage",
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        tasks: state.tasks,
-        timeLogs: state.timeLogs,
-      }),
-    }
-  )
 );
 
 export default useTaskStore;
