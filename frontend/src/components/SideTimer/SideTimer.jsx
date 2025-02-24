@@ -1,4 +1,5 @@
 import { PDFExport } from '@/components/SideTimer/PdfExport.jsx'
+import { SidebarTrigger } from '@/components/ui/sidebar.jsx'
 import useColumnsStore from '@/Stores/ColumnsStore';
 import useFocusTaskStore from '@/Stores/FocusTaskStore.jsx'
 import useProjectStore from '@/Stores/ProjectsStore';
@@ -352,7 +353,10 @@ export default function SideTimer() {
     <div className="w-full max-w-8xl mx-auto p-4 font-sans">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+          <SidebarTrigger />
           <h2 className="text-lg font-medium">My Time</h2>
+          </div>
           <Button
             variant="outline"
             className="ml-2"

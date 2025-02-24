@@ -5,11 +5,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { SidebarTrigger } from '@/components/ui/sidebar.jsx'
 import useProjectStore from "@/Stores/ProjectsStore.jsx";
 import { IoIosTimer } from "react-icons/io";
 import { ChevronDown, Plus, Focus } from "lucide-react";
 import AddTimer from "@/components/AddTimer/AddTimer";
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from "react-router-dom";
 export default function Header({
                                  onAddColumn,
@@ -50,8 +51,11 @@ export default function Header({
   
   return (
     <div className="mb-4">
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-4">
+        <SidebarTrigger />
         <h1 className="text-2xl font-bold">Kanban Board</h1>
+        </div>
         <div className="flex space-x-2">
           <Button
             variant="secondary"

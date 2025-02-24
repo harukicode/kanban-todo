@@ -1,5 +1,6 @@
 'use client'
 
+import { SidebarTrigger } from '@/components/ui/sidebar.jsx'
 import { useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from "@/components/ui/button"
@@ -142,8 +143,12 @@ function NotesPage() {
 	}
 	
 	return (
-		<Card className="flex h-[calc(100vh-5rem)] bg-background rounded-lg overflow-hidden">
+		<Card className="flex h-[calc(100vh-5rem)] bg-background rounded-lg overflow-hidden mt-6">
 			<div className="w-64 border-r bg-background p-4 rounded-l-lg">
+				<div className="flex items-center gap-3 mb-4">
+					<SidebarTrigger />
+					<h2 className="text-sm font-semibold">Folders</h2>
+				</div>
 				<Button
 					className="w-full mb-4"
 					onClick={() => setIsNewFolderModalOpen(true)}

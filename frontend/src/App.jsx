@@ -30,8 +30,7 @@ const App = () => {
       <div className="flex">
         <SidebarProvider>
           <SideBar />
-          <main className="flex-grow p-4">
-            <SidebarTrigger />
+          <main className="flex-grow p-4 pt-0">
             <AnimatePresence mode="wait">
               <Routes>
                 <Route
